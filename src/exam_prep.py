@@ -6,9 +6,10 @@ import traceback
 from langchain_together import Together
 from langchain.llms.base import LLM
 from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
+
+from prompts import exam_prep_question_prompt, exam_prep_answer_prompt
 
 from dotenv import load_dotenv
 
@@ -19,42 +20,6 @@ load_dotenv()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 RETRIEVAL_K = int(os.getenv("RETRIEVAL_K", "4"))
-
-# System prompt
-question_prompt = PromptTemplate(
-    input_variables=["context", "question"],
-    template="""You are an ISTQB testing expert helping a STUDENT learn the ISTQB Test Manager syllabus by providing questions about specific subjects, sections, or topics to prepare for its exam. 
-
-IMPORTANT INSTRUCTIONS:
-- When STUDENT asks you to "ask me a question" or "quiz me" about a topic from the CONTEXT, respond with ONLY a clear, specific question about that topic.
-- Do not repeat previous questions, always ask something new.
-- Keep responses concise and focused.
-
-Based on the CONTEXT provided, respond appropriately:
-
-CONTEXT: {context}
-
-TOPIC: {question}
-RESPONSE:""",
-)
-
-# System prompt
-answer_prompt = PromptTemplate(
-    input_variables=["context", "question"],
-    template="""You are an ISTQB testing expert helping a STUDENT learn the ISTQB Test Manager syllabus and prepare for its exam. 
-
-IMPORTANT INSTRUCTIONS:
-- You will receive a QUESTION AND STUDENTS ANSWER: evaluate the student's answer based on the CONTEXT and provide feedback.
-- Provide student's feedback summary in a separate line at the end of the response.
-- Keep responses concise and focused.
-
-Based on the CONTEXT provided, respond appropriately:
-
-CONTEXT: {context}
-
-QUESTION AND STUDENTS ANSWER: {question}
-RESPONSE:""",
-)
 
 
 # --- Initialize Together AI LLM ---
@@ -166,7 +131,7 @@ def exam_prep(vectordb):
         llm=llm,
         retriever=retriever,
         memory=memory,
-        combine_docs_chain_kwargs={"prompt": question_prompt},
+        combine_docs_chain_kwargs={"prompt": exam_prep_question_prompt},
         # verbose=True,
     )
 
@@ -174,7 +139,7 @@ def exam_prep(vectordb):
         llm=llm,
         retriever=retriever,
         memory=memory,
-        combine_docs_chain_kwargs={"prompt": answer_prompt},
+        combine_docs_chain_kwargs={"prompt": exam_prep_answer_prompt},
         # verbose=True,
     )
 

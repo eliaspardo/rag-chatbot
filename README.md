@@ -13,9 +13,9 @@ An AI-powered chatbot using Retrieval-Augmented Generation (RAG) architecture.
 
 ## 🛠️ Technology Stack
 
-- **LLM**: Together AI (Mistral-7B-Instruct-v0.1)
+- **LLM**: Together AI
 - **Vector Database**: FAISS
-- **Embeddings**: Sentence Transformers (paraphrase-MiniLM-L3-v2)
+- **Embeddings**: Sentence Transformers
 - **Framework**: LangChain
 - **PDF Processing**: PyMuPDF
 - **Language**: Python 3.8+
