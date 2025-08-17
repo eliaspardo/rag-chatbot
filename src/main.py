@@ -2,6 +2,7 @@
 # Tools: Together AI (LLM), FAISS (Vector DB),
 # Sentence Transformers (Embeddings), LangChain
 
+import sys
 import os
 import fitz  # PyMuPDF
 import traceback
@@ -110,9 +111,9 @@ def main():
 
         print("\n🔍 Loading PDF...")
         texts = load_pdf_text(PDF_PATH)
-        print("Splitting text to docs")
+        print("Splitting text to docs.")
         docs = split_text_to_docs(texts)
-        print("Creating vector store")
+        print("Creating vector store.")
         if not docs:
             print("⚠️ No documents found after splitting — aborting.")
             exit(1)
@@ -122,26 +123,33 @@ def main():
         print("📦 Using existing vector store.")
 
     # Load vector store, retriever and memory
-    print("Loading vector store.")
+    print("📶 Loading vector store.")
     vectordb = load_vector_store(DB_DIR)
 
-    print("Select an Operational Mode:")
     while True:
-        print("1) Domain Expert Chatbot - Ask questions about the context imported")
-        print("2) Exam Prep Chatbot - Get a question from a particular topic")
-        user_selection = input()
+        print("=" * 50)
+        print("\n Select an Operational Mode:")
+        print("1) 🎓 Domain Expert Chatbot - Ask questions about the context imported.")
+        print("2) 📝 Exam Prep Chatbot - Get a question from a particular topic.")
+        print("\n Type 'quit', 'exit', or 'no' to stop.")
+        print("=" * 50)
+
+        user_selection = input("\n☰ Your selection:").strip()
+
+        if user_selection.lower() in ["quit", "exit", "no", "stop"]:
+            print("\n👋 Goodbye!")
+            sys.exit(0)
+
         if user_selection == "1":
-            print("Entering Domain Expert Chatbot mode")
+            print("\n ⎆ Entering Domain Expert Chatbot mode...")
             domain_expert(vectordb)
-            break
+            continue
         if user_selection == "2":
-            print("Entering Exam Prep Chatbot mode")
-            # TODO - Here the chatbot will ask for a subject or topic to ask a question about.
-            # Will ask the user to reply, and will give the correct anwser
+            print("\n ⎆ Entering Exam Prep Chatbot mode...")
             exam_prep(vectordb)
-            break
+            continue
         else:
-            print("Please select a valid Operational Mode:")
+            print("Please select a valid Operational Mode!")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import sys
 import os
 import textwrap
 import traceback
@@ -61,11 +62,11 @@ def get_llm() -> LLM:
 
 # --- Run Chat Loop ---
 def run_chat_loop(qa_chain):
-    """Run the interactive chat loop"""
+    print("\n" + "=" * 50)
     print("\n🤖 RAG Chatbot in Domain Expert Mode Ready!")
     print("=" * 50)
-    print("Ask me anything about your document")
-    print("Type 'quit', 'exit', or 'no' to stop.")
+    print("Ask me anything about your document.")
+    print("\n⚙ Type 'mode' to return to Operational Mode selection menu.")
     print("=" * 50)
 
     try:
@@ -74,15 +75,18 @@ def run_chat_loop(qa_chain):
 
             if question.lower() in ["quit", "exit", "no", "stop"]:
                 print("\n👋 Goodbye!")
+                sys.exit(0)
+
+            if question.lower() == "mode":
+                print("\n🔄 Returning to Operational Mode selection...")
                 break
 
             if not question:
-                print("Please enter a question.")
+                print("\n❌ Please enter a question.")
                 continue
 
             print("\n🤔 Thinking...")
             try:
-                # answer = qa_chain.ask_question(question)
                 answer = ask_question(question, qa_chain)
                 print("\n💡 Answer:")
                 print("=" * 50)
@@ -99,34 +103,31 @@ def run_chat_loop(qa_chain):
 # --- Run QA Chain ---
 def ask_question(question: str, qa_chain: RetrievalQA):
     try:
-        print(f"🔍 Processing question: {question}")
-
         # Show memory state
         # chat_history = qa_chain.memory.chat_memory.messages
         # print(f"💭 Chat history length: {len(chat_history)}")
 
         response = qa_chain.invoke({"question": question})
 
-        # return str(response["result"])
         return str(response["answer"])
     except Exception as e:
-        print(f"Error invoking LLM: {e}")
+        print(f"❌ Error invoking LLM: {e}")
         traceback.print_exc()
         return "An error occurred while processing your question."
 
 
 def domain_expert(vectordb):
-    print("Loading retriever.")
+    print("🐕 Loading retriever.")
     retriever = vectordb.as_retriever(search_kwargs={"k": RETRIEVAL_K})
-    print("Setting up memory.")
+    print("💾 Setting up memory.")
     memory = ConversationBufferMemory(
         memory_key="chat_history", return_messages=True, output_key="answer"
     )
 
-    print("Loading LLM.")
+    print("🧠 Loading LLM.")
     llm = get_llm()
 
-    print("Setting up Chain.")
+    print("⛓ Setting up Chain.")
     qa_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=retriever,
