@@ -60,7 +60,7 @@ def run_chat_loop(question_chain, answer_chain):
             print("\n🤔 Thinking...")
             try:
                 llm_question = ask_question(topic, question_chain)
-                print("\n❓ Your question:")
+                print("\n❓ Question:")
                 print("=" * 50)
                 print(textwrap.fill(llm_question, width=80))
                 print("=" * 50)
@@ -68,7 +68,7 @@ def run_chat_loop(question_chain, answer_chain):
                 print(f"❌ Error processing question: {e}")
                 print("Please try rephrasing your question.")
 
-            user_answer = input("\n❓ Your answer: ").strip()
+            user_answer = input("\n📝 Your answer: ").strip()
 
             if user_answer.lower() in ["quit", "exit", "no", "stop"]:
                 print("\n👋 Goodbye!")
