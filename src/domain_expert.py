@@ -75,10 +75,6 @@ def run_chat_loop(qa_chain):
 # --- Run QA Chain ---
 def ask_question(question: str, qa_chain: RetrievalQA):
     try:
-        # Show memory state
-        # chat_history = qa_chain.memory.chat_memory.messages
-        # print(f"💭 Chat history length: {len(chat_history)}")
-
         response = qa_chain.invoke({"question": question})
 
         return str(response["answer"])
@@ -106,7 +102,7 @@ def domain_expert(vectordb):
         memory=memory,
         condense_question_prompt=condense_question_prompt,
         combine_docs_chain_kwargs={"prompt": domain_expert_prompt},
-        # verbose=True,
+        # verbose=True, # Uncomment for debugging
     )
 
     run_chat_loop(qa_chain)

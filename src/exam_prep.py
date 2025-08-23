@@ -102,10 +102,6 @@ def run_chat_loop(question_chain, answer_chain):
 # --- Run QA Chain ---
 def ask_question(question: str, qa_chain: RetrievalQA):
     try:
-        # Show memory state
-        # chat_history = qa_chain.memory.chat_memory.messages
-        # print(f"💭 Chat history length: {len(chat_history)}")
-
         response = qa_chain.invoke({"question": question})
 
         return str(response["answer"])
@@ -132,7 +128,7 @@ def exam_prep(vectordb):
         retriever=retriever,
         memory=memory,
         combine_docs_chain_kwargs={"prompt": exam_prep_question_prompt},
-        # verbose=True,
+        # verbose=True, # Uncomment for debugging
     )
 
     answer_chain = ConversationalRetrievalChain.from_llm(
@@ -140,7 +136,7 @@ def exam_prep(vectordb):
         retriever=retriever,
         memory=memory,
         combine_docs_chain_kwargs={"prompt": exam_prep_answer_prompt},
-        # verbose=True,
+        # verbose=True, # Uncomment for debugging
     )
 
     run_chat_loop(question_chain, answer_chain)

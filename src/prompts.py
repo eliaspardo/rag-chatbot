@@ -1,4 +1,12 @@
+import os
+from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
+
+# Load environment variables
+load_dotenv()
+
+CHATBOT_ROLE = os.getenv("CHATBOT_ROLE", "expert tutor")
+USE_CASE = os.getenv("USE_CASE", "learn from the provided materials")
 
 # Condense into a single question taking into account history
 condense_question_prompt = PromptTemplate(
@@ -14,7 +22,7 @@ Standalone question:""",
 
 domain_expert_prompt = PromptTemplate(
     input_variables=["context", "question"],
-    template="""You are an ISTQB testing expert helping a STUDENT learn the ISTQB Test Manager syllabus and prepare for its exam. 
+    template="""You are a {{CHATBOT_ROLE}} helping a STUDENT {{USE_CASE}}. 
 
 IMPORTANT INSTRUCTIONS:
 - When STUDENT asks a factual question answer based on the CONTEXT provided.
@@ -30,7 +38,7 @@ RESPONSE:""",
 
 exam_prep_question_prompt = PromptTemplate(
     input_variables=["context", "question"],
-    template="""You are an ISTQB testing expert helping a STUDENT learn the ISTQB Test Manager syllabus by providing questions about specific subjects, sections, or topics to prepare for its exam. 
+    template="""You are a {{CHATBOT_ROLE}} helping a STUDENT {{USE_CASE}} by providing questions about specific subjects, sections, or topics. 
 
 IMPORTANT INSTRUCTIONS:
 - When STUDENT asks you to "ask me a question" or "quiz me" about a topic from the CONTEXT, respond with ONLY a clear, specific question about that topic.
@@ -47,7 +55,7 @@ RESPONSE:""",
 
 exam_prep_answer_prompt = PromptTemplate(
     input_variables=["context", "question"],
-    template="""You are an ISTQB expert helping a STUDENT learn the ISTQB Test Manager syllabus and prepare for its exam. 
+    template="""You are a {{CHATBOT_ROLE}} helping a STUDENT {{USE_CASE}}. 
 
 IMPORTANT INSTRUCTIONS:
 - You will receive a QUESTION AND STUDENTS ANSWER: evaluate the student's answer based on the CONTEXT and provide feedback.
