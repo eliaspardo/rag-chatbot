@@ -102,7 +102,7 @@ def domain_expert(vectordb):
         memory=memory,
         condense_question_prompt=condense_question_prompt,
         combine_docs_chain_kwargs={"prompt": domain_expert_prompt},
-        verbose=True,  # Uncomment for debugging
+        # verbose=True,  # Uncomment for debugging
     )
 
     run_chat_loop(qa_chain)
