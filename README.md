@@ -1,92 +1,119 @@
-# RAG Chatbot
+# RAG Chatbot for Self-Study
 
-An AI-powered chatbot using Retrieval-Augmented Generation (RAG) architecture.
+A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) and adapts to any domain or subject matter.
 
-## 🚀 Features
+## Features
 
-- **Intelligent Q&A**: Ask questions about the content in your document and get accurate, context-aware answers
-- **RAG Architecture**: Combines document retrieval with large language models for precise responses
-- **Vector Search**: Uses FAISS for efficient similarity search across document chunks
-- **Multiple LLM Support**: Powered by Together AI with Mistral-7B-Instruct model
-- **Easy Setup**: Simple installation and configuration process
-- **Extensible**: Modular design allows easy customization and extension
+### 🎓 Domain Expert Mode
 
-## 🛠️ Technology Stack
+- Ask questions about the provided PDF documents
+- Get contextual answers based on your imported PDF materials
+- Conversational interface with chat history
+- Configurable for any domain (medical, legal, technical, academic, etc.)
 
-- **LLM**: Together AI (Mistral-7B-Instruct-v0.1)
+### 📝 Exam Prep Mode
+
+- Request quiz questions on specific topics or sections
+- Receive immediate feedback on your answers
+- Adaptive questioning to avoid repetition
+- Customizable for any exam or certification
+
+## Technology Stack
+
+- **LLM**: Together AI
 - **Vector Database**: FAISS
-- **Embeddings**: Sentence Transformers (paraphrase-MiniLM-L3-v2)
+- **Embeddings**: HuggingFace Sentence Transformers
 - **Framework**: LangChain
-- **PDF Processing**: PyMuPDF
-- **Language**: Python 3.8+
+- **PDF Processing**: PyMuPDF (fitz)
 
-## 📋 Prerequisites
+## Installation
+
+### Prerequisites
 
 - Python 3.8 or higher
-- Together AI API key ([Get one here](https://together.ai/))
-- PDF document to use for RAG
+- Together AI API key
 
-## 🔧 Installation
+### Setup
 
-### 1. Clone the Repository
+1. **Clone the repository**
+
+   ```bash
+   git clone <your-repo-url>
+   cd rag-chatbot
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Create environment file**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+4. **Configure environment variables**
+
+   Edit the `.env` file and configure your chatbot:
+
+   ```env
+   # Required Configurations
+
+   # Domain Configuration - Customize for your use case
+   CHATBOT_ROLE=expert tutor
+   USE_CASE=learn from the provided materials
+
+   # Together AI API Key
+   TOGETHER_API_KEY=your_together_ai_api_key_here
+
+   # Path to PDF file
+   PDF_PATH=data/your_document.pdf
+
+   # Optional Configurations
+   ...
+   ```
+
+## Usage
+
+### Running the Application
 
 ```bash
-git clone https://github.com/eliaspardo/rag-chatbot.git
-cd rag-chatbot
+cd src
+python main.py
 ```
 
-### 2. Create Virtual Environment
+### First Run
 
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+On the first run, the application will:
 
-### 3. Install Dependencies
+1. Process your PDF document
+2. Split text into chunks
+3. Create embeddings using HuggingFace Sentence Transformers
+4. Store vectors in FAISS database
 
-```bash
-pip install -r requirements.txt
-```
+Subsequent runs will load the existing vector database. Delete the database if you want to use a different document.
 
-### 4. Set up Environment Variables
+### Operational Modes
 
-```bash
-cp .env.example .env
-```
-
-Edit the `.env` file and add your Together AI API key:
-
-```env
-TOGETHER_API_KEY=your_together_ai_api_key_here
-```
-
-### 5. Add Your PDF Document
-
-Place your PDF documents in the `data/` directory:
+#### Domain Expert Mode (Option 1)
 
 ```
-data/your_document.pdf
+❓ Your question: What are the key principles of risk-based testing?
+💡 Answer: Based on the context, risk-based testing involves...
 ```
 
-### 6. Run the Application
-
-```bash
-python src/main.py
-```
-
-## 🎯 Usage
-
-Once the application is running, you can ask questions about your document:
+#### Exam Prep Mode (Option 2)
 
 ```
-🤖 Ready to chat! Try asking:
-What is the first chapter about?
-A: The first chapter verses about test design - the process of deriving and specifying test cases from test conditions. And how it involves creating detailed test cases that can be executed to verify that the software system meets its requirements...
+🧠 Section / topic: Risk Management
+❓ Your question: What are the main categories of product risks in software testing?
+❓ Your answer: Functional failures and quality issues
+💡 Answer: Good start! The main categories include functional failures...
 ```
 
-If you want to clean up the vector database, delete the faiss_db folder. E.g. you're changing the documents you want to use for RAG.
-
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 rag-chatbot/
@@ -96,49 +123,81 @@ rag-chatbot/
 ├── .gitignore
 ├── src/
 │   ├── main.py            # Main application entry point
+│   ├── domain_expert.py   # Domain expert logic
+│   ├── exam_prep.py       # Exam prep logic
+│   └── prompts.py         # System and sentence condense prompts
 ├── data/
-|   └── your_document.pdf  # Place any file you want to use for context here
-├── faiss_db/              # Vector store - autogenerated upon first run. Delete if you switch documents.
+│   └── your_document.pdf  # Place any file you want to use for context here
+└── faiss_db/              # Vector store - autogenerated upon first run.
 ```
 
-## ⚙️ Configuration
+## Configuration Options
 
-The application can be configured through environment variables in the `.env` file:
+| Variable           | Default                                         | Description                           |
+| ------------------ | ----------------------------------------------- | ------------------------------------- |
+| `CHATBOT_ROLE`     | expert tutor                                    | Chatbot's role                        |
+| `USE_CASE`         | learn from the provided materials               | Learning goal                         |
+| `TOGETHER_API_KEY` | -                                               | Your Together AI API key (required)   |
+| `MODEL_NAME`       | `mistralai/Mistral-7B-Instruct-v0.1`            | LLM model to use                      |
+| `PDF_PATH`         | -                                               | Path to your PDF document             |
+| `EMBEDDING_MODEL`  | `sentence-transformers/paraphrase-MiniLM-L3-v2` | Embedding model                       |
+| `DB_DIR`           | `faiss_db`                                      | Directory for vector database         |
+| `CHUNK_SIZE`       | `500`                                           | Text chunk size for processing        |
+| `CHUNK_OVERLAP`    | `50`                                            | Overlap between text chunks           |
+| `RETRIEVAL_K`      | `4`                                             | Number of relevant chunks to retrieve |
+| `TEMPERATURE`      | `0.3`                                           | LLM temperature (creativity)          |
+| `MAX_TOKENS`       | `512`                                           | Maximum tokens in LLM response        |
 
-| Variable           | Description                   | Default                                       |
-| ------------------ | ----------------------------- | --------------------------------------------- |
-| `TOGETHER_API_KEY` | Together AI API key           | Required                                      |
-| `PDF_PATH`         | Path to PDF                   | Required                                      |
-| `MODEL_NAME`       | LLM model to use              | mistralai/Mistral-7B-Instruct-v0.1            |
-| `EMBEDDING_MODEL`  | Embedding model               | sentence-transformers/paraphrase-MiniLM-L3-v2 |
-| `DB_DIR`           | Vector database directory     | faiss_db                                      |
-| `CHUNK_SIZE`       | Text chunk size               | 500                                           |
-| `CHUNK_OVERLAP`    | Chunk overlap                 | 50                                            |
-| `RETRIEVAL_K`      | Number of retrieved documents | 4                                             |
+## Dependencies
 
-## 📚 How It Works
+Listed in `requirements.txt` file.
 
-1. **Document Processing**: The PDF is loaded and split into manageable chunks
-2. **Embedding Creation**: Text chunks are converted to vector embeddings using Sentence Transformers
-3. **Vector Storage**: Embeddings are stored in FAISS for efficient similarity search
-4. **Question Processing**: User questions are embedded and used to retrieve relevant document chunks
-5. **Answer Generation**: Retrieved context is passed to the LLM to generate accurate answers
+## Commands
 
-## 📝 License
+During chat sessions:
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Type your question or topic normally
+- `mode` - Return to operational mode selection
+- `quit`, `exit`, `no`, or `stop` - Exit the application
+- `Ctrl+C` - Force quit
 
-## 🙏 Acknowledgments
+## Troubleshooting
 
-- [LangChain](https://langchain.com/) for the RAG framework
-- [Together AI](https://together.ai/) for the LLM API
-- [Sentence Transformers](https://www.sbert.net/) for embeddings
-- [FAISS](https://github.com/facebookresearch/faiss) for vector search
+### Common Issues
 
-## 🔮 Future Enhancements
+**PDF Processing Errors**
 
-- [ ] Conversation history and context
-- [ ] Customize system prompt
-- [ ] Support for multiple documents
-- [ ] Multi-language support
-- [ ] Batch processing for multiple documents
+- Ensure your PDF path is correct in `.env`
+- Check that the PDF is readable and not password-protected
+
+**Together AI API Errors**
+
+- Verify your API key is valid and has sufficient credits
+- Check network connectivity
+
+**Memory Issues**
+
+- Reduce `CHUNK_SIZE` if processing large documents
+- Consider using smaller embedding models
+
+**Vector Database Issues**
+
+- Delete the `faiss_db` directory to rebuild the database
+- Ensure sufficient disk space
+
+### Debugging
+
+Enable verbose mode by uncommenting the `verbose=True` lines in the chain configurations:
+
+```python
+qa_chain = ConversationalRetrievalChain.from_llm(
+    llm=llm,
+    retriever=retriever,
+    memory=memory,
+    verbose=True,  # Uncomment for debugging
+)
+```
+
+## Support
+
+For issues create an issue in the GitHub repository.

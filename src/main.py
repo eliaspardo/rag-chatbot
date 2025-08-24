@@ -2,11 +2,11 @@
 # Tools: Together AI (LLM), FAISS (Vector DB),
 # Sentence Transformers (Embeddings), LangChain
 
+import sys
 import os
 import fitz  # PyMuPDF
 import traceback
 import shutil
-import textwrap
 from dotenv import load_dotenv
 
 
@@ -14,16 +14,15 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.llms.base import LLM
-from langchain.chains import RetrievalQA
-from langchain_together import Together
+
+from domain_expert import domain_expert
+from exam_prep import exam_prep
+
 
 # Load environment variables
 load_dotenv()
 
 # --- CONFIGURATION FROM .ENV ---
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
 )
@@ -31,7 +30,6 @@ DB_DIR = os.getenv("DB_DIR", "faiss_db")
 PDF_PATH = os.getenv("PDF_PATH")
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
-RETRIEVAL_K = int(os.getenv("RETRIEVAL_K", "4"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "512"))
 
@@ -53,9 +51,7 @@ def split_text_to_docs(texts: list[str]) -> list[Document]:
     valid_chunks = [chunk.strip() for chunk in chunks if chunk.strip()]
     docs = [Document(page_content=chunk) for chunk in valid_chunks]
 
-    print(f"📄 Created {len(docs)} documents") + (
-        f"from {len(valid_chunks)} valid chunks"
-    )
+    print(f"📄 Created {len(docs)} documents from {len(valid_chunks)} valid chunks")
     return docs
 
 
@@ -105,62 +101,6 @@ def load_vector_store(persist_dir: str) -> FAISS:
     return vectordb
 
 
-# --- STEP 5: Initialize Together AI LLM ---
-def get_llm() -> LLM:
-    return Together(
-        model=MODEL_NAME,
-        temperature=0.3,
-        max_tokens=512,
-        together_api_key=TOGETHER_API_KEY,
-    )
-
-
-# --- STEP 6: Run Chat Loop ---
-def run_chat_loop(qa_chain):
-    """Run the interactive chat loop"""
-    print("\n🤖 RAG Chatbot Ready!")
-    print("=" * 50)
-    print("Ask me anything about your document!")
-    print("Type 'quit', 'exit', or 'no' to stop.")
-    print("=" * 50)
-
-    try:
-        while True:
-            question = input("\n❓ Your question: ").strip()
-
-            if question.lower() in ["quit", "exit", "no", "stop"]:
-                print("\n👋 Goodbye!")
-                break
-
-            if not question:
-                print("Please enter a question.")
-                continue
-
-            print("\n🤔 Thinking...")
-            try:
-                # answer = qa_chain.ask_question(question)
-                answer = ask_question(question, qa_chain)
-                print("\n💡 Answer:")
-                print("=" * 50)
-                print(textwrap.fill(answer, width=80))
-                print("=" * 50)
-            except Exception as e:
-                print(f"❌ Error processing question: {e}")
-                print("Please try rephrasing your question.")
-
-    except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!")
-
-
-# --- STEP 7: Run QA Chain ---
-def ask_question(question: str, qa_chain: RetrievalQA):
-    try:
-        response = qa_chain.invoke({"query": question})
-        return str(response["result"])
-    except Exception as e:
-        print(f"Error invoking LLM: {e}")
-
-
 def main():
     """Main application entry point"""
     print("🚀 Starting RAG Chatbot...")
@@ -171,9 +111,9 @@ def main():
 
         print("\n🔍 Loading PDF...")
         texts = load_pdf_text(PDF_PATH)
-        print("Splitting text to docs")
+        print("Splitting text to docs.")
         docs = split_text_to_docs(texts)
-        print("Creating vector store")
+        print("Creating vector store.")
         if not docs:
             print("⚠️ No documents found after splitting — aborting.")
             exit(1)
@@ -182,19 +122,34 @@ def main():
     else:
         print("📦 Using existing vector store.")
 
-    # Load retriever
-    print("Loading vector store.")
+    # Load vector store, retriever and memory
+    print("📶 Loading vector store.")
     vectordb = load_vector_store(DB_DIR)
-    print("Loading retriever.")
-    retriever = vectordb.as_retriever(search_kwargs={"k": 4})
 
-    # Load LLM + QA Chain
-    print("Loading LLM.")
-    llm = get_llm()
-    print("Setting up Chain.")
-    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
+    while True:
+        print("=" * 50)
+        print("\n Select an Operational Mode:")
+        print("1) 🎓 Domain Expert Chatbot - Ask questions about the context imported.")
+        print("2) 📝 Exam Prep Chatbot - Get a question from a particular topic.")
+        print("\n Type 'quit', 'exit', or 'no' to stop.")
+        print("=" * 50)
 
-    run_chat_loop(qa_chain)
+        user_selection = input("\n☰ Your selection:").strip()
+
+        if user_selection.lower() in ["quit", "exit", "no", "stop"]:
+            print("\n👋 Goodbye!")
+            sys.exit(0)
+
+        if user_selection == "1":
+            print("\n ⎆ Entering Domain Expert Chatbot mode...")
+            domain_expert(vectordb)
+            continue
+        if user_selection == "2":
+            print("\n ⎆ Entering Exam Prep Chatbot mode...")
+            exam_prep(vectordb)
+            continue
+        else:
+            print("Please select a valid Operational Mode!")
 
 
 if __name__ == "__main__":
