@@ -1,51 +1,46 @@
-import sys
-import textwrap
+from langchain_community.vectorstores import FAISS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from chain_manager import ChainManager
 from prompts import condense_question_prompt, domain_expert_prompt
+from constants import EXIT_WORDS, ChatbotMode, Error
+from console_ui import ConsoleUI
 
 
 # --- Run Chat Loop ---
-def run_chat_loop(chain_manager: ChainManager, qa_chain: ConversationalRetrievalChain):
-    print("\n" + "=" * 50)
-    print("\n🤖 RAG Chatbot in Domain Expert Mode Ready!")
-    print("=" * 50)
-    print("Ask me anything about your document.")
-    print("\n⚙ Type 'mode' to return to Operational Mode selection menu.")
-    print("=" * 50)
+def run_chat_loop(
+    ui: ConsoleUI, chain_manager: ChainManager, qa_chain: ConversationalRetrievalChain
+):
+    ui.show_welcome_mode(ChatbotMode.DOMAIN_EXPERT)
 
     try:
         while True:
-            question = input("\n❓ Your question: ").strip()
+            question = ui.get_user_input("\n❓ Your question: ")
 
-            if question.lower() in ["quit", "exit", "no", "stop"]:
-                print("\n👋 Goodbye!")
-                sys.exit(0)
+            if question.lower() in EXIT_WORDS:
+                # TODO test whether this truly returns the goodbye message
+                return "exit"
 
             if question.lower() == "mode":
-                print("\n🔄 Returning to Operational Mode selection...")
+                ui.show_mode_switch()
                 break
 
             if not question:
-                print("\n❌ Please enter a question.")
+                ui.show_error(Error.NOT_A_QUESTION)
                 continue
 
-            print("\n🤔 Thinking...")
+            ui.show_llm_thinking()
+
             try:
                 answer = chain_manager.ask_question(question, qa_chain)
-                print("\n💡 Answer:")
-                print("=" * 50)
-                print(textwrap.fill(answer, width=80))
-                print("=" * 50)
+                ui.show_answer(answer)
             except Exception as e:
-                print(f"❌ Error processing question: {e}")
-                print("Please try rephrasing your question.")
+                ui.show_error(Error.QUESTION_EXCEPTION, exception=e)
 
     except KeyboardInterrupt:
         print("\n\n👋 Goodbye!")
 
 
-def domain_expert(vectordb):
+def domain_expert(ui: ConsoleUI, vectordb: FAISS):
     chain_manager = ChainManager(vectordb)
     print("🧠 Loading LLM.")
     llm = chain_manager.get_llm()
@@ -57,6 +52,6 @@ def domain_expert(vectordb):
         condense_question_prompt=condense_question_prompt,
     )
 
-    run_chat_loop(chain_manager, qa_chain)
+    run_chat_loop(ui, chain_manager, qa_chain)
 
     return

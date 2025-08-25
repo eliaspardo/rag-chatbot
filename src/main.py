@@ -15,8 +15,10 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+from console_ui import ConsoleUI
 from domain_expert import domain_expert
 from exam_prep import exam_prep
+from constants import ChatbotMode, EXIT_WORDS, Error
 
 
 # Load environment variables
@@ -101,14 +103,9 @@ def load_vector_store(persist_dir: str) -> FAISS:
     return vectordb
 
 
-def main():
-    """Main application entry point"""
-    print("🚀 Starting RAG Chatbot...")
-    print("=" * 50)
-
+def run_app(ui: ConsoleUI):
     # Step 0: Process PDF if not already embedded
     if not os.path.exists(DB_DIR):
-
         print("\n🔍 Loading PDF...")
         texts = load_pdf_text(PDF_PATH)
         print("Splitting text to docs.")
@@ -116,7 +113,7 @@ def main():
         print("Creating vector store.")
         if not docs:
             print("⚠️ No documents found after splitting — aborting.")
-            exit(1)
+            return "exit"
         create_vector_store(docs, DB_DIR)
         print("✅ Vector DB created and saved.")
     else:
@@ -127,29 +124,33 @@ def main():
     vectordb = load_vector_store(DB_DIR)
 
     while True:
-        print("=" * 50)
-        print("\n Select an Operational Mode:")
-        print("1) 🎓 Domain Expert Chatbot - Ask questions about the context imported.")
-        print("2) 📝 Exam Prep Chatbot - Get a question from a particular topic.")
-        print("\n Type 'quit', 'exit', or 'no' to stop.")
-        print("=" * 50)
+        ui.show_operational_mode_selection()
+        user_selection = ui.get_operational_mode_selection()
 
-        user_selection = input("\n☰ Your selection:").strip()
-
-        if user_selection.lower() in ["quit", "exit", "no", "stop"]:
-            print("\n👋 Goodbye!")
-            sys.exit(0)
+        if user_selection.lower() in EXIT_WORDS:
+            ui.show_exit_message()
+            return "exit"
 
         if user_selection == "1":
-            print("\n ⎆ Entering Domain Expert Chatbot mode...")
-            domain_expert(vectordb)
+            ui.show_entering_mode(ChatbotMode.DOMAIN_EXPERT)
+            domain_expert(ui, vectordb)
             continue
         if user_selection == "2":
-            print("\n ⎆ Entering Exam Prep Chatbot mode...")
-            exam_prep(vectordb)
+            ui.show_entering_mode(ChatbotMode.EXAM_PREP)
+            exam_prep(ui, vectordb)
             continue
         else:
-            print("Please select a valid Operational Mode!")
+            ui.show_error(Error.INVALID_MODE)
+
+
+def main():
+    ui = ConsoleUI()
+    ui.show_welcome()
+    result = run_app(ui)
+
+    if result == "exit":
+        ui.show_exit_message()
+        sys.exit(0)
 
 
 if __name__ == "__main__":
