@@ -5,7 +5,6 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import fitz  # PyMuPDF
-from constants import Error
 from exceptions import FaissException, VectorStoreException
 from dotenv import load_dotenv
 import logging
@@ -14,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-
-# --- CONFIGURATION FROM .ENV ---
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
 )
@@ -27,9 +24,9 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 
 class RAGPreprocessor:
     # --- Extract and Split Text ---
-    def load_pdf_text(path: str = PDF_PATH) -> list[str]:
-        doc = fitz.open(path)
-        texts = [page.get_text() for page in doc]
+    def load_pdf_text(self, path: str = PDF_PATH) -> list[str]:
+        with fitz.open(path) as doc:
+            texts = [page.get_text() for page in doc]
         return texts
 
     # --- Chunk Text into Documents ---
@@ -77,14 +74,18 @@ class RAGPreprocessor:
                     "✅ FAISS.from_documents completed successfully",
                     flush=True,
                 )
-            except Exception as exception:
-                raise FaissException(Error.FAISS_EXCEPTION.value) from exception
+            except ValueError as e:
+                raise FaissException(f"Invalid documents for FAISS: {e}") from exception
+            except RuntimeError as e:
+                raise FaissException(f"FAISS creation failed: {e}") from exception
             logger.debug("👉 Persisting FAISS DB")
             vectordb.save_local(db_dir)
             logger.debug("✅ Vector store creation successful")
             return vectordb
         except Exception as exception:
-            raise VectorStoreException(Error.VECTOR_EXCEPTION.value) from exception
+            raise VectorStoreException(
+                f"Error creating Vector Store: {exception}"
+            ) from exception
 
     # --- Load Vector Storage for Retrieval ---
     def load_vector_store(

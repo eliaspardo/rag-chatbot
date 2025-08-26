@@ -8,11 +8,11 @@ from langchain.prompts import PromptTemplate
 from langchain.chains.base import Chain
 from langchain_core.vectorstores import VectorStoreRetriever
 from dotenv import load_dotenv
+import logging
 
+logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
-
-# --- CONFIGURATION FROM .ENV ---
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 RETRIEVAL_K = int(os.getenv("RETRIEVAL_K", "4"))
@@ -34,6 +34,10 @@ class ChainManager:
         max_tokens: int = MAX_TOKENS,
         retrieval_k: int = RETRIEVAL_K,
     ):
+        if vectordb is None:
+            raise ValueError("vectordb cannot be None")
+        if not TOGETHER_API_KEY:
+            raise ValueError("TOGETHER_API_KEY environment variable is required")
         self.model = MODEL_NAME
         self.together_api_key = TOGETHER_API_KEY
         self.temperature = temperature
@@ -49,9 +53,8 @@ class ChainManager:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
             )
-        except Exception as e:
-            print(f"❌ Error setting up LLM: {e}")
-            raise
+        except Exception as exception:
+            raise Exception(f"❌ Error setting up LLM: {exception}") from exception
 
     # --- Get Conversational Chain based on a Document, resets memory ---
     def get_conversationalRetrievalChain(
@@ -78,16 +81,13 @@ class ChainManager:
 
             return ConversationalRetrievalChain.from_llm(**kwargs)
 
-        except Exception as e:
-            print(f"❌ Error setting up Chain: {e}")
-            raise
+        except Exception as exception:
+            raise Exception(f"❌ Error setting up Chain: {exception}") from exception
 
     # --- Run QA Chain ---
     def ask_question(self, question: str, qa_chain: Chain) -> str:
         try:
             response = qa_chain.invoke({"question": question})
-
             return str(response["answer"])
-        except Exception as e:
-            print(f"❌ Error invoking LLM: {e}")
-            return "An error occurred while processing your question."
+        except Exception as exception:
+            raise Exception(f"❌ Error invoking LLM: {exception}") from exception

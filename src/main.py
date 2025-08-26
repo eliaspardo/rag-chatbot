@@ -11,19 +11,16 @@ from exam_prep import exam_prep
 from constants import ChatbotMode, EXIT_WORDS, Error
 from rag_preprocessor import RAGPreprocessor
 from exceptions import ExitApp, FaissException, VectorStoreException
+import logging
 
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 # Load environment variables
 load_dotenv()
-
-# --- CONFIGURATION FROM .ENV ---
-EMBEDDING_MODEL = os.getenv(
-    "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
-)
 DB_DIR = os.getenv("DB_DIR", "faiss_db")
 
 
-def run_app(ui: ConsoleUI):
+def run_app(ui: ConsoleUI) -> None:
 
     rag_preprocessor = RAGPreprocessor()
     # Process PDF if not already embedded
@@ -41,9 +38,9 @@ def run_app(ui: ConsoleUI):
         try:
             rag_preprocessor.create_vector_store(docs)
         except FaissException as e:
-            ui.show_error(Error.FAISS_EXCEPTION, e)
+            ui.show_error(Error.EXCEPTION, e)
         except VectorStoreException as e:
-            ui.show_error(Error.VECTOR_EXCEPTION, e)
+            ui.show_error(Error.EXCEPTION, e)
         ui.show_info_message("✅ Vector DB created and saved.")
     else:
         ui.show_info_message("📦 Using existing vector store.")
@@ -71,7 +68,7 @@ def run_app(ui: ConsoleUI):
             ui.show_error(Error.INVALID_MODE)
 
 
-def main():
+def main() -> None:
     ui = ConsoleUI()
     ui.show_welcome()
     try:

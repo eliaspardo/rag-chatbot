@@ -5,6 +5,9 @@ from prompts import exam_prep_question_prompt, exam_prep_answer_prompt
 from constants import EXIT_WORDS, ChatbotMode, Error
 from console_ui import ConsoleUI
 from exceptions import ExitApp
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # --- Run Chat Loop ---
@@ -13,7 +16,7 @@ def run_chat_loop(
     chain_manager: ChainManager,
     question_chain: ConversationalRetrievalChain,
     answer_chain: ConversationalRetrievalChain,
-):
+) -> None:
     ui.show_welcome_mode(ChatbotMode.EXAM_PREP)
 
     try:
@@ -38,8 +41,10 @@ def run_chat_loop(
                 llm_question = chain_manager.ask_question(topic, question_chain)
                 ui.show_llm_question(llm_question)
             except Exception as exception:
+                logging.error(f"Error retrieving question: {exception}")
                 ui.show_error(Error.QUESTION_EXCEPTION, exception=exception)
-
+                ui.show_info_message("Please try rephrasing your question.")
+                continue
             user_answer = input("\n📝 Your answer: ").strip()
 
             if user_answer.lower() in EXIT_WORDS:
@@ -62,25 +67,43 @@ def run_chat_loop(
                 )
                 ui.show_answer(llm_answer)
             except Exception as exception:
-                ui.show_error(Error.ANSWER_EXCEPTION, exception=exception)
+                logging.error(f"Error retrieving answer: {exception}")
+                ui.show_error(Error.EXCEPTION, exception=exception)
+                ui.show_info_message("Please try rephrasing your answer.")
+                continue
 
     except KeyboardInterrupt:
         raise ExitApp()
 
 
-def exam_prep(ui: ConsoleUI, vectordb: FAISS):
-    chain_manager = ChainManager(vectordb)
+def exam_prep(ui: ConsoleUI, vectordb: FAISS) -> None:
+    try:
+        chain_manager = ChainManager(vectordb)
+    except ValueError as exception:
+        logger.error(f"Error setting up chain: {exception}")
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
+
     ui.show_info_message("\n🧠 Loading LLM.")
-    llm = chain_manager.get_llm()
+    try:
+        llm = chain_manager.get_llm()
+    except Exception as exception:
+        logger.error(f"Error getting LLM: {exception}")
+        ui.show_error(Error.EXCEPTION, exception)
 
     ui.show_info_message("\n⛓ Setting up Chains.")
-    question_chain = chain_manager.get_conversationalRetrievalChain(
-        llm, {"prompt": exam_prep_question_prompt}
-    )
+    try:
+        question_chain = chain_manager.get_conversationalRetrievalChain(
+            llm, {"prompt": exam_prep_question_prompt}
+        )
 
-    answer_chain = chain_manager.get_conversationalRetrievalChain(
-        llm, {"prompt": exam_prep_answer_prompt}
-    )
+        answer_chain = chain_manager.get_conversationalRetrievalChain(
+            llm, {"prompt": exam_prep_answer_prompt}
+        )
+    except Exception as exception:
+        logger.error(f"Error setting up chains: {exception}")
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
 
     run_chat_loop(ui, chain_manager, question_chain, answer_chain)
     return
