@@ -39,15 +39,21 @@ def run_app(ui: ConsoleUI) -> None:
             rag_preprocessor.create_vector_store(docs)
         except FaissException as exception:
             ui.show_error(Error.EXCEPTION, exception)
+            raise ExitApp()
         except VectorStoreException as exception:
             ui.show_error(Error.EXCEPTION, exception)
+            raise ExitApp()
         ui.show_info_message("✅ Vector DB created and saved.")
     else:
         ui.show_info_message("📦 Using existing vector store.")
 
     # Load vector store, retriever and memory
-    ui.show_info_message("📶 Loading vector store.")
-    vectordb = rag_preprocessor.load_vector_store()
+    try:
+        ui.show_info_message("📶 Loading vector store.")
+        vectordb = rag_preprocessor.load_vector_store()
+    except Exception as exception:
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
 
     while True:
         ui.show_operational_mode_selection()
