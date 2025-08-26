@@ -16,6 +16,8 @@ load_dotenv()
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 RETRIEVAL_K = int(os.getenv("RETRIEVAL_K", "4"))
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "512"))
 
 
 class ChainManager:
@@ -28,14 +30,15 @@ class ChainManager:
     def __init__(
         self,
         vectordb: FAISS,
-        temperature: float = 0.3,
-        max_tokens: int = 512,
+        temperature: float = TEMPERATURE,
+        max_tokens: int = MAX_TOKENS,
+        retrieval_k: int = RETRIEVAL_K,
     ):
         self.model = MODEL_NAME
         self.together_api_key = TOGETHER_API_KEY
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.retriever = vectordb.as_retriever(search_kwargs={"k": RETRIEVAL_K})
+        self.retriever = vectordb.as_retriever(search_kwargs={"k": retrieval_k})
 
     # --- Initialize Together AI LLM ---
     def get_llm(self) -> LLM:

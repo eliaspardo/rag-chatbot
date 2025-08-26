@@ -35,8 +35,8 @@ class ConsoleUI:
     def get_user_input(self, prompt: str) -> str:
         return input(prompt).strip()
 
-    def show_llm_thinking(self):
-        print("\n🤔 Thinking...")
+    def show_info_message(self, message: str):
+        print(message)
 
     def show_answer(self, answer: str):
         print("\n💡 Answer:")
@@ -50,8 +50,10 @@ class ConsoleUI:
         print(textwrap.fill(llm_question, width=80))
         print("=" * 50)
 
-    def show_error(self, error: Error, exception: Exception):
+    def show_error(self, error: Error, exception: Exception = None):
         match error:
+            case Error.NO_DOCUMENTS:
+                print("⚠️ No documents found after splitting — aborting.")
             case Error.INVALID_MODE:
                 print("Please select a valid Operational Mode!")
             case Error.NOT_A_QUESTION:
@@ -64,11 +66,12 @@ class ConsoleUI:
                 print(f"❌ Error processing question: {exception}")
                 print("Please try rephrasing your question.")
             case Error.ANSWER_EXCEPTION:
-                print(f"❌ Error processing answer: {e}")
+                print(f"❌ Error processing answer: {exception}")
                 print("Please try rephrasing your answer.")
-
-    def should_exit(self, user_input: str) -> bool:
-        pass
+            case Error.FAISS_EXCEPTION:
+                print(f"❌ FAISS.from_documents failed: {exception}")
+            case Error.VECTOR_EXCEPTION:
+                print(f"❌ Error creating vector store: {exception}")
 
     def show_exit_message(self):
         print("\n👋 Goodbye!")
