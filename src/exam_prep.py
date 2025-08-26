@@ -41,8 +41,8 @@ def run_chat_loop(
                 llm_question = chain_manager.ask_question(topic, question_chain)
                 ui.show_llm_question(llm_question)
             except Exception as exception:
-                logging.error(f"Error retrieving question: {exception}")
-                ui.show_error(Error.QUESTION_EXCEPTION, exception=exception)
+                logger.error(f"Error retrieving question: {exception}")
+                ui.show_error(Error.EXCEPTION, exception=exception)
                 ui.show_info_message("Please try rephrasing your question.")
                 continue
             user_answer = input("\n📝 Your answer: ").strip()
@@ -67,7 +67,7 @@ def run_chat_loop(
                 )
                 ui.show_answer(llm_answer)
             except Exception as exception:
-                logging.error(f"Error retrieving answer: {exception}")
+                logger.error(f"Error retrieving answer: {exception}")
                 ui.show_error(Error.EXCEPTION, exception=exception)
                 ui.show_info_message("Please try rephrasing your answer.")
                 continue
@@ -90,6 +90,7 @@ def exam_prep(ui: ConsoleUI, vectordb: FAISS) -> None:
     except Exception as exception:
         logger.error(f"Error getting LLM: {exception}")
         ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
 
     ui.show_info_message("\n⛓ Setting up Chains.")
     try:

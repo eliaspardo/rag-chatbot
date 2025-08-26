@@ -24,12 +24,12 @@ class ConsoleUI:
     def show_welcome_mode(self, mode: ChatbotMode) -> None:
         print("\n" + "=" * 50)
         print(f"\n🤖 RAG Chatbot in {mode.value} Mode Ready!")
+        print("\n⚙ Type 'mode' to return to Operational Mode selection menu.")
         print("=" * 50)
         if mode == ChatbotMode.DOMAIN_EXPERT:
             print("\nAsk me anything about your document.")
         if mode == ChatbotMode.EXAM_PREP:
-            print("\What section or topic you want me to quiz you on?")
-        print("\n⚙ Type 'mode' to return to Operational Mode selection menu.")
+            print("\nWhat section or topic you want me to quiz you on?")
         print("=" * 50)
 
     def show_mode_switch(self) -> None:

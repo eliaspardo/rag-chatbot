@@ -37,8 +37,8 @@ def run_chat_loop(
                 answer = chain_manager.ask_question(question, qa_chain)
                 ui.show_answer(answer)
             except Exception as exception:
-                logging.error(f"Error retrieving answer: {exception}")
-                ui.show_error(Error.ERROR, exception=exception)
+                logger.error(f"Error retrieving answer: {exception}")
+                ui.show_error(Error.EXCEPTION, exception=exception)
                 continue
 
     except KeyboardInterrupt:

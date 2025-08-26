@@ -74,10 +74,14 @@ class RAGPreprocessor:
                     "✅ FAISS.from_documents completed successfully",
                     flush=True,
                 )
-            except ValueError as e:
-                raise FaissException(f"Invalid documents for FAISS: {e}") from exception
-            except RuntimeError as e:
-                raise FaissException(f"FAISS creation failed: {e}") from exception
+            except ValueError as exception:
+                raise FaissException(
+                    f"Invalid documents for FAISS: {exception}"
+                ) from exception
+            except RuntimeError as exception:
+                raise FaissException(
+                    f"FAISS creation failed: {exception}"
+                ) from exception
             logger.debug("👉 Persisting FAISS DB")
             vectordb.save_local(db_dir)
             logger.debug("✅ Vector store creation successful")
