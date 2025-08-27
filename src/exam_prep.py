@@ -1,144 +1,110 @@
-import sys
-import os
-import textwrap
-import traceback
-
-from langchain_together import Together
-from langchain.llms.base import LLM
-from langchain.chains import RetrievalQA
+from langchain_community.vectorstores import FAISS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
-
+from chain_manager import ChainManager
 from prompts import exam_prep_question_prompt, exam_prep_answer_prompt
+from constants import EXIT_WORDS, ChatbotMode, Error
+from console_ui import ConsoleUI
+from exceptions import ExitApp
+import logging
 
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# --- CONFIGURATION FROM .ENV ---
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
-RETRIEVAL_K = int(os.getenv("RETRIEVAL_K", "4"))
-
-
-# --- Initialize Together AI LLM ---
-def get_llm() -> LLM:
-    return Together(
-        model=MODEL_NAME,
-        temperature=0.3,
-        max_tokens=512,
-        together_api_key=TOGETHER_API_KEY,
-    )
+logger = logging.getLogger(__name__)
 
 
 # --- Run Chat Loop ---
-def run_chat_loop(question_chain, answer_chain):
-    print("\n" + "=" * 50)
-    print("\n🤖 RAG Chatbot in Exam Prep Mode Ready!")
-    print("Provide a topic and I'll give you a question about it.")
-    print("\n⚙ Type 'mode' to return to Operational Mode selection menu.")
-    print("=" * 50)
+def run_chat_loop(
+    ui: ConsoleUI,
+    chain_manager: ChainManager,
+    question_chain: ConversationalRetrievalChain,
+    answer_chain: ConversationalRetrievalChain,
+) -> None:
+    ui.show_welcome_mode(ChatbotMode.EXAM_PREP)
 
     try:
         while True:
-            print("What section or topic do you want me to quiz you about?")
-            topic = input("\n🧠 Section / topic you want to be quizzed about: ").strip()
+            topic = ui.get_user_input(
+                "\n🧠 Section / topic you want to be quizzed about: "
+            )
 
-            if topic.lower() in ["quit", "exit", "no", "stop"]:
-                print("\n👋 Goodbye!")
-                sys.exit(0)
+            if topic.lower() in EXIT_WORDS:
+                raise ExitApp()
 
             if topic.lower() == "mode":
-                print("\n🔄 Returning to Operational Mode selection...")
+                ui.show_mode_switch()
                 break
 
             if not topic:
-                print("\n❌ Please enter a section / topic.")
+                ui.show_error(Error.NOT_A_TOPIC)
                 continue
 
-            print("\n🤔 Thinking...")
+            ui.show_info_message("\n🤔 Thinking...")
             try:
-                llm_question = ask_question(topic, question_chain)
-                print("\n❓ Question:")
-                print("=" * 50)
-                print(textwrap.fill(llm_question, width=80))
-                print("=" * 50)
-            except Exception as e:
-                print(f"❌ Error processing question: {e}")
-                print("Please try rephrasing your question.")
-
+                llm_question = chain_manager.ask_question(topic, question_chain)
+                ui.show_llm_question(llm_question)
+            except Exception as exception:
+                logger.error(f"Error retrieving question: {exception}")
+                ui.show_error(Error.EXCEPTION, exception=exception)
+                ui.show_info_message("Please try rephrasing your question.")
+                continue
             user_answer = input("\n📝 Your answer: ").strip()
 
-            if user_answer.lower() in ["quit", "exit", "no", "stop"]:
-                print("\n👋 Goodbye!")
-                sys.exit(0)
+            if user_answer.lower() in EXIT_WORDS:
+                raise ExitApp()
 
             if user_answer.lower() == "mode":
-                print("\n🔄 Returning to Operational Mode selection...")
+                ui.show_mode_switch()
                 break
 
             if not user_answer:
-                print("\n❌ Let's start all over again.")
+                ui.show_error(Error.NO_USER_ANSWER)
                 continue
 
             # Evaluate user's answer
             llm_question_user_answer = llm_question + "\n" + user_answer
-            print("\n🤔 Thinking...")
+            ui.show_info_message("\n🤔 Thinking...")
             try:
-                llm_answer = ask_question(llm_question_user_answer, answer_chain)
-                print("\n💡 Answer:")
-                print("=" * 50)
-                print(textwrap.fill(llm_answer, width=80))
-                print("=" * 50)
-            except Exception as e:
-                print(f"❌ Error processing answer: {e}")
-                print("Please try rephrasing your answer.")
+                llm_answer = chain_manager.ask_question(
+                    llm_question_user_answer, answer_chain
+                )
+                ui.show_answer(llm_answer)
+            except Exception as exception:
+                logger.error(f"Error retrieving answer: {exception}")
+                ui.show_error(Error.EXCEPTION, exception=exception)
+                ui.show_info_message("Please try rephrasing your answer.")
+                continue
 
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!")
+        raise ExitApp()
 
 
-# --- Run QA Chain ---
-def ask_question(question: str, qa_chain: RetrievalQA):
+def exam_prep(ui: ConsoleUI, vectordb: FAISS) -> None:
     try:
-        response = qa_chain.invoke({"question": question})
+        chain_manager = ChainManager(vectordb)
+    except ValueError as exception:
+        logger.error(f"Error setting up chain: {exception}")
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
 
-        return str(response["answer"])
-    except Exception as e:
-        print(f"❌ Error invoking LLM: {e}")
-        traceback.print_exc()
-        return "An error occurred while processing your question."
+    ui.show_info_message("\n🧠 Loading LLM.")
+    try:
+        llm = chain_manager.get_llm()
+    except Exception as exception:
+        logger.error(f"Error getting LLM: {exception}")
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
 
+    ui.show_info_message("\n⛓ Setting up Chains.")
+    try:
+        question_chain = chain_manager.get_conversationalRetrievalChain(
+            llm, {"prompt": exam_prep_question_prompt}
+        )
 
-def exam_prep(vectordb):
-    print("🐕 Loading retriever.")
-    retriever = vectordb.as_retriever(search_kwargs={"k": RETRIEVAL_K})
-    print("💾 Setting up memory.")
-    memory = ConversationBufferMemory(
-        memory_key="chat_history", return_messages=True, output_key="answer"
-    )
+        answer_chain = chain_manager.get_conversationalRetrievalChain(
+            llm, {"prompt": exam_prep_answer_prompt}
+        )
+    except Exception as exception:
+        logger.error(f"Error setting up chains: {exception}")
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
 
-    print("🧠 Loading LLM.")
-    llm = get_llm()
-
-    print("⛓ Setting up Chain.")
-    question_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=retriever,
-        memory=memory,
-        combine_docs_chain_kwargs={"prompt": exam_prep_question_prompt},
-        # verbose=True, # Uncomment for debugging
-    )
-
-    answer_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=retriever,
-        memory=memory,
-        combine_docs_chain_kwargs={"prompt": exam_prep_answer_prompt},
-        # verbose=True, # Uncomment for debugging
-    )
-
-    run_chat_loop(question_chain, answer_chain)
-
+    run_chat_loop(ui, chain_manager, question_chain, answer_chain)
     return
