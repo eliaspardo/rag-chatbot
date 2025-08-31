@@ -10,7 +10,6 @@ class TestConsoleUI:
     def ui(self):
         return ConsoleUI()
 
-    # @patch("os.get_terminal_size().columns", return_value=80)
     def test_show_welcome(self, ui, capsys):
         ui.show_welcome()
         captured = capsys.readouterr()
