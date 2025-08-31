@@ -16,3 +16,5 @@ class Error(Enum):
 
 
 EXIT_WORDS = {"quit", "exit", "no", "stop"}
+
+DEFAULT_CONSOLE_WIDTH = 80

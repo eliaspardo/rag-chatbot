@@ -1,6 +1,6 @@
 import pytest
 from src.console_ui import ConsoleUI, Error
-from constants import ChatbotMode
+from constants import ChatbotMode, DEFAULT_CONSOLE_WIDTH
 from unittest.mock import patch
 
 
@@ -10,11 +10,12 @@ class TestConsoleUI:
     def ui(self):
         return ConsoleUI()
 
+    # @patch("os.get_terminal_size().columns", return_value=80)
     def test_show_welcome(self, ui, capsys):
         ui.show_welcome()
         captured = capsys.readouterr()
         assert "Starting RAG Chatbot..." in captured.out
-        assert "=" * 50 in captured.out
+        assert "=" * DEFAULT_CONSOLE_WIDTH in captured.out
 
     def test_show_operational_mode_selection(self, ui, capsys):
         ui.show_operational_mode_selection()
@@ -63,14 +64,14 @@ class TestConsoleUI:
         ui.show_answer("Test answer")
         captured = capsys.readouterr()
         assert "Answer" in captured.out
-        assert "=" * 50 in captured.out
+        assert "=" * DEFAULT_CONSOLE_WIDTH in captured.out
         assert "Test answer" in captured.out
 
     def test_show_llm_question(self, ui, capsys):
         ui.show_llm_question("Test question")
         captured = capsys.readouterr()
         assert "Question:" in captured.out
-        assert "=" * 50 in captured.out
+        assert "=" * DEFAULT_CONSOLE_WIDTH in captured.out
         assert "Test question" in captured.out
 
     def test_show_error_no_documents(self, ui, capsys):
