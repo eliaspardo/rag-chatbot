@@ -25,8 +25,12 @@ def run_app(ui: ConsoleUI) -> None:
     rag_preprocessor = RAGPreprocessor()
     # Process PDF if not already embedded
     if not os.path.exists(DB_DIR):
-        ui.show_info_message("\n🔍 Loading PDF...")
-        texts = rag_preprocessor.load_pdf_text()
+        try:
+            ui.show_info_message("\n🔍 Loading PDF...")
+            texts = rag_preprocessor.load_pdf_text()
+        except Exception as exception:
+            ui.show_error(Error.EXCEPTION, exception)
+            raise ExitApp()
 
         ui.show_info_message("Splitting text to docs.")
         docs = rag_preprocessor.split_text_to_docs(texts)

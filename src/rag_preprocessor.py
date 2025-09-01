@@ -25,9 +25,12 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 class RAGPreprocessor:
     # --- Extract and Split Text ---
     def load_pdf_text(self, path: str = PDF_PATH) -> list[str]:
-        with fitz.open(path) as doc:
-            texts = [page.get_text() for page in doc]
-        return texts
+        try:
+            with fitz.open(path) as doc:
+                texts = [page.get_text() for page in doc]
+            return texts
+        except Exception as e:
+            raise Exception(f"Error reading PDF file {path}: {str(e)}")
 
     # --- Chunk Text into Documents ---
     def split_text_to_docs(
