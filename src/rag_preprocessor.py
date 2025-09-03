@@ -73,10 +73,7 @@ class RAGPreprocessor:
             logger.debug(f"👉 Creating FAISS DB at '{db_dir}' with {len(docs)} docs")
             try:
                 vectordb = FAISS.from_documents(docs, embeddings)
-                logger.debug(
-                    "✅ FAISS.from_documents completed successfully",
-                    flush=True,
-                )
+                logger.debug("✅ FAISS.from_documents completed successfully")
             except ValueError as exception:
                 raise FaissException(
                     f"Invalid documents for FAISS: {exception}"
