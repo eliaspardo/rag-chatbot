@@ -5,12 +5,12 @@
 import sys
 import os
 from dotenv import load_dotenv
-from console_ui import ConsoleUI
-from domain_expert import domain_expert
-from exam_prep import exam_prep
-from constants import ChatbotMode, EXIT_WORDS, Error
-from rag_preprocessor import RAGPreprocessor
-from exceptions import ExitApp, FaissException, VectorStoreException
+from src.console_ui import ConsoleUI
+from src.domain_expert import domain_expert
+from src.exam_prep import exam_prep
+from src.constants import ChatbotMode, EXIT_WORDS, Error
+from src.rag_preprocessor import RAGPreprocessor
+from src.exceptions import ExitApp, FaissException, VectorStoreException
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

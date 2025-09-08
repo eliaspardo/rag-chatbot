@@ -3,8 +3,6 @@ from unittest.mock import Mock, patch
 from src.rag_preprocessor import RAGPreprocessor
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_core.vectorstores import VectorStoreRetriever
 import os
 import shutil
 
@@ -58,16 +56,19 @@ class TestRagPreprocessor:
     def test_create_vector_store_deletes_existing_storage(
         self, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         # Speed up testing by mocking and generate exception so folder is not created
         mock_huggingFaceEmbeddings.side_effect = Exception("Error creating embeddings")
         # Create folder
         os.mkdir(TEST_DB_DIR)
-
         documents = [Document(page_content=PAGE_CONTENT)]
+
+        # Act
         # Ignore errors when creating embedding as it was mocked
         with pytest.raises(Exception, match="Error creating embeddings"):
             rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
 
+        # Assert
         # We expect the folder not to exist as it was cleaned up
         assert not os.path.isdir(TEST_DB_DIR)
 
@@ -79,12 +80,15 @@ class TestRagPreprocessor:
     def test_create_vector_store_throws_exception_mocked_HuggingFaceEmbeddings(
         self, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         mock_huggingFaceEmbeddings.side_effect = Exception("Error creating embeddings")
         documents = [Document(page_content=PAGE_CONTENT)]
 
+        # Act
         with pytest.raises(Exception, match="Error creating embeddings"):
             rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
 
+        # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
     @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
@@ -92,15 +96,18 @@ class TestRagPreprocessor:
     def test_create_vector_store_throws_value_error_mocked_FAISS_from_documents(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
 
         mock_faiss.from_documents.side_effect = ValueError("Wrong Documents")
         documents = [Document(page_content=PAGE_CONTENT)]
 
+        # Act
         with pytest.raises(Exception, match="Wrong Documents"):
             rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
 
+        # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
     @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
@@ -108,15 +115,18 @@ class TestRagPreprocessor:
     def test_create_vector_store_throws_runtime_error_mocked_FAISS_from_documents(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
 
         mock_faiss.from_documents.side_effect = RuntimeError("Runtime error")
         documents = [Document(page_content=PAGE_CONTENT)]
 
+        # Act
         with pytest.raises(Exception, match="Runtime error"):
             rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
 
+        # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
     @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
@@ -124,6 +134,7 @@ class TestRagPreprocessor:
     def test_create_vector_store_throws_exception_mocked_FAISS_save_local(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
         mock_vectordb_instance = Mock(spec=FAISS)
@@ -132,23 +143,26 @@ class TestRagPreprocessor:
         mock_vectordb_instance.save_local.side_effect = Exception("Error writing")
         documents = [Document(page_content=PAGE_CONTENT)]
 
+        # Act
         with pytest.raises(Exception, match="Error writing"):
             rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
 
+        # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
     @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
     @patch("src.rag_preprocessor.FAISS")
     def test_create_vector_store_success(
-        self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor, mock_embeddings
+        self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         # Speed up testing
-        mock_huggingFaceEmbeddings.return_value = mock_embeddings
         mock_vectordb_instance = Mock(spec=FAISS)
         mock_faiss.from_documents.return_value = mock_vectordb_instance
         mock_vectordb_instance.save_local.return_value = None
-
         documents = [Document(page_content=PAGE_CONTENT)]
+
+        # Act
         rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
         # TODO Add assertions
 
@@ -156,8 +170,11 @@ class TestRagPreprocessor:
     def test_load_vector_store_does_not_exist(
         self, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
+
+        # Act
         with pytest.raises(Exception, match="No such file or directory"):
             rag_preprocessor.load_vector_store(TEST_DB_DIR)
 
@@ -166,11 +183,14 @@ class TestRagPreprocessor:
     def test_load_vector_store_success(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
+        # Arrange
         mock_huggingFaceEmbeddings.return_value = Mock()
         mock_faiss.load_local.return_value = Mock(spec=FAISS)
 
+        # Act
         rag_preprocessor.load_vector_store(TEST_PREEXISTING_DB_DIR)
 
+        # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
         mock_faiss.load_local.assert_called_once_with(
             TEST_PREEXISTING_DB_DIR,

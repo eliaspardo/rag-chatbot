@@ -1,6 +1,6 @@
 import pytest
 from src.console_ui import ConsoleUI, Error
-from constants import ChatbotMode, DEFAULT_CONSOLE_WIDTH
+from src.constants import ChatbotMode, DEFAULT_CONSOLE_WIDTH
 from unittest.mock import patch
 
 

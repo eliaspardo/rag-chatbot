@@ -42,12 +42,14 @@ class TestChainManager:
 
     @patch("src.chain_manager.Together")
     def test_get_llm_success(self, mock_together, chain_manager):
-        """Test successful LLM initialization."""
+        # Arrange
         mock_llm = Mock(spec=LLM)
         mock_together.return_value = mock_llm
 
+        # Act
         result = chain_manager.get_llm()
 
+        # Assert
         assert result == mock_llm
         mock_together.assert_called_once_with(
             model=chain_manager.model,
@@ -67,10 +69,13 @@ class TestChainManager:
     def test_get_conversationalRetrievalChain_exception_ConversationBufferMemory(
         self, mock_conversation_buffer_memory, chain_manager
     ):
+        # Arrange
         mock_conversation_buffer_memory.side_effect = Exception(
             "Error in ConversationBufferMemory"
         )
         mock_llm = Mock(spec=LLM)
+
+        # Act
         with pytest.raises(Exception, match="Error in ConversationBufferMemory"):
             chain_manager.get_conversationalRetrievalChain(
                 mock_llm, {"sample_dict": "sample"}
@@ -90,19 +95,24 @@ class TestChainManager:
             )
 
     def test_ask_question_success(self, chain_manager):
+        # Arrange
         question = "This is the question"
         mock_chain = Mock()
         mock_response = {"answer": "This is the answer"}
         mock_chain.invoke.return_value = mock_response
 
+        # Act
         answer = chain_manager.ask_question(question, mock_chain)
 
+        # Assert
         assert answer == "This is the answer"
 
     def test_ask_question_failure(self, chain_manager):
+        # Arrange
         question = "This is the question"
         mock_chain = Mock()
         mock_chain.invoke.side_effect = Exception("Exception getting answer")
 
+        # Act
         with pytest.raises(Exception, match="Error invoking LLM:"):
             chain_manager.ask_question(question, mock_chain)

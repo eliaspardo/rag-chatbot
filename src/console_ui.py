@@ -1,6 +1,6 @@
 import os
 import textwrap
-from constants import ChatbotMode, Error, DEFAULT_CONSOLE_WIDTH
+from src.constants import ChatbotMode, Error, DEFAULT_CONSOLE_WIDTH
 
 
 class ConsoleUI:
