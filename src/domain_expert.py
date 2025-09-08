@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import FAISS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from chain_manager import ChainManager
+from src.chain_manager import ChainManager
 from src.prompts import condense_question_prompt, domain_expert_prompt
 from src.constants import EXIT_WORDS, ChatbotMode, Error
 from src.console_ui import ConsoleUI

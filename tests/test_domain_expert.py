@@ -158,16 +158,56 @@ class TestDomainExpert:
     def test_run_chat_loop_not_a_question(
         self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
     ):
-        # TODO Arrange - How can I make it so the first input is an enter and the second a string
-        mock_console_ui.get_user_input.return_value = ""
-        mock_console_ui.get_user_input.return_value = "quit"
+        # Arrange
+        mock_console_ui.get_user_input.side_effect = ["", "quit"]
 
         # Act
-        run_chat_loop(
-            mock_console_ui,
-            mock_chain_manager,
-            mock_conversational_retrieval_chain,
-        )
+        with pytest.raises(ExitApp):
+            run_chat_loop(
+                mock_console_ui,
+                mock_chain_manager,
+                mock_conversational_retrieval_chain,
+            )
 
         # Assert
         mock_console_ui.show_error.assert_called_once_with(Error.NOT_A_QUESTION)
+
+    def test_run_chat_loop_question_error(
+        self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
+    ):
+        # Arrange
+        mock_console_ui.get_user_input.side_effect = ["Sample Question", "quit"]
+        mock_chain_manager.ask_question.side_effect = Exception("Error getting answer")
+
+        # Act
+        with pytest.raises(ExitApp):
+            run_chat_loop(
+                mock_console_ui,
+                mock_chain_manager,
+                mock_conversational_retrieval_chain,
+            )
+
+        # Assert
+        mock_console_ui.show_error.assert_called_with(
+            Error.EXCEPTION, exception=mock_chain_manager.ask_question.side_effect
+        )
+
+    def test_run_chat_loop_success(
+        self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
+    ):
+        # Arrange
+        mock_console_ui.get_user_input.side_effect = ["Sample Question", "quit"]
+        mock_chain_manager.ask_question.return_value = "Sample Answer"
+
+        # Act
+        with pytest.raises(ExitApp):
+            run_chat_loop(
+                mock_console_ui,
+                mock_chain_manager,
+                mock_conversational_retrieval_chain,
+            )
+
+        # Assert
+        mock_console_ui.show_answer.assert_called_once_with(
+            mock_chain_manager.ask_question.return_value
+        )
