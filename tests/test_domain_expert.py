@@ -176,11 +176,11 @@ class TestDomainExpert:
         self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
     ):
         # Arrange
-        mock_console_ui.get_user_input.side_effect = ["Sample Question", "quit"]
+        mock_console_ui.get_user_input.side_effect = "Sample Question"
         mock_chain_manager.ask_question.side_effect = Exception("Error getting answer")
 
         # Act
-        with pytest.raises(ExitApp):
+        with pytest.raises(StopIteration):
             run_chat_loop(
                 mock_console_ui,
                 mock_chain_manager,
