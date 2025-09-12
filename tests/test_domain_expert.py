@@ -192,6 +192,22 @@ class TestDomainExpert:
             Error.EXCEPTION, exception=mock_chain_manager.ask_question.side_effect
         )
 
+    def test_run_chat_loop_keyboard_exception(
+        self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
+    ):
+        # Arrange
+        exception = KeyboardInterrupt()
+        mock_console_ui.get_user_input.side_effect = ["Sample Question", exception]
+        mock_chain_manager.ask_question.side_effect = ["Sample Answer"]
+
+        # Act
+        with pytest.raises(ExitApp):
+            run_chat_loop(
+                mock_console_ui,
+                mock_chain_manager,
+                mock_conversational_retrieval_chain,
+            )
+
     def test_run_chat_loop_success(
         self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
     ):

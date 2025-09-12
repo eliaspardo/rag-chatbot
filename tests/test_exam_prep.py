@@ -305,3 +305,42 @@ class TestExamPrep:
         mock_console_ui.show_error.assert_called_with(
             Error.EXCEPTION, exception=exception
         )
+
+    def test_run_chat_loop_keyboard_exception(
+        self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
+    ):
+        # Arrange
+        exception = KeyboardInterrupt()
+        mock_console_ui.get_user_input.side_effect = ["Sample Topic", exception]
+        mock_chain_manager.ask_question.side_effect = ["Sample Question"]
+
+        # Act
+        with pytest.raises(ExitApp):
+            run_chat_loop(
+                mock_console_ui,
+                mock_chain_manager,
+                mock_conversational_retrieval_chain,
+                mock_conversational_retrieval_chain,
+            )
+
+    def test_run_chat_loop_success(
+        self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
+    ):
+        # Arrange
+        mock_console_ui.get_user_input.side_effect = ["Sample Topic", "Sample Answer"]
+        mock_chain_manager.ask_question.side_effect = [
+            "Sample Question",
+            "Sample Answer",
+        ]
+
+        # Act
+        with pytest.raises(StopIteration):
+            run_chat_loop(
+                mock_console_ui,
+                mock_chain_manager,
+                mock_conversational_retrieval_chain,
+                mock_conversational_retrieval_chain,
+            )
+
+        # Assert
+        mock_console_ui.show_answer.assert_called_with("Sample Answer")
