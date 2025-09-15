@@ -12,6 +12,8 @@ from src.constants import ChatbotMode, EXIT_WORDS, Error
 from src.rag_preprocessor import RAGPreprocessor
 from src.exceptions import ExitApp, FaissException, VectorStoreException
 import logging
+from langchain_community.vectorstores import FAISS
+
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -59,6 +61,10 @@ def run_app(ui: ConsoleUI) -> None:
         ui.show_error(Error.EXCEPTION, exception)
         raise ExitApp()
 
+    run_chat_loop(ui, vectordb)
+
+
+def run_chat_loop(ui: ConsoleUI, vectordb: FAISS) -> None:
     while True:
         ui.show_operational_mode_selection()
         user_selection = ui.get_operational_mode_selection()
@@ -82,11 +88,8 @@ def main() -> None:
     ui = ConsoleUI()
     ui.show_welcome()
     try:
-        result = run_app(ui)
+        run_app(ui)
     except ExitApp:
-        ui.show_exit_message()
-        sys.exit(0)
-    if result == "exit":
         ui.show_exit_message()
         sys.exit(0)
 
