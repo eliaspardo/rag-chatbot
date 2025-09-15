@@ -30,18 +30,17 @@ def run_app(ui: ConsoleUI) -> None:
         try:
             ui.show_info_message("\n🔍 Loading PDF...")
             texts = rag_preprocessor.load_pdf_text()
+            ui.show_info_message("Splitting text to docs.")
+            docs = rag_preprocessor.split_text_to_docs(texts)
         except Exception as exception:
             ui.show_error(Error.EXCEPTION, exception)
             raise ExitApp()
 
-        ui.show_info_message("Splitting text to docs.")
-        docs = rag_preprocessor.split_text_to_docs(texts)
-
-        ui.show_info_message("Creating vector store.")
         if not docs:
             ui.show_error(Error.NO_DOCUMENTS)
             raise ExitApp()
         try:
+            ui.show_info_message("Creating vector store.")
             rag_preprocessor.create_vector_store(docs)
         except FaissException as exception:
             ui.show_error(Error.EXCEPTION, exception)
