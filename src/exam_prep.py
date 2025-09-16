@@ -1,10 +1,10 @@
 from langchain_community.vectorstores import FAISS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from chain_manager import ChainManager
-from prompts import exam_prep_question_prompt, exam_prep_answer_prompt
-from constants import EXIT_WORDS, ChatbotMode, Error
-from console_ui import ConsoleUI
-from exceptions import ExitApp
+from src.chain_manager import ChainManager
+from src.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
+from src.constants import EXIT_WORDS, ChatbotMode, Error
+from src.console_ui import ConsoleUI
+from src.exceptions import ExitApp
 import logging
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def run_chat_loop(
                 ui.show_error(Error.EXCEPTION, exception=exception)
                 ui.show_info_message("Please try rephrasing your question.")
                 continue
-            user_answer = input("\n📝 Your answer: ").strip()
+            user_answer = ui.get_user_input("\n📝 Your answer: ")
 
             if user_answer.lower() in EXIT_WORDS:
                 raise ExitApp()

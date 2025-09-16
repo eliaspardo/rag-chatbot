@@ -5,7 +5,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import fitz  # PyMuPDF
-from exceptions import FaissException, VectorStoreException
+from src.exceptions import FaissException, VectorStoreException
 from dotenv import load_dotenv
 import logging
 
@@ -25,9 +25,12 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 class RAGPreprocessor:
     # --- Extract and Split Text ---
     def load_pdf_text(self, path: str = PDF_PATH) -> list[str]:
-        with fitz.open(path) as doc:
-            texts = [page.get_text() for page in doc]
-        return texts
+        try:
+            with fitz.open(path) as doc:
+                texts = [page.get_text() for page in doc]
+            return texts
+        except Exception as e:
+            raise Exception(f"Error reading PDF file {path}: {str(e)}")
 
     # --- Chunk Text into Documents ---
     def split_text_to_docs(
@@ -70,10 +73,7 @@ class RAGPreprocessor:
             logger.debug(f"👉 Creating FAISS DB at '{db_dir}' with {len(docs)} docs")
             try:
                 vectordb = FAISS.from_documents(docs, embeddings)
-                logger.debug(
-                    "✅ FAISS.from_documents completed successfully",
-                    flush=True,
-                )
+                logger.debug("✅ FAISS.from_documents completed successfully")
             except ValueError as exception:
                 raise FaissException(
                     f"Invalid documents for FAISS: {exception}"
