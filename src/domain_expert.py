@@ -67,7 +67,7 @@ def domain_expert(ui: ConsoleUI, vectordb: FAISS) -> None:
         qa_chain = setup_domain_expert_chain(
             chain_manager,
             llm,
-            {"prompt": domain_expert_prompt},
+            domain_expert_prompt,
             condense_question_prompt=condense_question_prompt,
         )
     except Exception as exception:
@@ -82,11 +82,11 @@ def domain_expert(ui: ConsoleUI, vectordb: FAISS) -> None:
 def setup_domain_expert_chain(
     chain_manager: ChainManager,
     llm: LLM,
-    prompt: dict,
+    prompt: PromptTemplate = None,
     condense_question_prompt: PromptTemplate = None,
 ) -> ConversationalRetrievalChain:
     return chain_manager.get_conversationalRetrievalChain(
         llm,
-        {"prompt": domain_expert_prompt},
+        {"prompt": prompt},
         condense_question_prompt=condense_question_prompt,
     )
