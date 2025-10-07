@@ -1,7 +1,10 @@
-# tests/utils/ragas_utils.py
 import os
+from langchain_together import Together
+from langchain.llms.base import LLM
 from dotenv import load_dotenv
+import logging
 
+logger = logging.getLogger(__name__)
 load_dotenv(override=False)
 
 # Default thresholds (can be overridden by environment variables)
@@ -14,6 +17,11 @@ RAGAS_ANSWER_RELEVANCY_MIN = float(os.getenv("RAGAS_ANSWER_RELEVANCY_MIN", "0.2"
 RAGAS_FAITHFULNESS_MIN = float(os.getenv("RAGAS_FAITHFULNESS_MIN", "0.2"))
 RAGAS_PRECISION_MIN = float(os.getenv("RAGAS_PRECISION_MIN", "0.2"))
 
+MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
+MAX_TEST_TOKENS = int(os.getenv("MAX_TEST_TOKENS", "512"))
+
 
 def print_ragas_results(results, dataset=None):
     """
@@ -25,9 +33,9 @@ def print_ragas_results(results, dataset=None):
     """
     results_df = results.to_pandas()
 
-    print("\n" + "=" * 80)
-    print("RAGAS EVALUATION RESULTS:")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("RAGAS EVALUATION RESULTS:")
+    logger.info("=" * 80)
 
     if dataset:
         # Include questions in output
@@ -36,18 +44,18 @@ def print_ragas_results(results, dataset=None):
         cols = ["question"] + [col for col in results_df.columns if col != "question"]
         results_df = results_df[cols]
 
-    print(results_df.to_string())
+    logger.info(results_df.to_string())
 
-    print("\n" + "-" * 80)
-    print("SUMMARY STATISTICS:")
-    print("-" * 80)
+    logger.info("\n" + "-" * 80)
+    logger.info("SUMMARY STATISTICS:")
+    logger.info("-" * 80)
     metrics_cols = [
         col
         for col in results_df.columns
         if col not in ["question", "answer", "contexts"]
     ]
-    print(results_df[metrics_cols].describe())
-    print("=" * 80 + "\n")
+    logger.info(results_df[metrics_cols].describe())
+    logger.info("=" * 80 + "\n")
 
 
 def assert_ragas_thresholds(
@@ -116,3 +124,15 @@ def assert_ragas_thresholds(
     print(f"   Answer Relevancy: {answer_rel_mean:.3f} (min: {min_ans_rel:.3f})")
     print(f"   Faithfulness: {faithfulness_mean:.3f} (min: {min_faith:.3f})")
     print(f"   Precision: {precision_mean:.3f} (min: {min_prec:.3f})")
+
+
+def get_ragas_llm() -> LLM:
+    try:
+        return Together(
+            model=MODEL_NAME,
+            together_api_key=TOGETHER_API_KEY,
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TEST_TOKENS,
+        )
+    except Exception as exception:
+        raise Exception(f"❌ Error setting up LLM: {exception}") from exception

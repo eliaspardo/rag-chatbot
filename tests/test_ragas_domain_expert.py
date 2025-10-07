@@ -9,10 +9,15 @@ from src.rag_preprocessor import RAGPreprocessor
 from src.chain_manager import ChainManager
 from src.domain_expert import setup_domain_expert_chain
 from src.prompts import domain_expert_prompt, condense_question_prompt
-from tests.utils.ragas_utils import assert_ragas_thresholds
+from tests.utils.ragas_utils import (
+    print_ragas_results,
+    assert_ragas_thresholds,
+    get_ragas_llm,
+)
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
 
 ISTQB_DB_DIR = "tests/data/istqb_tm_faiss_db"
 EMBED_MODEL = os.getenv(
@@ -73,15 +78,16 @@ def test_ragas_domain_expert_smoke_minimal():
 
     embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
 
+    ragas_llm = get_ragas_llm()
     try:
         res = evaluate(
             ds,
             metrics=[answer_relevancy, faithfulness, context_precision],
-            llm=llm,
+            llm=ragas_llm,
             embeddings=embeddings,
         )
     except Exception as e:
-        print(f"Evaluation error: {e}")
+        logger.error(f"Evaluation error: {e}")
 
-    # print_ragas_results(res)
+    print_ragas_results(res)
     assert_ragas_thresholds(res)
