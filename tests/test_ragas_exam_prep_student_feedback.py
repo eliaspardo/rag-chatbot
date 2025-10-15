@@ -2,13 +2,13 @@ import os
 import pytest
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import answer_relevancy, faithfulness, context_precision
+from ragas.metrics import faithfulness, context_precision
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.rag_preprocessor import RAGPreprocessor
 from src.chain_manager import ChainManager
 from src.exam_prep import setup_exam_prep_chain
-from src.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
+from src.prompts import exam_prep_answer_prompt
 from tests.utils.ragas_utils import (
     print_ragas_results,
     assert_ragas_thresholds,
@@ -26,62 +26,67 @@ EMBED_MODEL = os.getenv(
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 
-QUESTIONS = [
-    # "What are the three types of business tools?",
-    "Explain risk-based testing at a high level.",
-    # "What are the different test metrics categories?",
+STUDENT_ANSWERS = [
+    "The three type of business tools are: comercial tools, open-source tools and custom tools."
 ]
 
 GROUND_TRUTHS = [
-    # "Comercial tools, open-source tools and custom tools.",
-    "Risk-based testing is an approach that prioritizes testing efforts "
-    "based on the risk of failure and its potential impact, "
-    "focusing resources on the most critical areas first.",
-    # "Project metrics, product metrics and process metrics.",
+    "The student has correctly identified the three types of tools: commercial"
+    ", open-source, and custom tools. STUDENT'S FEEDBACK SUMMARY: The student "
+    "has identified the three types of tools.",
 ]
 
 
 @pytest.mark.slow
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
-def test_ragas_exam_prep_answer():
+def test_ragas_exam_prep_student_feedback():
+    """
+    For student feedback we're only checking faithfulness and context_precision with Ragas:
+    faithfulness → Is the feedback grounded in the retrieved context (no hallucinations)?
+    context_precision → Did the retriever surface documents relevant to the question/topic?
+    We're skipping answer_relevancy since the eval can't possibly infer the STUDENT_ANSWERS based on the llm_feedback
+    """
 
     rag_preprocessor = RAGPreprocessor()
     vectordb = rag_preprocessor.load_vector_store(ISTQB_DB_DIR, EMBED_MODEL)
     chain_manager = ChainManager(vectordb)
     llm = chain_manager.get_llm()
-    answer_chain = setup_exam_prep_chain(
+    feedback_chain = setup_exam_prep_chain(
         chain_manager,
         llm,
         exam_prep_answer_prompt,
     )
 
-    answers = []
+    llm_feedback = []
     contexts_list = []
 
-    for question in QUESTIONS:
-        answer = chain_manager.ask_question(question, answer_chain)
-        answers.append(str(answer))
+    for student_answer in STUDENT_ANSWERS:
+        generated_feedback = chain_manager.ask_question(student_answer, feedback_chain)
+        llm_feedback.append(str(generated_feedback))
 
-        docs = chain_manager.retriever.get_relevant_documents(question)
+        docs = chain_manager.retriever.get_relevant_documents(student_answer)
         contexts = [doc.page_content for doc in docs]
         contexts_list.append(contexts)
 
     ds = Dataset.from_dict(
         {
-            "question": QUESTIONS,
-            "answer": answers,
+            "question": STUDENT_ANSWERS,
+            "answer": llm_feedback,
             "contexts": contexts_list,
             "ground_truth": GROUND_TRUTHS,
         }
     )
+    print(*llm_feedback)
 
     embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
 
     ragas_llm = get_ragas_llm()
     try:
+        # We're skipping answer_relevancy as the input to the LLM is a question and and an answer.
+        # so the evaluation can't infer what the input was.
         res = evaluate(
             ds,
-            metrics=[answer_relevancy, faithfulness, context_precision],
+            metrics=[faithfulness, context_precision],
             llm=ragas_llm,
             embeddings=embeddings,
         )

@@ -85,45 +85,51 @@ def assert_ragas_thresholds(
     results_df = results.to_pandas()
 
     # Check mean scores
-    answer_rel_mean = results_df["answer_relevancy"].mean()
-    faithfulness_mean = results_df["faithfulness"].mean()
-    precision_mean = results_df["context_precision"].mean()
+    if "answer_relevancy" in results_df.columns:
+        answer_rel_mean = results_df["answer_relevancy"].mean()
+        assert answer_rel_mean >= answer_relevancy_threshold, (
+            f"❌ Answer relevancy {answer_rel_mean:.3f} below threshold {answer_relevancy_threshold}\n"
+            f"Per-question scores: {results_df['answer_relevancy'].tolist()}"
+        )
+    if "faithfulness" in results_df.columns:
+        faithfulness_mean = results_df["faithfulness"].mean()
+        assert faithfulness_mean >= faithfulness_threshold, (
+            f"❌ Faithfulness {faithfulness_mean:.3f} below threshold {faithfulness_threshold}\n"
+            f"Per-question scores: {results_df['faithfulness'].tolist()}"
+        )
 
-    assert answer_rel_mean >= answer_relevancy_threshold, (
-        f"❌ Answer relevancy {answer_rel_mean:.3f} below threshold {answer_relevancy_threshold}\n"
-        f"Per-question scores: {results_df['answer_relevancy'].tolist()}"
-    )
-
-    assert faithfulness_mean >= faithfulness_threshold, (
-        f"❌ Faithfulness {faithfulness_mean:.3f} below threshold {faithfulness_threshold}\n"
-        f"Per-question scores: {results_df['faithfulness'].tolist()}"
-    )
-
-    assert precision_mean >= precision_threshold, (
-        f"❌ Precision {precision_mean:.3f} below threshold {precision_threshold}\n"
-        f"Per-question scores: {results_df['context_precision'].tolist()}"
-    )
+    if "context_precision" in results_df.columns:
+        precision_mean = results_df["context_precision"].mean()
+        assert precision_mean >= precision_threshold, (
+            f"❌ Precision {precision_mean:.3f} below threshold {precision_threshold}\n"
+            f"Per-question scores: {results_df['context_precision'].tolist()}"
+        )
 
     # Safety checks for individual questions
-    min_ans_rel = results_df["answer_relevancy"].min()
-    assert (
-        min_ans_rel >= min_answer_relevancy
-    ), f"❌ At least one question has answer_relevancy {min_ans_rel:.3f} below minimum {min_answer_relevancy}"
+    if "answer_relevancy" in results_df.columns:
+        min_ans_rel = results_df["answer_relevancy"].min()
+        assert (
+            min_ans_rel >= min_answer_relevancy
+        ), f"❌ At least one question has answer_relevancy {min_ans_rel:.3f} below minimum {min_answer_relevancy}"
+    if "faithfulness" in results_df.columns:
+        min_faith = results_df["faithfulness"].min()
+        assert (
+            min_faith >= min_faithfulness
+        ), f"❌ At least one question has faithfulness {min_faith:.3f} below minimum {min_faithfulness}"
 
-    min_faith = results_df["faithfulness"].min()
-    assert (
-        min_faith >= min_faithfulness
-    ), f"❌ At least one question has faithfulness {min_faith:.3f} below minimum {min_faithfulness}"
-
-    min_prec = results_df["context_precision"].min()
-    assert (
-        min_prec >= min_precision
-    ), f"❌ At least one question has precision {min_prec:.3f} below minimum {min_precision}"
+    if "context_precision" in results_df.columns:
+        min_prec = results_df["context_precision"].min()
+        assert (
+            min_prec >= min_precision
+        ), f"❌ At least one question has precision {min_prec:.3f} below minimum {min_precision}"
 
     print("✅ All RAGAS thresholds passed!")
-    print(f"   Answer Relevancy: {answer_rel_mean:.3f} (min: {min_ans_rel:.3f})")
-    print(f"   Faithfulness: {faithfulness_mean:.3f} (min: {min_faith:.3f})")
-    print(f"   Precision: {precision_mean:.3f} (min: {min_prec:.3f})")
+    if "answer_relevancy" in results_df.columns:
+        print(f"   Answer Relevancy: {answer_rel_mean:.3f} (min: {min_ans_rel:.3f})")
+    if "faithfulness" in results_df.columns:
+        print(f"   Faithfulness: {faithfulness_mean:.3f} (min: {min_faith:.3f})")
+    if "context_precision" in results_df.columns:
+        print(f"   Precision: {precision_mean:.3f} (min: {min_prec:.3f})")
 
 
 def get_ragas_llm() -> LLM:
