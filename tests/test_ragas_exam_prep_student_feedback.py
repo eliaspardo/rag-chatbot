@@ -2,7 +2,7 @@ import os
 import pytest
 from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import faithfulness, context_precision
+from ragas.metrics import faithfulness, context_precision, context_recall
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.rag_preprocessor import RAGPreprocessor
@@ -41,9 +41,10 @@ GROUND_TRUTHS = [
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
 def test_ragas_exam_prep_student_feedback():
     """
-    For student feedback we're only checking faithfulness and context_precision with Ragas:
-    faithfulness → Is the feedback grounded in the retrieved context (no hallucinations)?
-    context_precision → Did the retriever surface documents relevant to the question/topic?
+    For student feedback with Ragas, we check retrieval (context_precision, context_recall) and faithfulness.
+    faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
+    context_precision -> Are the relevant contexts ranked higher than irrelevant ones?
+    context_recall -> Did the retriever surface all relevant documents to the question/topic? Can all information in ground_truth be found somewhere in contexts?
     We're skipping answer_relevancy since the eval can't possibly infer the STUDENT_ANSWERS based on the llm_feedback
     """
 
@@ -86,7 +87,7 @@ def test_ragas_exam_prep_student_feedback():
         # so the evaluation can't infer what the input was.
         res = evaluate(
             ds,
-            metrics=[faithfulness, context_precision],
+            metrics=[faithfulness, context_precision, context_recall],
             llm=ragas_llm,
             embeddings=embeddings,
         )

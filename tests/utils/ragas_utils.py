@@ -13,9 +13,12 @@ RAGAS_ANSWER_RELEVANCY_THRESHOLD = float(
 )
 RAGAS_FAITHFULNESS_THRESHOLD = float(os.getenv("RAGAS_FAITHFULNESS_THRESHOLD", "0.4"))
 RAGAS_PRECISION_THRESHOLD = float(os.getenv("RAGAS_PRECISION_THRESHOLD", "0.4"))
+RAGAS_RECALL_THRESHOLD = float(os.getenv("RAGAS_RECALL_THRESHOLD", "0.4"))
+
 RAGAS_ANSWER_RELEVANCY_MIN = float(os.getenv("RAGAS_ANSWER_RELEVANCY_MIN", "0.2"))
 RAGAS_FAITHFULNESS_MIN = float(os.getenv("RAGAS_FAITHFULNESS_MIN", "0.2"))
 RAGAS_PRECISION_MIN = float(os.getenv("RAGAS_PRECISION_MIN", "0.2"))
+RAGAS_ANSWER_RECALL_MIN = float(os.getenv("RAGAS_ANSWER_RECALL_MIN", "0.2"))
 
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
@@ -63,9 +66,11 @@ def assert_ragas_thresholds(
     answer_relevancy_threshold: float = RAGAS_ANSWER_RELEVANCY_THRESHOLD,
     faithfulness_threshold: float = RAGAS_FAITHFULNESS_THRESHOLD,
     precision_threshold: float = RAGAS_PRECISION_THRESHOLD,
-    min_answer_relevancy: float = RAGAS_ANSWER_RELEVANCY_MIN,
-    min_faithfulness: float = RAGAS_FAITHFULNESS_MIN,
-    min_precision: float = RAGAS_PRECISION_MIN,
+    recall_threshold: float = RAGAS_RECALL_THRESHOLD,
+    answer_relevancy_min: float = RAGAS_ANSWER_RELEVANCY_MIN,
+    faithfulness_min: float = RAGAS_FAITHFULNESS_MIN,
+    precision_min: float = RAGAS_PRECISION_MIN,
+    recall_min: float = RAGAS_ANSWER_RECALL_MIN,
 ):
     """
     Assert RAGAS evaluation results meet quality thresholds.
@@ -104,24 +109,36 @@ def assert_ragas_thresholds(
             f"❌ Precision {precision_mean:.3f} below threshold {precision_threshold}\n"
             f"Per-question scores: {results_df['context_precision'].tolist()}"
         )
+    if "context_recall" in results_df.columns:
+        recall_mean = results_df["context_recall"].mean()
+        assert recall_mean >= recall_threshold, (
+            f"❌ Recall {recall_mean:.3f} below threshold {recall_threshold}\n"
+            f"Per-question scores: {results_df['context_recall'].tolist()}"
+        )
 
     # Safety checks for individual questions
     if "answer_relevancy" in results_df.columns:
         min_ans_rel = results_df["answer_relevancy"].min()
         assert (
-            min_ans_rel >= min_answer_relevancy
-        ), f"❌ At least one question has answer_relevancy {min_ans_rel:.3f} below minimum {min_answer_relevancy}"
+            min_ans_rel >= answer_relevancy_min
+        ), f"❌ At least one question has answer_relevancy {min_ans_rel:.3f} below minimum {answer_relevancy_min}"
     if "faithfulness" in results_df.columns:
         min_faith = results_df["faithfulness"].min()
         assert (
-            min_faith >= min_faithfulness
-        ), f"❌ At least one question has faithfulness {min_faith:.3f} below minimum {min_faithfulness}"
+            min_faith >= faithfulness_min
+        ), f"❌ At least one question has faithfulness {min_faith:.3f} below minimum {faithfulness_min}"
 
     if "context_precision" in results_df.columns:
         min_prec = results_df["context_precision"].min()
         assert (
-            min_prec >= min_precision
-        ), f"❌ At least one question has precision {min_prec:.3f} below minimum {min_precision}"
+            min_prec >= precision_min
+        ), f"❌ At least one question has precision {min_prec:.3f} below minimum {precision_min}"
+
+    if "context_recall" in results_df.columns:
+        min_rec = results_df["context_recall"].min()
+        assert (
+            min_rec >= recall_min
+        ), f"❌ At least one question has recall {min_rec:.3f} below minimum {recall_min}"
 
     print("✅ All RAGAS thresholds passed!")
     if "answer_relevancy" in results_df.columns:
@@ -130,6 +147,8 @@ def assert_ragas_thresholds(
         print(f"   Faithfulness: {faithfulness_mean:.3f} (min: {min_faith:.3f})")
     if "context_precision" in results_df.columns:
         print(f"   Precision: {precision_mean:.3f} (min: {min_prec:.3f})")
+    if "context_recall" in results_df.columns:
+        print(f"   Recall: {recall_mean:.3f} (min: {min_rec:.3f})")
 
 
 def get_ragas_llm() -> LLM:
