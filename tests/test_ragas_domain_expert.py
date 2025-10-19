@@ -44,7 +44,12 @@ GROUND_TRUTHS = [
 @pytest.mark.slow
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
 def test_ragas_domain_expert():
-
+    """
+    For domain expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
+    faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
+    context_precision -> Are the relevant contexts ranked higher than irrelevant ones?
+    answer_relevancy -> infer the QUESTIONS based on the LLM's response
+    """
     rag_preprocessor = RAGPreprocessor()
     vectordb = rag_preprocessor.load_vector_store(ISTQB_DB_DIR, EMBED_MODEL)
     chain_manager = ChainManager(vectordb)
