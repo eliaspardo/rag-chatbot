@@ -27,13 +27,19 @@ MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 
 STUDENT_ANSWERS = [
-    "The three type of business tools are: comercial tools, open-source tools and custom tools."
+    "The three type of business tools are: comercial tools, open-source tools and custom tools.",
+    "The four areas of competence are: professional competence, personal competence, methodological competence and social competence",
 ]
 
 GROUND_TRUTHS = [
     "The student has correctly identified the three types of tools: commercial"
     ", open-source, and custom tools. STUDENT'S FEEDBACK SUMMARY: The student "
     "has identified the three types of tools.",
+    "The student's answer is correct. The four areas of competence for team members"
+    "as per the ISTQB Test Manager Syllabus are professional competence, personal"
+    "competence, methodological competence, and social competence.  FEEDBACK SUMMARY:"
+    "The student has correctly identified the four areas of competence for team"
+    "members as per the ISTQB Test Manager Syllabus. Good job! Keep up the good work.",
 ]
 
 
@@ -91,8 +97,9 @@ def test_ragas_exam_prep_student_feedback():
             llm=ragas_llm,
             embeddings=embeddings,
         )
-    except Exception as e:
-        logger.error(f"Evaluation error: {e}")
+    except Exception as exception:
+        logger.error(f"Evaluation error: {exception}")
+        pytest.fail(f"RAGAS evaluation failed: {exception}")  # pragma: no cover
 
     print_ragas_results(res)
     assert_ragas_thresholds(res)

@@ -91,8 +91,9 @@ def test_ragas_domain_expert():
             llm=ragas_llm,
             embeddings=embeddings,
         )
-    except Exception as e:
-        logger.error(f"Evaluation error: {e}")
+    except Exception as exception:
+        logger.error(f"Evaluation error: {exception}")
+        pytest.fail(f"RAGAS evaluation failed: {exception}")  # pragma: no cover
 
     print_ragas_results(res)
     assert_ragas_thresholds(res)

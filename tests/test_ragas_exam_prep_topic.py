@@ -26,9 +26,12 @@ EMBED_MODEL = os.getenv(
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 
-TOPICS = ["Types of business tools"]
+TOPICS = ["Types of business tools", "Categories of test metrics"]
 
-GROUND_TRUTHS = ["What are the three types of business tools?"]
+GROUND_TRUTHS = [
+    "What are the three types of business tools?",
+    "What are the three categories of test metrics?",
+]
 
 
 @pytest.mark.slow
@@ -85,8 +88,9 @@ def test_ragas_exam_prep_topic():
             llm=ragas_llm,
             embeddings=embeddings,
         )
-    except Exception as e:
-        logger.error(f"Evaluation error: {e}")
+    except Exception as exception:
+        logger.error(f"Evaluation error: {exception}")
+        pytest.fail(f"RAGAS evaluation failed: {exception}")  # pragma: no cover
 
     print_ragas_results(res)
     assert_ragas_thresholds(res)
