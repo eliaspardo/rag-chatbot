@@ -42,8 +42,9 @@ GROUND_TRUTHS = [
 
 
 @pytest.mark.slow
+@pytest.mark.ragas
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
-def test_ragas_domain_expert():
+def test_ragas_domain_expert(istqb_vectordb):  # noqa: ARG001
     """
     For domain expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?

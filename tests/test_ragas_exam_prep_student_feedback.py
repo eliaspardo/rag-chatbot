@@ -44,8 +44,9 @@ GROUND_TRUTHS = [
 
 
 @pytest.mark.slow
+@pytest.mark.ragas
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
-def test_ragas_exam_prep_student_feedback():
+def test_ragas_exam_prep_student_feedback(istqb_vectordb):  # noqa: ARG001
     """
     For Exam Prep - Student Feedback Chain with Ragas, we check retrieval (context_precision, context_recall) and faithfulness.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
