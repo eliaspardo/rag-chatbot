@@ -40,7 +40,7 @@ def load_golden_set_dataset(
 
     Args:
         path: Optional custom path to the dataset JSON file. Defaults to tests/data/golden_set.json
-              (overridable via RAGAS_GOLDEN_SET_PATH or RAGAS_DATASET_PATH).
+              (overridable via RAGAS_GOLDEN_SET_PATH).
 
     Returns:
         A tuple of (questions, ground_truths) lists.
