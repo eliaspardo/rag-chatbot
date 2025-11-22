@@ -1,5 +1,7 @@
 from langchain_community.vectorstores import FAISS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
+from langchain.llms.base import LLM
+from langchain.prompts import PromptTemplate
 from src.chain_manager import ChainManager
 from src.prompts import condense_question_prompt, domain_expert_prompt
 from src.constants import EXIT_WORDS, ChatbotMode, Error
@@ -62,9 +64,10 @@ def domain_expert(ui: ConsoleUI, vectordb: FAISS) -> None:
 
     ui.show_info_message("\n⛓ Setting up Chain.")
     try:
-        qa_chain = chain_manager.get_conversationalRetrievalChain(
+        qa_chain = setup_domain_expert_chain(
+            chain_manager,
             llm,
-            {"prompt": domain_expert_prompt},
+            domain_expert_prompt,
             condense_question_prompt=condense_question_prompt,
         )
     except Exception as exception:
@@ -74,3 +77,16 @@ def domain_expert(ui: ConsoleUI, vectordb: FAISS) -> None:
 
     run_chat_loop(ui, chain_manager, qa_chain)
     return
+
+
+def setup_domain_expert_chain(
+    chain_manager: ChainManager,
+    llm: LLM,
+    prompt: PromptTemplate = None,
+    condense_question_prompt: PromptTemplate = None,
+) -> ConversationalRetrievalChain:
+    return chain_manager.get_conversationalRetrievalChain(
+        llm,
+        {"prompt": prompt},
+        condense_question_prompt=condense_question_prompt,
+    )

@@ -1,0 +1,10 @@
+[
+  {
+    "question": "What is the capital of France?",
+    "ground_truth": "Paris is the capital and most populous city of France."
+  },
+  {
+    "question": "What does HTTP stand for?",
+    "ground_truth": "HTTP stands for Hypertext Transfer Protocol."
+  }
+]

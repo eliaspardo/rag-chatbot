@@ -13,7 +13,7 @@ EMPTY_LIST = []
 STRING_LIST_EMPTY_CHUNKS = ["test", "    ", "for", "   testing   "]
 PAGE_CONTENT = "Test content"
 TEST_DB_DIR = "tests/faiss_db"
-TEST_PREEXISTING_DB_DIR = "tests/data/faiss_db"
+TEST_PREEXISTING_DB_DIR = "tests/data/test_faiss_db"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
@@ -157,14 +157,23 @@ class TestRagPreprocessor:
     ):
         # Arrange
         # Speed up testing
+        mock_embeddings = Mock()
+        mock_huggingFaceEmbeddings.return_value = mock_embeddings
         mock_vectordb_instance = Mock(spec=FAISS)
         mock_faiss.from_documents.return_value = mock_vectordb_instance
         mock_vectordb_instance.save_local.return_value = None
         documents = [Document(page_content=PAGE_CONTENT)]
 
         # Act
-        rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
-        # TODO Add assertions
+        vectordb = rag_preprocessor.create_vector_store(
+            docs=documents, db_dir=TEST_DB_DIR
+        )
+
+        # Assert
+        mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
+        mock_faiss.from_documents.assert_called_once_with(documents, mock_embeddings)
+        mock_vectordb_instance.save_local.assert_called_once_with(TEST_DB_DIR)
+        assert vectordb is mock_vectordb_instance
 
     @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
     def test_load_vector_store_does_not_exist(
