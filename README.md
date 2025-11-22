@@ -198,6 +198,20 @@ qa_chain = ConversationalRetrievalChain.from_llm(
 )
 ```
 
+## Optional RAGAS Evaluations (local only)
+
+Ragas tests are disabled by default when running pytest to avoid breaking CI/CD runs as they need a source document and a golden dataset.
+
+- Relevant variables for paths and file names are all under a Ragas section in the .env.example:
+
+  - RAGAS_PDF_PATH - source document
+  - RAGAS_GOLDEN_SET_PATH - golden test dataset
+  - RAGAS_DB_DIR - where the tests will create the vector store
+
+- Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
+- How to run: prepare your dataset and vector store locally, then execute `pytest -m ragas`.
+- Expected behavior: if files are missing, tests skip/fail with a clear message; no proprietary data is required for CI.
+
 ## Support
 
 For issues create an issue in the GitHub repository.

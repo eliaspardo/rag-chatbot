@@ -4,7 +4,6 @@ from src.exceptions import ExitApp, FaissException, VectorStoreException
 from src.constants import Error, EXIT_WORDS, ChatbotMode
 from src.console_ui import ConsoleUI
 from src.main import main, run_app, run_chat_loop
-from src.rag_preprocessor import RAGPreprocessor
 
 
 class TestMain:

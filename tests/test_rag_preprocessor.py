@@ -13,7 +13,7 @@ EMPTY_LIST = []
 STRING_LIST_EMPTY_CHUNKS = ["test", "    ", "for", "   testing   "]
 PAGE_CONTENT = "Test content"
 TEST_DB_DIR = "tests/faiss_db"
-TEST_PREEXISTING_DB_DIR = "tests/data/faiss_db"
+TEST_PREEXISTING_DB_DIR = "tests/data/test_faiss_db"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 

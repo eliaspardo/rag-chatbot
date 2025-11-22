@@ -1,29 +1,35 @@
 import shutil
+import os
 from pathlib import Path
+
+
+from dotenv import load_dotenv
 
 import pytest
 
 from src.rag_preprocessor import RAGPreprocessor
 
-ISTQB_PDF_PATH = Path("data/ISTQB_CTAL-TM_Syllabus_v3.0.pdf")
-ISTQB_DB_DIR = Path("tests/data/istqb_tm_faiss_db")
+# Load environment variables
+load_dotenv()
+RAGAS_PDF_PATH = os.getenv("RAGAS_PDF_PATH")
+RAGAS_DB_DIR = Path(os.getenv("RAGAS_DB_DIR"))
 
 
 @pytest.fixture(scope="session")
-def istqb_vectordb():
+def ragas_test_vectordb():
     """
-    Build the ISTQB FAISS database once per test session so ragas tests run
+    Build the Ragas test FAISS database once per test session so ragas tests run
     against fresh embeddings and leave no artifacts behind.
     """
     preprocessor = RAGPreprocessor()
-    texts = preprocessor.load_pdf_text(str(ISTQB_PDF_PATH))
+    texts = preprocessor.load_pdf_text(str(RAGAS_PDF_PATH))
     docs = preprocessor.split_text_to_docs(texts)
 
-    if ISTQB_DB_DIR.exists():
-        shutil.rmtree(ISTQB_DB_DIR)
+    if RAGAS_DB_DIR.exists():
+        shutil.rmtree(RAGAS_DB_DIR)
 
-    preprocessor.create_vector_store(docs=docs, db_dir=str(ISTQB_DB_DIR))
+    preprocessor.create_vector_store(docs=docs, db_dir=str(RAGAS_DB_DIR))
     try:
-        yield str(ISTQB_DB_DIR)
+        yield str(RAGAS_DB_DIR)
     finally:
-        shutil.rmtree(ISTQB_DB_DIR, ignore_errors=True)
+        shutil.rmtree(RAGAS_DB_DIR, ignore_errors=True)

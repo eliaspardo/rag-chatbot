@@ -4,6 +4,9 @@ faiss_db/
 # Data folder with documents
 /data/
 
+# Golden test dataset for ragas - to be added by the user
+tests/data/golden_set.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

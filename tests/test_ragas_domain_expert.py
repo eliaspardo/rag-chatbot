@@ -14,37 +14,28 @@ from tests.utils.ragas_utils import (
     assert_ragas_thresholds,
     get_ragas_llm,
 )
+from tests.utils.ragas_dataset_loader import (
+    load_golden_set_dataset,
+    GoldenSetValidationError,
+)
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
 
-ISTQB_DB_DIR = "tests/data/istqb_tm_faiss_db"
+RAGAS_DB_DIR = os.getenv("RAGAS_DB_DIR")
 EMBED_MODEL = os.getenv(
     "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
 )
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 
-QUESTIONS = [
-    "What are the three types of business tools?",
-    "Explain risk-based testing at a high level.",
-    "What are the different test metrics categories?",
-]
-
-GROUND_TRUTHS = [
-    "Comercial tools, open-source tools and custom tools.",
-    "Risk-based testing is an approach that prioritizes testing efforts "
-    "based on the risk of failure and its potential impact, "
-    "focusing resources on the most critical areas first.",
-    "Project metrics, product metrics and process metrics.",
-]
-
 
 @pytest.mark.slow
 @pytest.mark.ragas
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
-def test_ragas_domain_expert(istqb_vectordb):  # noqa: ARG001
+def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     """
     For domain expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
@@ -52,7 +43,7 @@ def test_ragas_domain_expert(istqb_vectordb):  # noqa: ARG001
     answer_relevancy -> infer the QUESTIONS based on the LLM's response
     """
     rag_preprocessor = RAGPreprocessor()
-    vectordb = rag_preprocessor.load_vector_store(ISTQB_DB_DIR, EMBED_MODEL)
+    vectordb = rag_preprocessor.load_vector_store(RAGAS_DB_DIR, EMBED_MODEL)
     chain_manager = ChainManager(vectordb)
     llm = chain_manager.get_llm()
     qa_chain = setup_domain_expert_chain(
@@ -62,10 +53,15 @@ def test_ragas_domain_expert(istqb_vectordb):  # noqa: ARG001
         condense_question_prompt,
     )
 
+    try:
+        questions, ground_truths = load_golden_set_dataset()
+    except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
+        pytest.fail(f"Invalid RAGAS golden set: {exc}")
+
     answers = []
     contexts_list = []
 
-    for question in QUESTIONS:
+    for question in questions:
         answer = chain_manager.ask_question(question, qa_chain)
         answers.append(str(answer))
 
@@ -75,10 +71,10 @@ def test_ragas_domain_expert(istqb_vectordb):  # noqa: ARG001
 
     ds = Dataset.from_dict(
         {
-            "question": QUESTIONS,
+            "question": questions,
             "answer": answers,
             "contexts": contexts_list,
-            "ground_truth": GROUND_TRUTHS,
+            "ground_truth": ground_truths,
         }
     )
 
