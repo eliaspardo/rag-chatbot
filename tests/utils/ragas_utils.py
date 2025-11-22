@@ -23,7 +23,7 @@ RAGAS_ANSWER_RECALL_MIN = float(os.getenv("RAGAS_ANSWER_RECALL_MIN", "0.2"))
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
-MAX_TEST_TOKENS = int(os.getenv("MAX_TEST_TOKENS", "512"))
+RAGAS_MAX_TOKENS = int(os.getenv("RAGAS_MAX_TOKENS", "512"))
 
 
 def print_ragas_results(results, dataset=None):
@@ -157,7 +157,7 @@ def get_ragas_llm() -> LLM:
             model=MODEL_NAME,
             together_api_key=TOGETHER_API_KEY,
             temperature=TEMPERATURE,
-            max_tokens=MAX_TEST_TOKENS,
+            max_tokens=RAGAS_MAX_TOKENS,
         )
     except Exception as exception:
         raise Exception(f"❌ Error setting up LLM: {exception}") from exception
