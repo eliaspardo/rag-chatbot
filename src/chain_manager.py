@@ -7,12 +7,12 @@ from langchain.chains.conversational_retrieval.base import ConversationalRetriev
 from langchain.prompts import PromptTemplate
 from langchain.chains.base import Chain
 from langchain_core.vectorstores import VectorStoreRetriever
-from dotenv import load_dotenv
 import logging
+from src.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
-# Load environment variables
-load_dotenv()
+
+load_environment()
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 RETRIEVAL_K = int(os.getenv("RETRIEVAL_K", "4"))

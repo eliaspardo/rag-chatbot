@@ -1,9 +1,8 @@
 import os
-from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
+from src.env_loader import load_environment
 
-# Load environment variables
-load_dotenv()
+load_environment()
 
 CHATBOT_ROLE = os.getenv("CHATBOT_ROLE", "expert tutor")
 USE_CASE = os.getenv("USE_CASE", "learn from the provided materials")

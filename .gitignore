@@ -1,5 +1,5 @@
 # Database
-faiss_db/
+faiss_db*/
 
 # Data folder with documents
 /data/

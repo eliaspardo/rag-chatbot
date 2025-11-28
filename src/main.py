@@ -4,7 +4,6 @@
 
 import sys
 import os
-from dotenv import load_dotenv
 from src.console_ui import ConsoleUI
 from src.domain_expert import domain_expert
 from src.exam_prep import exam_prep
@@ -13,12 +12,12 @@ from src.rag_preprocessor import RAGPreprocessor
 from src.exceptions import ExitApp, FaissException, VectorStoreException
 import logging
 from langchain_community.vectorstores import FAISS
+from src.env_loader import load_environment
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-# Load environment variables
-load_dotenv()
+load_environment()
 DB_DIR = os.getenv("DB_DIR", "faiss_db")
 
 

@@ -1,11 +1,11 @@
 import os
 from langchain_together import Together
 from langchain.llms.base import LLM
-from dotenv import load_dotenv
 import logging
+from src.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
-load_dotenv(override=False)
+load_environment()
 
 # Default thresholds (can be overridden by environment variables)
 RAGAS_ANSWER_RELEVANCY_THRESHOLD = float(

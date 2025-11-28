@@ -2,15 +2,12 @@ import shutil
 import os
 from pathlib import Path
 
-
-from dotenv import load_dotenv
-
 import pytest
 
 from src.rag_preprocessor import RAGPreprocessor
+from src.env_loader import load_environment
 
-# Load environment variables
-load_dotenv()
+load_environment()
 RAGAS_PDF_PATH = os.getenv("RAGAS_PDF_PATH")
 RAGAS_DB_DIR_ENV = os.getenv("RAGAS_DB_DIR")
 RAGAS_DB_DIR = Path(RAGAS_DB_DIR_ENV) if RAGAS_DB_DIR_ENV else None

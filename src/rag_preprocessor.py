@@ -6,13 +6,12 @@ from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import fitz  # PyMuPDF
 from src.exceptions import FaissException, VectorStoreException
-from dotenv import load_dotenv
 import logging
+from src.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
+load_environment()
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
 )
