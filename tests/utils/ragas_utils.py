@@ -28,7 +28,7 @@ RAGAS_MAX_TOKENS = int(os.getenv("RAGAS_MAX_TOKENS", "512"))
 
 def print_ragas_results(results, dataset=None):
     """
-    Pretty print RAGAS evaluation results.
+    Pretty print RAGAS evaluation results with clean formatting.
 
     Args:
         results: RAGAS evaluation results object
@@ -40,25 +40,79 @@ def print_ragas_results(results, dataset=None):
     logger.info("RAGAS EVALUATION RESULTS:")
     logger.info("=" * 80)
 
-    if dataset:
-        # Include questions in output
-        results_df["question"] = [dataset[i]["question"] for i in range(len(dataset))]
-        # Reorder columns to show question first
-        cols = ["question"] + [col for col in results_df.columns if col != "question"]
-        results_df = results_df[cols]
-
-    logger.info(results_df.to_string())
-
-    logger.info("\n" + "-" * 80)
-    logger.info("SUMMARY STATISTICS:")
-    logger.info("-" * 80)
-    metrics_cols = [
+    # Define metric columns (exclude text-heavy columns)
+    metric_cols = [
         col
         for col in results_df.columns
-        if col not in ["question", "answer", "contexts"]
+        if col not in ["question", "answer", "contexts", "ground_truth"]
     ]
-    logger.info(results_df[metrics_cols].describe())
-    logger.info("=" * 80 + "\n")
+
+    # Print per-question results with full details
+    for idx, row in results_df.iterrows():
+        logger.info(f"\n{'─' * 80}")
+        logger.info(f"Question {idx + 1}:")
+
+        # Show the question
+        if dataset and idx < len(dataset):
+            question = dataset[idx]["question"]
+        elif "question" in row and row["question"] is not None:
+            question = row["question"]
+        else:
+            question = "N/A"
+
+        logger.info(f"\n  Q: {question}")
+
+        # Show the generated answer
+        if "answer" in row and row["answer"] is not None:
+            answer = row["answer"]
+            logger.info(f"\n  A: {answer}")
+
+        # Show the contexts (retrieved documents)
+        if "contexts" in row and row["contexts"] is not None:
+            contexts = row["contexts"]
+            logger.info(f"\n  Contexts ({len(contexts)} retrieved):")
+            for ctx_idx, context in enumerate(contexts, 1):
+                # Truncate very long contexts
+                context_str = context[:200] + "..." if len(context) > 200 else context
+                logger.info(f"    [{ctx_idx}] {context_str}")
+
+        # Print metrics for this question
+        logger.info(f"\n  Metrics:")
+        for col in metric_cols:
+            if col in row and row[col] is not None:
+                # Format based on type
+                value = row[col]
+                if isinstance(value, (int, float)):
+                    logger.info(f"    {col}: {value:.4f}")
+                else:
+                    logger.info(f"    {col}: {value}")
+
+    # Print summary statistics
+    logger.info("\n" + "=" * 80)
+    logger.info("SUMMARY STATISTICS:")
+    logger.info("=" * 80)
+
+    if metric_cols:
+        summary = results_df[metric_cols].describe()
+
+        # Format the summary nicely
+        logger.info(
+            f"\n{'Metric':<25} {'Mean':<10} {'Std':<10} {'Min':<10} {'Max':<10}"
+        )
+        logger.info("─" * 80)
+
+        for col in metric_cols:
+            if col in summary.columns:
+                mean_val = summary.loc["mean", col]
+                std_val = summary.loc["std", col]
+                min_val = summary.loc["min", col]
+                max_val = summary.loc["max", col]
+
+                logger.info(
+                    f"{col:<25} {mean_val:<10.4f} {std_val:<10.4f} {min_val:<10.4f} {max_val:<10.4f}"
+                )
+
+    logger.info("\n" + "=" * 80 + "\n")
 
 
 def assert_ragas_thresholds(
@@ -79,10 +133,12 @@ def assert_ragas_thresholds(
         results: RAGAS evaluation results object
         answer_relevancy_threshold: Minimum mean answer_relevancy score
         faithfulness_threshold: Minimum mean faithfulness score
-        faithfulness_threshold: Minimum mean precision score
-        min_answer_relevancy: Minimum individual answer_relevancy score (safety check)
-        min_faithfulness: Minimum individual faithfulness score (safety check)
-        min_precision: Minimum individual precision score (safety check)
+        precision_threshold: Minimum mean precision score
+        recall_threshold: Minimum mean recall score
+        answer_relevancy_min: Minimum individual answer_relevancy score (safety check)
+        faithfulness_min: Minimum individual faithfulness score (safety check)
+        precision_min: Minimum individual precision score (safety check)
+        recall_min: Minimum individual recall score (safety check)
 
     Raises:
         AssertionError: If any threshold is not met
@@ -140,7 +196,7 @@ def assert_ragas_thresholds(
             min_rec >= recall_min
         ), f"❌ At least one question has recall {min_rec:.3f} below minimum {recall_min}"
 
-    print("✅ All RAGAS thresholds passed!")
+    print("\n✅ All RAGAS thresholds passed!")
     if "answer_relevancy" in results_df.columns:
         print(f"   Answer Relevancy: {answer_rel_mean:.3f} (min: {min_ans_rel:.3f})")
     if "faithfulness" in results_df.columns:

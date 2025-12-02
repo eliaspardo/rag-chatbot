@@ -6,6 +6,7 @@ faiss_db*/
 
 # Golden test dataset for ragas - to be added by the user
 tests/data/golden_set.json
+tests/data/golden_set*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -84,6 +84,11 @@ class ChainManager:
         except Exception as exception:
             raise Exception(f"❌ Error setting up Chain: {exception}") from exception
 
+    def reset_chain_memory(self, chain: Chain) -> None:
+        if hasattr(chain, "memory") and chain.memory is not None:
+            if hasattr(chain.memory, "clear"):
+                chain.memory.clear()
+
     # --- Run QA Chain ---
     def ask_question(self, question: str, qa_chain: Chain) -> str:
         try:
