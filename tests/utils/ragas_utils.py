@@ -36,7 +36,7 @@ def print_ragas_results(results, dataset=None):
     """
     results_df = results.to_pandas()
 
-    logger.info("\n" + "=" * 80)
+    logger.info("=" * 80)
     logger.info("RAGAS EVALUATION RESULTS:")
     logger.info("=" * 80)
 
@@ -49,35 +49,40 @@ def print_ragas_results(results, dataset=None):
 
     # Print per-question results with full details
     for idx, row in results_df.iterrows():
-        logger.info(f"\n{'─' * 80}")
+        logger.info(f"{'─' * 80}")
         logger.info(f"Question {idx + 1}:")
 
         # Show the question
         if dataset and idx < len(dataset):
-            question = dataset[idx]["question"]
-        elif "question" in row and row["question"] is not None:
-            question = row["question"]
+            question = dataset[idx]["user_input"]
+        elif "user_input" in row and row["user_input"] is not None:
+            question = row["user_input"]
         else:
             question = "N/A"
 
-        logger.info(f"\n  Q: {question}")
+        logger.info(f"Q: {question}")
 
         # Show the generated answer
-        if "answer" in row and row["answer"] is not None:
-            answer = row["answer"]
-            logger.info(f"\n  A: {answer}")
+        if "response" in row and row["response"] is not None:
+            answer = row["response"]
+            logger.info(f"A: {answer}")
 
         # Show the contexts (retrieved documents)
-        if "contexts" in row and row["contexts"] is not None:
-            contexts = row["contexts"]
-            logger.info(f"\n  Contexts ({len(contexts)} retrieved):")
+        if "retrieved_contexts" in row and row["retrieved_contexts"] is not None:
+            contexts = row["retrieved_contexts"]
+            logger.info(f"Contexts ({len(contexts)} retrieved):")
             for ctx_idx, context in enumerate(contexts, 1):
+                context_single_line = " ".join(context.split())
                 # Truncate very long contexts
-                context_str = context[:200] + "..." if len(context) > 200 else context
+                context_str = (
+                    context_single_line[:150] + "..."
+                    if len(context_single_line) > 150
+                    else context_single_line
+                )
                 logger.info(f"    [{ctx_idx}] {context_str}")
 
         # Print metrics for this question
-        logger.info(f"\n  Metrics:")
+        logger.info("Metrics:")
         for col in metric_cols:
             if col in row and row[col] is not None:
                 # Format based on type
@@ -88,7 +93,7 @@ def print_ragas_results(results, dataset=None):
                     logger.info(f"    {col}: {value}")
 
     # Print summary statistics
-    logger.info("\n" + "=" * 80)
+    logger.info("=" * 80)
     logger.info("SUMMARY STATISTICS:")
     logger.info("=" * 80)
 
@@ -96,9 +101,7 @@ def print_ragas_results(results, dataset=None):
         summary = results_df[metric_cols].describe()
 
         # Format the summary nicely
-        logger.info(
-            f"\n{'Metric':<25} {'Mean':<10} {'Std':<10} {'Min':<10} {'Max':<10}"
-        )
+        logger.info(f"{'Metric':<25} {'Mean':<10} {'Std':<10} {'Min':<10} {'Max':<10}")
         logger.info("─" * 80)
 
         for col in metric_cols:
