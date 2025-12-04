@@ -65,7 +65,7 @@ def print_ragas_results(results, dataset=None):
         # Show the generated answer
         if "response" in row and row["response"] is not None:
             answer = row["response"]
-            logger.info(f"A: {answer}")
+            logger.info(f"A:{answer}")
 
         # Show the contexts (retrieved documents)
         if "retrieved_contexts" in row and row["retrieved_contexts"] is not None:
