@@ -10,7 +10,7 @@ USE_CASE = os.getenv("USE_CASE", "learn from the provided materials")
 # Condense into a single question taking into account history
 condense_question_prompt = PromptTemplate(
     input_variables=["chat_history", "question"],
-    template="""You need to create a standalone question from the Follow Up Input.
+    template="""Create a standalone question from the Follow Up Inpu that incorporates relevant context from the conversation history.
 
 Last conversation exchange:
 {chat_history}
@@ -21,18 +21,18 @@ Standalone question:""",
 
 domain_expert_prompt = PromptTemplate(
     input_variables=["context", "question"],
-    template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE}. 
+    template=f"""You are a {CHATBOT_ROLE} helping a student {USE_CASE}. 
 
 IMPORTANT INSTRUCTIONS:
-- When STUDENT asks a factual question answer based on the CONTEXT provided.
+- Use the CONTEXT provided to answer the question.
 - Keep responses concise and focused.
 
 Based on the CONTEXT provided, respond appropriately:
 
 CONTEXT: {{context}}
 
-STUDENT: {{question}}
-RESPONSE:""",
+QUESTION: {{question}}
+ANSWER:""",
 )
 
 exam_prep_question_prompt = PromptTemplate(
