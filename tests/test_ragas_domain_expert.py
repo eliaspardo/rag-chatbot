@@ -11,6 +11,7 @@ from src.domain_expert import setup_domain_expert_chain
 from src.prompts import domain_expert_prompt, condense_question_prompt
 from tests.utils.ragas_utils import (
     print_ragas_results,
+    save_ragas_results,
     assert_ragas_thresholds,
     get_ragas_llm,
 )
@@ -95,4 +96,6 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
         pytest.fail(f"RAGAS evaluation failed: {exception}")  # pragma: no cover
 
     print_ragas_results(res)
+    save_paths = save_ragas_results(res)
+    logger.info(f"Saved RAGAS results: {save_paths}")
     assert_ragas_thresholds(res)

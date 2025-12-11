@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+from pathlib import Path
 from langchain_together import Together
 from langchain.llms.base import LLM
 import logging
@@ -24,6 +26,7 @@ MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
 RAGAS_MAX_TOKENS = int(os.getenv("RAGAS_MAX_TOKENS", "512"))
+RAGAS_RESULTS_DIR = os.getenv("RAGAS_RESULTS_DIR", "tests/artifacts/ragas")
 
 
 def print_ragas_results(results, dataset=None):
@@ -116,6 +119,138 @@ def print_ragas_results(results, dataset=None):
                 )
 
     logger.info("\n" + "=" * 80 + "\n")
+
+
+def save_ragas_results(results, base_dir: str | Path = RAGAS_RESULTS_DIR):
+    """
+    Save RAGAS results to timestamped CSV/JSON and a bar plot of mean scores if matplotlib is available.
+
+    Returns:
+        dict: paths for csv/json/plot (plot may be None if matplotlib not installed or no numeric metrics).
+    """
+    results_df = results.to_pandas()
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_dir = Path(base_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_path = out_dir / f"ragas_{timestamp}.csv"
+    json_path = out_dir / f"ragas_{timestamp}.json"
+    results_df.to_csv(csv_path, index=False)
+    results_df.to_json(json_path, orient="records", indent=2)
+
+    numeric_cols = [
+        col
+        for col in results_df.columns
+        if results_df[col].dtype.kind in {"i", "u", "f"}
+        and col
+        not in {
+            "question",
+            "answer",
+            "ground_truth",
+            "contexts",
+            "retrieved_contexts",
+            "response",
+            "user_input",
+        }
+    ]
+
+    plot_mean_path = None
+    plot_per_question_path = None
+    try:
+        import matplotlib.pyplot as plt  # Optional dependency
+
+        if numeric_cols:
+            # Mean (summary) plot
+            mean_vals = results_df[numeric_cols].mean()
+            fig, ax = plt.subplots()
+            mean_vals.plot(kind="bar", ax=ax, color="#4C72B0")
+            ax.set_title("RAGAS mean scores")
+            ax.set_ylim(0, 1)
+            ax.set_ylabel("Score")
+            fig.tight_layout()
+            plot_mean_path = out_dir / f"ragas_{timestamp}_means.png"
+            fig.savefig(plot_mean_path)
+            plt.close(fig)
+
+            # Per-question grouped bars
+            x = range(len(results_df))
+            bar_width = 0.8 / max(len(numeric_cols), 1)
+            fig, ax = plt.subplots()
+            for idx, col in enumerate(numeric_cols):
+                offsets = [v + idx * bar_width for v in x]
+                ax.bar(
+                    offsets,
+                    results_df[col],
+                    width=bar_width,
+                    label=col,
+                )
+            ax.set_title("RAGAS scores per question")
+            ax.set_ylim(0, 1)
+            ax.set_ylabel("Score")
+            ax.set_xticks([v + (len(numeric_cols) - 1) * bar_width / 2 for v in x])
+            ax.set_xticklabels([str(i + 1) for i in x])
+            ax.set_xlabel("Question #")
+            ax.legend()
+            fig.tight_layout()
+            plot_per_question_path = out_dir / f"ragas_{timestamp}_per_question.png"
+            fig.savefig(plot_per_question_path)
+            plt.close(fig)
+    except ImportError:
+        logger.info("matplotlib not installed; skipping plot generation.")
+
+    plotly_mean_path = None
+    plotly_per_question_path = None
+    try:
+        import plotly.express as px  # Optional dependency
+
+        if numeric_cols:
+            # Mean interactive bar
+            mean_vals_df = (
+                results_df[numeric_cols].mean().reset_index().rename(columns={"index": "metric", 0: "score"})
+            )
+            mean_vals_df.columns = ["metric", "score"]
+            fig_mean = px.bar(
+                mean_vals_df,
+                x="metric",
+                y="score",
+                range_y=[0, 1],
+                title="RAGAS mean scores",
+            )
+            plotly_mean_path = out_dir / f"ragas_{timestamp}_means.html"
+            fig_mean.write_html(plotly_mean_path, include_plotlyjs="cdn")
+
+            # Per-question interactive grouped bars
+            long_df = results_df.reset_index().melt(
+                id_vars="index",
+                value_vars=numeric_cols,
+                var_name="metric",
+                value_name="score",
+            )
+            fig_per_q = px.bar(
+                long_df,
+                x="index",
+                y="score",
+                color="metric",
+                barmode="group",
+                range_y=[0, 1],
+                title="RAGAS scores per question",
+                labels={"index": "Question #"},
+            )
+            plotly_per_question_path = out_dir / f"ragas_{timestamp}_per_question.html"
+            fig_per_q.write_html(plotly_per_question_path, include_plotlyjs="cdn")
+    except ImportError:
+        logger.info("plotly not installed; skipping interactive charts.")
+
+    return {
+        "csv": csv_path,
+        "json": json_path,
+        "plot_mean": plot_mean_path,
+        "plot_per_question": plot_per_question_path,
+        "plotly_mean": plotly_mean_path,
+        "plotly_per_question": plotly_per_question_path,
+        # Backward-compatible single plot key (points to mean chart)
+        "plot": plot_mean_path,
+    }
 
 
 def assert_ragas_thresholds(
