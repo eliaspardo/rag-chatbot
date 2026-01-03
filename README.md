@@ -54,10 +54,14 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
    cp .env.example .env
    ```
 
-4. **Configure environment variables**
+4. **Create and configure your runtime parameters**
 
-   - Add secrets to `.env` (kept untracked): set `TOGETHER_API_KEY=`
-   - Tune runtime parameters in `config/params.env` (tracked in git): edit model names, PDF path, chunking, retrieval, and RAGAS settings there.
+   ```bash
+   cp config/params.env.example config/params.env
+   ```
+
+   - `config/params.env` (kept untracked) is required: set your PDF path, models, chunking, retrieval, and RAGAS settings here.
+   - Add secrets to `.env` (kept untracked): set `TOGETHER_API_KEY=`.
    - Important: customize the chatbot for your use case by updating:
      - CHATBOT_ROLE
      - USE_CASE
@@ -154,6 +158,24 @@ During chat sessions:
 - `quit`, `exit`, `no`, or `stop` - Exit the application
 - `Ctrl+C` - Force quit
 
+## Testing
+
+Standard suite: `pytest` (RAGAS tests are marked and excluded by default, see below). Make sure `.env` and `config/params.env` exist so env loading succeeds.
+
+### Optional RAGAS Evaluations (local only)
+
+Ragas tests are disabled by default when running pytest to avoid breaking CI/CD runs as they need a source document and a golden dataset.
+
+- Relevant variables for paths and file names are all under a Ragas section in `config/params.env`:
+
+  - RAGAS_PDF_PATH - source document
+  - RAGAS_GOLDEN_SET_PATH - golden test dataset
+  - RAGAS_DB_DIR - where the tests will create the vector store
+
+- Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
+- How to run: prepare your dataset and vector store locally, then execute `pytest -m ragas`.
+- Expected behavior: if files are missing, tests skip/fail with a clear message; no proprietary data is required for CI.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -190,20 +212,6 @@ qa_chain = ConversationalRetrievalChain.from_llm(
     verbose=True,  # Uncomment for debugging
 )
 ```
-
-## Optional RAGAS Evaluations (local only)
-
-Ragas tests are disabled by default when running pytest to avoid breaking CI/CD runs as they need a source document and a golden dataset.
-
-- Relevant variables for paths and file names are all under a Ragas section in `config/params.env`:
-
-  - RAGAS_PDF_PATH - source document
-  - RAGAS_GOLDEN_SET_PATH - golden test dataset
-  - RAGAS_DB_DIR - where the tests will create the vector store
-
-- Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
-- How to run: prepare your dataset and vector store locally, then execute `pytest -m ragas`.
-- Expected behavior: if files are missing, tests skip/fail with a clear message; no proprietary data is required for CI.
 
 ## Support
 

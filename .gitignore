@@ -8,6 +8,9 @@ faiss_db*/
 tests/data/golden_set.json
 tests/data/golden_set*.json
 
+# params.env file - to be added by the user
+config/params.env
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
