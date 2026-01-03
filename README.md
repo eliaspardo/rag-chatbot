@@ -22,7 +22,7 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 
 - **LLM**: Together AI
 - **Vector Database**: FAISS
-- **Embeddings**: HuggingFace Sentence Transformers
+- **Embeddings**: HuggingFace Sentence Transformers (configurable via `config/params.env`)
 - **Framework**: LangChain
 - **PDF Processing**: PyMuPDF (fitz)
 
@@ -60,11 +60,11 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
    cp config/params.env.example config/params.env
    ```
 
-   - `config/params.env` (kept untracked) is required: set your PDF path, models, chunking, retrieval, and RAGAS settings here.
-   - Add secrets to `.env` (kept untracked): set `TOGETHER_API_KEY=`.
-   - Important: customize the chatbot for your use case by updating:
-     - CHATBOT_ROLE
-     - USE_CASE
+   - `config/params.env` (untracked, example provided): set your PDF path, models, chunking, retrieval, and RAGAS settings here.
+     - Important: customize the chatbot for your use case by updating:
+       - CHATBOT_ROLE
+       - USE_CASE
+   - Add secrets to `.env` (untracked, example provide): set `TOGETHER_API_KEY=`.
 
    The app always loads `.env` first and `config/params.env` second (no profiles to manage).
 
@@ -72,9 +72,10 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 
 ### Running the Application
 
+From the repo root, after activating your virtualenv:
+
 ```bash
-cd src
-python main.py
+python -m src.main
 ```
 
 ### First Run
@@ -83,7 +84,7 @@ On the first run, the application will:
 
 1. Process your PDF document
 2. Split text into chunks
-3. Create embeddings using HuggingFace Sentence Transformers
+3. Create embeddings
 4. Store vectors in FAISS database
 
 Subsequent runs will load the existing vector database. Delete the database if you want to use a different document.
