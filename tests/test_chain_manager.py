@@ -1,9 +1,9 @@
 import pytest
-from src.chain_manager import ChainManager
+from src.core.chain_manager import ChainManager
 from langchain_community.vectorstores import FAISS
 from unittest.mock import Mock, patch
 from langchain.llms.base import LLM
-from src.prompts import domain_expert_prompt, condense_question_prompt
+from src.core.prompts import domain_expert_prompt, condense_question_prompt
 
 
 class TestChainManager:
@@ -33,14 +33,14 @@ class TestChainManager:
         with pytest.raises(ValueError, match="vectordb cannot be None"):
             ChainManager(None)
 
-    @patch("src.chain_manager.TOGETHER_API_KEY", None)
+    @patch("src.core.chain_manager.TOGETHER_API_KEY", None)
     def test_init_missing_together_api_key(self, mock_vectordb):
         with pytest.raises(
             ValueError, match="TOGETHER_API_KEY environment variable is required"
         ):
             ChainManager(mock_vectordb, temperature=0.7, max_tokens=256, retrieval_k=1)
 
-    @patch("src.chain_manager.Together")
+    @patch("src.core.chain_manager.Together")
     def test_get_llm_success(self, mock_together, chain_manager):
         # Arrange
         mock_llm = Mock(spec=LLM)
@@ -58,14 +58,14 @@ class TestChainManager:
             max_tokens=chain_manager.max_tokens,
         )
 
-    @patch("src.chain_manager.Together")
+    @patch("src.core.chain_manager.Together")
     def test_get_llm_failure(self, mock_together, chain_manager):
         mock_together.side_effect = Exception("API connection failed")
 
         with pytest.raises(Exception, match="Error setting up LLM"):
             chain_manager.get_llm()
 
-    @patch("src.chain_manager.ConversationBufferMemory")
+    @patch("src.core.chain_manager.ConversationBufferMemory")
     def test_get_conversationalRetrievalChain_exception_ConversationBufferMemory(
         self, mock_conversation_buffer_memory, chain_manager
     ):

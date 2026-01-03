@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.rag_preprocessor import RAGPreprocessor
+from src.core.rag_preprocessor import RAGPreprocessor
 from src.env_loader import load_environment
 
 load_environment()

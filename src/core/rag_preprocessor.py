@@ -5,7 +5,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import fitz  # PyMuPDF
-from src.exceptions import FaissException, VectorStoreException
+from src.core.exceptions import FaissException, VectorStoreException
 import logging
 from src.env_loader import load_environment
 

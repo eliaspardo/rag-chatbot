@@ -4,12 +4,12 @@
 
 import sys
 import os
-from src.console_ui import ConsoleUI
-from src.domain_expert import domain_expert
-from src.exam_prep import exam_prep
-from src.constants import ChatbotMode, EXIT_WORDS, Error
-from src.rag_preprocessor import RAGPreprocessor
-from src.exceptions import ExitApp, FaissException, VectorStoreException
+from src.ui.console_ui import ConsoleUI
+from src.core.domain_expert import domain_expert
+from src.core.exam_prep import exam_prep
+from src.core.constants import ChatbotMode, EXIT_WORDS, Error
+from src.core.rag_preprocessor import RAGPreprocessor
+from src.core.exceptions import ExitApp, FaissException, VectorStoreException
 import logging
 from langchain_community.vectorstores import FAISS
 from src.env_loader import load_environment

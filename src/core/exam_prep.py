@@ -2,11 +2,11 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from langchain.llms.base import LLM
 from langchain.prompts import PromptTemplate
-from src.chain_manager import ChainManager
-from src.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
-from src.constants import EXIT_WORDS, ChatbotMode, Error
-from src.console_ui import ConsoleUI
-from src.exceptions import ExitApp
+from src.core.chain_manager import ChainManager
+from src.core.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
+from src.core.constants import EXIT_WORDS, ChatbotMode, Error
+from src.ui.console_ui import ConsoleUI
+from src.core.exceptions import ExitApp
 import logging
 
 logger = logging.getLogger(__name__)

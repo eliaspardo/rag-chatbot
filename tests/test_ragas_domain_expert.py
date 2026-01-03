@@ -5,10 +5,10 @@ from ragas import evaluate
 from ragas.metrics import answer_relevancy, faithfulness, context_precision
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.rag_preprocessor import RAGPreprocessor
-from src.chain_manager import ChainManager
-from src.domain_expert import setup_domain_expert_chain
-from src.prompts import domain_expert_prompt, condense_question_prompt
+from src.core.rag_preprocessor import RAGPreprocessor
+from src.core.chain_manager import ChainManager
+from src.core.domain_expert import setup_domain_expert_chain
+from src.core.prompts import domain_expert_prompt, condense_question_prompt
 from tests.utils.ragas_utils import (
     print_ragas_results,
     save_ragas_results,

@@ -1,13 +1,13 @@
 import pytest
 from unittest.mock import Mock, patch
-from src.console_ui import ConsoleUI
+from src.ui.console_ui import ConsoleUI
 from langchain_community.vectorstores import FAISS
-from src.exam_prep import exam_prep, run_chat_loop
-from src.chain_manager import ChainManager
-from src.exceptions import ExitApp
-from src.constants import Error, ChatbotMode, EXIT_WORDS
+from src.core.exam_prep import exam_prep, run_chat_loop
+from src.core.chain_manager import ChainManager
+from src.core.exceptions import ExitApp
+from src.core.constants import Error, ChatbotMode, EXIT_WORDS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from src.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
+from src.core.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
 
 
 class TestExamPrep:
@@ -27,8 +27,8 @@ class TestExamPrep:
     def mock_conversational_retrieval_chain(self):
         return Mock(spec=ConversationalRetrievalChain)
 
-    @patch("src.exam_prep.ChainManager")
-    @patch("src.exam_prep.run_chat_loop")
+    @patch("src.core.exam_prep.ChainManager")
+    @patch("src.core.exam_prep.run_chat_loop")
     def test_exam_prep_init_success(
         self,
         mock_run_chat_loop,
@@ -61,7 +61,7 @@ class TestExamPrep:
         )
         mock_run_chat_loop.assert_called_once()
 
-    @patch("src.exam_prep.ChainManager")
+    @patch("src.core.exam_prep.ChainManager")
     def test_exam_prep_chain_manager_init_error(
         self, mock_chain_manager_class, mock_console_ui, mock_vectordb
     ):
@@ -79,7 +79,7 @@ class TestExamPrep:
             Error.EXCEPTION, mock_chain_manager_class.side_effect
         )
 
-    @patch("src.exam_prep.ChainManager")
+    @patch("src.core.exam_prep.ChainManager")
     def test_exam_prep_chain_manager_get_llm_error(
         self,
         mock_chain_manager_class,
@@ -100,7 +100,7 @@ class TestExamPrep:
             Error.EXCEPTION, mock_chain_manager.get_llm.side_effect
         )
 
-    @patch("src.exam_prep.ChainManager")
+    @patch("src.core.exam_prep.ChainManager")
     def test_exam_prep_chain_manager_get_conversationalRetrievalChain_error_on_first_chain(
         self,
         mock_chain_manager_class,
@@ -125,7 +125,7 @@ class TestExamPrep:
             mock_chain_manager.get_conversationalRetrievalChain.side_effect,
         )
 
-    @patch("src.exam_prep.ChainManager")
+    @patch("src.core.exam_prep.ChainManager")
     def test_exam_prep_chain_manager_get_conversationalRetrievalChain_error_on_second_chain(
         self,
         mock_chain_manager_class,

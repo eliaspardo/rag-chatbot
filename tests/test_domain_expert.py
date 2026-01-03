@@ -1,11 +1,11 @@
 import pytest
 from unittest.mock import Mock, patch
-from src.console_ui import ConsoleUI
+from src.ui.console_ui import ConsoleUI
 from langchain_community.vectorstores import FAISS
-from src.domain_expert import domain_expert, run_chat_loop
-from src.chain_manager import ChainManager
-from src.exceptions import ExitApp
-from src.constants import Error, ChatbotMode, EXIT_WORDS
+from src.core.domain_expert import domain_expert, run_chat_loop
+from src.core.chain_manager import ChainManager
+from src.core.exceptions import ExitApp
+from src.core.constants import Error, ChatbotMode, EXIT_WORDS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 
 
@@ -26,8 +26,8 @@ class TestDomainExpert:
     def mock_conversational_retrieval_chain(self):
         return Mock(spec=ConversationalRetrievalChain)
 
-    @patch("src.domain_expert.ChainManager")
-    @patch("src.domain_expert.run_chat_loop")
+    @patch("src.core.domain_expert.ChainManager")
+    @patch("src.core.domain_expert.run_chat_loop")
     def test_domain_expert_init_success(
         self,
         mock_run_chat_loop,
@@ -55,7 +55,7 @@ class TestDomainExpert:
         mock_chain_manager.get_conversationalRetrievalChain.assert_called_once()
         mock_run_chat_loop.assert_called_once()
 
-    @patch("src.domain_expert.ChainManager")
+    @patch("src.core.domain_expert.ChainManager")
     def test_domain_expert_chain_manager_init_error(
         self, mock_chain_manager_class, mock_console_ui, mock_vectordb
     ):
@@ -73,7 +73,7 @@ class TestDomainExpert:
             Error.EXCEPTION, mock_chain_manager_class.side_effect
         )
 
-    @patch("src.domain_expert.ChainManager")
+    @patch("src.core.domain_expert.ChainManager")
     def test_domain_expert_chain_manager_get_llm_error(
         self,
         mock_chain_manager_class,
@@ -94,7 +94,7 @@ class TestDomainExpert:
             Error.EXCEPTION, mock_chain_manager.get_llm.side_effect
         )
 
-    @patch("src.domain_expert.ChainManager")
+    @patch("src.core.domain_expert.ChainManager")
     def test_domain_expert_chain_manager_get_conversationalRetrievalChain_error(
         self,
         mock_chain_manager_class,

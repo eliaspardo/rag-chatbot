@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from src.rag_preprocessor import RAGPreprocessor
+from src.core.rag_preprocessor import RAGPreprocessor
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
 import os
@@ -26,7 +26,7 @@ class TestRagPreprocessor:
         with pytest.raises(Exception, match="Error reading PDF file"):
             rag_preprocessor.load_pdf_text("no_file")
 
-    @patch("src.rag_preprocessor.fitz.open")
+    @patch("src.core.rag_preprocessor.fitz.open")
     def test_load_pdf_text_default_no_file(self, mock_fitz_open, rag_preprocessor):
         mock_fitz_open.side_effect = FileNotFoundError("No such file or directory")
         with pytest.raises(Exception, match="Error reading PDF file"):
@@ -52,7 +52,7 @@ class TestRagPreprocessor:
         documents = rag_preprocessor.split_text_to_docs(STRING_LIST_EMPTY_CHUNKS)
         assert all(document.page_content.strip() for document in documents)
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     def test_create_vector_store_deletes_existing_storage(
         self, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
@@ -76,7 +76,7 @@ class TestRagPreprocessor:
         if os.path.exists(TEST_DB_DIR):
             shutil.rmtree(TEST_DB_DIR)
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     def test_create_vector_store_throws_exception_mocked_HuggingFaceEmbeddings(
         self, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
@@ -91,8 +91,8 @@ class TestRagPreprocessor:
         # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.rag_preprocessor.FAISS")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.FAISS")
     def test_create_vector_store_throws_value_error_mocked_FAISS_from_documents(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
@@ -110,8 +110,8 @@ class TestRagPreprocessor:
         # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.rag_preprocessor.FAISS")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.FAISS")
     def test_create_vector_store_throws_runtime_error_mocked_FAISS_from_documents(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
@@ -129,8 +129,8 @@ class TestRagPreprocessor:
         # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.rag_preprocessor.FAISS")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.FAISS")
     def test_create_vector_store_throws_exception_mocked_FAISS_save_local(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
@@ -150,8 +150,8 @@ class TestRagPreprocessor:
         # Assert
         assert not os.path.isdir(TEST_DB_DIR)
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.rag_preprocessor.FAISS")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.FAISS")
     def test_create_vector_store_success(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
@@ -175,7 +175,7 @@ class TestRagPreprocessor:
         mock_vectordb_instance.save_local.assert_called_once_with(TEST_DB_DIR)
         assert vectordb is mock_vectordb_instance
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     def test_load_vector_store_does_not_exist(
         self, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
@@ -187,8 +187,8 @@ class TestRagPreprocessor:
         with pytest.raises(Exception, match="No such file or directory"):
             rag_preprocessor.load_vector_store(TEST_DB_DIR)
 
-    @patch("src.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.rag_preprocessor.FAISS")
+    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.FAISS")
     def test_load_vector_store_success(
         self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
