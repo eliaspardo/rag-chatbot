@@ -11,6 +11,7 @@ from src.domain_expert import setup_domain_expert_chain
 from src.prompts import domain_expert_prompt, condense_question_prompt
 from tests.utils.ragas_utils import (
     print_ragas_results,
+    save_ragas_results,
     assert_ragas_thresholds,
     get_ragas_llm,
 )
@@ -25,10 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 RAGAS_DB_DIR = os.getenv("RAGAS_DB_DIR")
-EMBED_MODEL = os.getenv(
-    "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
-)
-MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
+EMBED_MODEL = os.getenv("EMBEDDING_MODEL")
+MODEL_NAME = os.getenv("MODEL_NAME")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 
 
@@ -71,6 +70,7 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
         docs = chain_manager.retriever.get_relevant_documents(question)
         contexts = [doc.page_content for doc in docs]
         contexts_list.append(contexts)
+        chain_manager.reset_chain_memory(qa_chain)
 
     ds = Dataset.from_dict(
         {
@@ -96,4 +96,6 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
         pytest.fail(f"RAGAS evaluation failed: {exception}")  # pragma: no cover
 
     print_ragas_results(res)
+    save_paths = save_ragas_results(res)
+    logger.info(f"Saved RAGAS results: {save_paths}")
     assert_ragas_thresholds(res)

@@ -1,11 +1,15 @@
 # Database
-faiss_db/
+faiss_db*/
 
 # Data folder with documents
 /data/
 
 # Golden test dataset for ragas - to be added by the user
 tests/data/golden_set.json
+tests/data/golden_set*.json
+
+# params.env file - to be added by the user
+config/params.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -59,6 +63,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+tests/artifacts
 
 # Translations
 *.mo
