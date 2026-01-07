@@ -5,10 +5,9 @@ from ragas import evaluate
 from ragas.metrics import answer_relevancy, faithfulness, context_precision
 from langchain_huggingface import HuggingFaceEmbeddings
 
+from src.core.domain_expert_core import setup_domain_expert_chain
 from src.core.rag_preprocessor import RAGPreprocessor
 from src.core.chain_manager import ChainManager
-from src.core.domain_expert import setup_domain_expert_chain
-from src.core.prompts import domain_expert_prompt, condense_question_prompt
 from tests.utils.ragas_utils import (
     print_ragas_results,
     save_ragas_results,
@@ -47,13 +46,7 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     rag_preprocessor = RAGPreprocessor()
     vectordb = rag_preprocessor.load_vector_store(RAGAS_DB_DIR, EMBED_MODEL)
     chain_manager = ChainManager(vectordb)
-    llm = chain_manager.get_llm()
-    qa_chain = setup_domain_expert_chain(
-        chain_manager,
-        llm,
-        domain_expert_prompt,
-        condense_question_prompt,
-    )
+    qa_chain = setup_domain_expert_chain(chain_manager)
 
     try:
         questions, ground_truths = load_golden_set_dataset()

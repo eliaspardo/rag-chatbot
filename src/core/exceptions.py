@@ -1,6 +1,10 @@
 class ExitApp(Exception):
     """Raised when the user wants to exit the application."""
+    pass
 
+
+class DomainExpertSetupException(Exception):
+    """Raised when there's an issue setting up the domain expert."""
     pass
 
 

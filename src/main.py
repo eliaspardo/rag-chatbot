@@ -4,8 +4,8 @@
 
 import sys
 import os
+from src.ui.domain_expert_ui import domain_expert_ui
 from src.ui.console_ui import ConsoleUI
-from src.core.domain_expert import domain_expert
 from src.core.exam_prep import exam_prep
 from src.core.constants import ChatbotMode, EXIT_WORDS, Error
 from src.core.rag_preprocessor import RAGPreprocessor
@@ -72,7 +72,7 @@ def run_chat_loop(ui: ConsoleUI, vectordb: FAISS) -> None:
 
         if user_selection == "1":
             ui.show_entering_mode(ChatbotMode.DOMAIN_EXPERT)
-            domain_expert(ui, vectordb)
+            domain_expert_ui(ui, vectordb)
             continue
         if user_selection == "2":
             ui.show_entering_mode(ChatbotMode.EXAM_PREP)
