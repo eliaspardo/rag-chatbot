@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 from src.core.domain_expert_core import DomainExpertCore
 from src.ui.console_ui import ConsoleUI
-from src.ui.domain_expert_ui import domain_expert_ui
+from src.ui.domain_expert_ui import run_domain_expert_chat_loop
 from src.core.exceptions import ExitApp
 from src.core.constants import Error, ChatbotMode, EXIT_WORDS
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
@@ -24,7 +24,7 @@ class TestDomainExpertUi:
 
             # Act
             with pytest.raises(ExitApp):
-                domain_expert_ui(mock_console_ui, mock_domain_expert_core)
+                run_domain_expert_chat_loop(mock_console_ui, mock_domain_expert_core)
 
             # Assert
             mock_console_ui.show_welcome_mode.assert_called_with(
@@ -36,7 +36,7 @@ class TestDomainExpertUi:
         mock_console_ui.get_user_input.return_value = "mode"
 
         # Act
-        domain_expert_ui(mock_console_ui, mock_domain_expert_core)
+        run_domain_expert_chat_loop(mock_console_ui, mock_domain_expert_core)
 
         # Assert
         mock_console_ui.show_mode_switch.assert_called_once()
@@ -49,7 +49,7 @@ class TestDomainExpertUi:
 
         # Act
         with pytest.raises(ExitApp):
-            domain_expert_ui(mock_console_ui, mock_domain_expert_core)
+            run_domain_expert_chat_loop(mock_console_ui, mock_domain_expert_core)
 
         # Assert
         mock_console_ui.show_error.assert_called_once_with(Error.NOT_A_QUESTION)
@@ -65,7 +65,7 @@ class TestDomainExpertUi:
 
         # Act
         with pytest.raises(ExitApp):
-            domain_expert_ui(mock_console_ui, mock_domain_expert_core)
+            run_domain_expert_chat_loop(mock_console_ui, mock_domain_expert_core)
 
         # Assert
         mock_console_ui.show_error.assert_called_with(
@@ -82,7 +82,7 @@ class TestDomainExpertUi:
 
         # Act
         with pytest.raises(ExitApp):
-            domain_expert_ui(mock_console_ui, mock_domain_expert_core)
+            run_domain_expert_chat_loop(mock_console_ui, mock_domain_expert_core)
 
     def test_run_chat_loop_success(self, mock_console_ui, mock_domain_expert_core):
         # Arrange
@@ -91,7 +91,7 @@ class TestDomainExpertUi:
 
         # Act
         with pytest.raises(ExitApp):
-            domain_expert_ui(mock_console_ui, mock_domain_expert_core)
+            run_domain_expert_chat_loop(mock_console_ui, mock_domain_expert_core)
 
         # Assert
         mock_console_ui.show_answer.assert_called_once_with(

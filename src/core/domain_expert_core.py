@@ -1,4 +1,3 @@
-from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from langchain_community.vectorstores import FAISS
 from src.core.chain_manager import ChainManager
 from src.core.prompts import condense_question_prompt, domain_expert_prompt

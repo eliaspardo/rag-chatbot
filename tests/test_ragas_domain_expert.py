@@ -35,7 +35,7 @@ TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
 def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     """
-    For domain expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
+    For Domain Expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
     context_precision -> Are the relevant contexts ranked higher than irrelevant ones?
     answer_relevancy -> infer the QUESTIONS based on the LLM's response

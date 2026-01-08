@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def domain_expert_ui(ui: ConsoleUI, domain_expert: DomainExpertCore) -> None:   
+def run_domain_expert_chat_loop(ui: ConsoleUI, domain_expert: DomainExpertCore) -> None:
     ui.show_welcome_mode(ChatbotMode.DOMAIN_EXPERT)
 
     try:
