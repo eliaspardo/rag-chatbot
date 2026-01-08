@@ -3,58 +3,44 @@
 # Sentence Transformers (Embeddings), LangChain
 
 import sys
-import os
-from src.console_ui import ConsoleUI
-from src.domain_expert import domain_expert
-from src.exam_prep import exam_prep
-from src.constants import ChatbotMode, EXIT_WORDS, Error
-from src.rag_preprocessor import RAGPreprocessor
-from src.exceptions import ExitApp, FaissException, VectorStoreException
+from src.core.domain_expert_core import DomainExpertCore
+from src.core.exam_prep_core import ExamPrepCore
+from src.ui.domain_expert_ui import run_domain_expert_chat_loop
+from src.ui.console_ui import ConsoleUI
+from src.core.constants import ChatbotMode, EXIT_WORDS, Error
+from src.core.rag_preprocessor import RAGPreprocessor
+from src.core.exceptions import (
+    ExitApp,
+    FaissException,
+    NoDocumentsException,
+    VectorStoreException,
+)
 import logging
 from langchain_community.vectorstores import FAISS
 from src.env_loader import load_environment
+from src.core.app_bootstrap import prepare_vector_store
+from src.ui.exam_prep_ui import run_exam_prep_chat_loop
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 load_environment()
-DB_DIR = os.getenv("DB_DIR", "faiss_db")
 
 
 def run_app(ui: ConsoleUI) -> None:
-
     rag_preprocessor = RAGPreprocessor()
-    # Process PDF if not already embedded
-    if not os.path.exists(DB_DIR):
-        try:
-            ui.show_info_message("\n🔍 Loading PDF...")
-            texts = rag_preprocessor.load_pdf_text()
-            ui.show_info_message("Splitting text to docs.")
-            docs = rag_preprocessor.split_text_to_docs(texts)
-        except Exception as exception:
-            ui.show_error(Error.EXCEPTION, exception)
-            raise ExitApp()
-
-        if not docs:
-            ui.show_error(Error.NO_DOCUMENTS)
-            raise ExitApp()
-        try:
-            ui.show_info_message("Creating vector store.")
-            rag_preprocessor.create_vector_store(docs)
-        except FaissException as exception:
-            ui.show_error(Error.EXCEPTION, exception)
-            raise ExitApp()
-        except VectorStoreException as exception:
-            ui.show_error(Error.EXCEPTION, exception)
-            raise ExitApp()
-        ui.show_info_message("✅ Vector DB created and saved.")
-    else:
-        ui.show_info_message("📦 Using existing vector store.")
-
-    # Load vector store, retriever and memory
     try:
-        ui.show_info_message("📶 Loading vector store.")
-        vectordb = rag_preprocessor.load_vector_store()
+        vectordb = prepare_vector_store(
+            rag_preprocessor=rag_preprocessor,
+            progress_callback=ui.show_info_message,
+        )
+    except NoDocumentsException:
+        ui.show_error(Error.NO_DOCUMENTS)
+        raise ExitApp()
+    except (FaissException, VectorStoreException) as exception:
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
     except Exception as exception:
         ui.show_error(Error.EXCEPTION, exception)
         raise ExitApp()
@@ -72,11 +58,23 @@ def run_chat_loop(ui: ConsoleUI, vectordb: FAISS) -> None:
 
         if user_selection == "1":
             ui.show_entering_mode(ChatbotMode.DOMAIN_EXPERT)
-            domain_expert(ui, vectordb)
+            try:
+                domain_expert = DomainExpertCore(vectordb)
+            except Exception as exception:
+                logger.error(f"Error setting up Domain Expert: {exception}")
+                ui.show_error(Error.EXCEPTION, exception)
+                raise ExitApp()
+            run_domain_expert_chat_loop(ui, domain_expert)
             continue
         if user_selection == "2":
             ui.show_entering_mode(ChatbotMode.EXAM_PREP)
-            exam_prep(ui, vectordb)
+            try:
+                exam_prep = ExamPrepCore(vectordb)
+            except Exception as exception:
+                logger.error(f"Error setting up Exam Prep: {exception}")
+                ui.show_error(Error.EXCEPTION, exception)
+                raise ExitApp()
+            run_exam_prep_chat_loop(ui, exam_prep)
             continue
         else:
             ui.show_error(Error.INVALID_MODE)

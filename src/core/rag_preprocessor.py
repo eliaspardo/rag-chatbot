@@ -5,7 +5,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import fitz  # PyMuPDF
-from src.exceptions import FaissException, VectorStoreException
+from src.core.exceptions import FaissException, VectorStoreException
 import logging
 from src.env_loader import load_environment
 
@@ -60,7 +60,6 @@ class RAGPreprocessor:
         db_dir: str = DB_DIR,
         model_name: str = EMBEDDING_MODEL,
     ) -> FAISS:
-
         # Add this before creating the vector store
         if os.path.exists(db_dir):
             logger.debug(f"🧹 Removing existing directory: {db_dir}")

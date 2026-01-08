@@ -1,11 +1,10 @@
 import pytest
-from src.console_ui import ConsoleUI, Error
-from src.constants import ChatbotMode, DEFAULT_CONSOLE_WIDTH
+from src.ui.console_ui import ConsoleUI, Error
+from src.core.constants import ChatbotMode, DEFAULT_CONSOLE_WIDTH
 from unittest.mock import patch
 
 
 class TestConsoleUI:
-
     @pytest.fixture
     def ui(self):
         return ConsoleUI()

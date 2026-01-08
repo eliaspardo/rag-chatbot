@@ -5,10 +5,8 @@ from ragas import evaluate
 from ragas.metrics import answer_relevancy, faithfulness, context_precision
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.rag_preprocessor import RAGPreprocessor
-from src.chain_manager import ChainManager
-from src.domain_expert import setup_domain_expert_chain
-from src.prompts import domain_expert_prompt, condense_question_prompt
+from src.core.domain_expert_core import DomainExpertCore
+from src.core.rag_preprocessor import RAGPreprocessor
 from tests.utils.ragas_utils import (
     print_ragas_results,
     save_ragas_results,
@@ -36,7 +34,7 @@ TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 @pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
 def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     """
-    For domain expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
+    For Domain Expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
     context_precision -> Are the relevant contexts ranked higher than irrelevant ones?
     answer_relevancy -> infer the QUESTIONS based on the LLM's response
@@ -46,14 +44,7 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
 
     rag_preprocessor = RAGPreprocessor()
     vectordb = rag_preprocessor.load_vector_store(RAGAS_DB_DIR, EMBED_MODEL)
-    chain_manager = ChainManager(vectordb)
-    llm = chain_manager.get_llm()
-    qa_chain = setup_domain_expert_chain(
-        chain_manager,
-        llm,
-        domain_expert_prompt,
-        condense_question_prompt,
-    )
+    domain_expert = DomainExpertCore(vectordb)
 
     try:
         questions, ground_truths = load_golden_set_dataset()
@@ -64,13 +55,13 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     contexts_list = []
 
     for question in questions:
-        answer = chain_manager.ask_question(question, qa_chain)
+        answer = domain_expert.ask_question(question)
         answers.append(str(answer))
 
-        docs = chain_manager.retriever.get_relevant_documents(question)
+        docs = domain_expert.chain_manager.retriever.get_relevant_documents(question)
         contexts = [doc.page_content for doc in docs]
         contexts_list.append(contexts)
-        chain_manager.reset_chain_memory(qa_chain)
+        domain_expert.chain_manager.reset_chain_memory(domain_expert.qa_chain)
 
     ds = Dataset.from_dict(
         {
