@@ -7,7 +7,6 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.core.domain_expert_core import DomainExpertCore
 from src.core.rag_preprocessor import RAGPreprocessor
-from src.core.chain_manager import ChainManager
 from tests.utils.ragas_utils import (
     print_ragas_results,
     save_ragas_results,

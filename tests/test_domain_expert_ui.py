@@ -1,11 +1,10 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from src.core.domain_expert_core import DomainExpertCore
 from src.ui.console_ui import ConsoleUI
 from src.ui.domain_expert_ui import run_domain_expert_chat_loop
 from src.core.exceptions import ExitApp
 from src.core.constants import Error, ChatbotMode, EXIT_WORDS
-from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 
 
 class TestDomainExpertUi:

@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from datetime import datetime
 import random
 import re
 from pathlib import Path
@@ -293,8 +292,6 @@ def build_synthetic_ragas_dataset_from_pdf(
 def example_usage() -> None:
     """Minimal example to build and persist a dataset to JSON."""
     pdf_path = "data/ISTQB_CTAL-TM_Syllabus_v3.0.pdf"
-    # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    # output_path = Path(f"tests/artifacts/synthetic_dataset_{timestamp}.json")
     output_path = Path("tests/artifacts/synthetic_dataset.json")
 
     dataset = build_synthetic_ragas_dataset_from_pdf(

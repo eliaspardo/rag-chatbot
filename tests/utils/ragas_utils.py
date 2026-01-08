@@ -206,7 +206,10 @@ def save_ragas_results(results, base_dir: str | Path = RAGAS_RESULTS_DIR):
         if numeric_cols:
             # Mean interactive bar
             mean_vals_df = (
-                results_df[numeric_cols].mean().reset_index().rename(columns={"index": "metric", 0: "score"})
+                results_df[numeric_cols]
+                .mean()
+                .reset_index()
+                .rename(columns={"index": "metric", 0: "score"})
             )
             mean_vals_df.columns = ["metric", "score"]
             fig_mean = px.bar(

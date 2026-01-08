@@ -26,9 +26,7 @@ class TestExamPrepUi:
                 run_exam_prep_chat_loop(mock_console_ui, mock_exam_prep_core)
 
             # Assert
-            mock_console_ui.show_welcome_mode.assert_called_with(
-                ChatbotMode.EXAM_PREP
-            )
+            mock_console_ui.show_welcome_mode.assert_called_with(ChatbotMode.EXAM_PREP)
 
     def test_run_chat_loop_mode_switch(self, mock_console_ui, mock_exam_prep_core):
         # Arrange
@@ -83,9 +81,7 @@ class TestExamPrepUi:
                 run_exam_prep_chat_loop(mock_console_ui, mock_exam_prep_core)
 
             # Assert
-            mock_console_ui.show_welcome_mode.assert_called_with(
-                ChatbotMode.EXAM_PREP
-            )
+            mock_console_ui.show_welcome_mode.assert_called_with(ChatbotMode.EXAM_PREP)
 
     def test_run_chat_loop_mode_switch_on_second_input(
         self, mock_console_ui, mock_exam_prep_core
@@ -100,9 +96,7 @@ class TestExamPrepUi:
         # Assert
         mock_console_ui.show_mode_switch.assert_called_once()
 
-    def test_run_chat_loop_no_user_answer(
-        self, mock_console_ui, mock_exam_prep_core
-    ):
+    def test_run_chat_loop_no_user_answer(self, mock_console_ui, mock_exam_prep_core):
         # Arrange
         mock_console_ui.get_user_input.side_effect = ["Sample Topic", ""]
         mock_exam_prep_core.get_question.return_value = "Sample Question"

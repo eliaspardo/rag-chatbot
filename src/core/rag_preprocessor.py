@@ -60,7 +60,6 @@ class RAGPreprocessor:
         db_dir: str = DB_DIR,
         model_name: str = EMBEDDING_MODEL,
     ) -> FAISS:
-
         # Add this before creating the vector store
         if os.path.exists(db_dir):
             logger.debug(f"🧹 Removing existing directory: {db_dir}")

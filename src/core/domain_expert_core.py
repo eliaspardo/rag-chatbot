@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class DomainExpertCore:
-
     def __init__(self, vectordb: FAISS):
         try:
             self.chain_manager = ChainManager(vectordb)

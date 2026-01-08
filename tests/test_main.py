@@ -7,7 +7,6 @@ from src.main import main, run_app, run_chat_loop
 
 
 class TestMain:
-
     @pytest.fixture
     def mock_console_ui_instance(self):
         return Mock(spec=ConsoleUI)
@@ -265,9 +264,7 @@ class TestMain:
         mock_run_domain_expert_chat_loop.assert_called_once_with(
             mock_console_ui_instance, mock_domain_expert_core.return_value
         )
-        mock_exam_prep_core.assert_called_once_with(
-            mock_vectordb_instance
-        )
+        mock_exam_prep_core.assert_called_once_with(mock_vectordb_instance)
         mock_run_exam_prep_chat_loop.assert_called_once_with(
             mock_console_ui_instance, mock_exam_prep_core.return_value
         )

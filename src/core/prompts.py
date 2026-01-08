@@ -1,3 +1,4 @@
+# flake8: noqa
 import os
 from langchain.prompts import PromptTemplate
 from src.env_loader import load_environment
@@ -22,7 +23,7 @@ Standalone question (output the question only):""",
 domain_expert_prompt = PromptTemplate(
     input_variables=["context", "question"],
     template=f"""### INSTRUCTIONS ###
-    You are a {CHATBOT_ROLE} helping a student {USE_CASE}. 
+    You are a {CHATBOT_ROLE} helping a student {USE_CASE}.
 
 IMPORTANT INSTRUCTIONS:
 - Use the CONTEXT provided to answer the CURRENT question only.
@@ -39,7 +40,7 @@ QUESTION: {{question}}
 
 exam_prep_question_prompt = PromptTemplate(
     input_variables=["context", "question"],
-    template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE} by providing questions about specific subjects, sections, or topics. 
+    template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE} by providing questions about specific subjects, sections, or topics.
 
 IMPORTANT INSTRUCTIONS:
 - When STUDENT asks you to "ask me a question" or "quiz me" about a topic from the CONTEXT, respond with ONLY a clear, specific question about that topic.
@@ -56,7 +57,7 @@ RESPONSE:""",
 
 exam_prep_answer_prompt = PromptTemplate(
     input_variables=["context", "question"],
-    template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE}. 
+    template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE}.
 
 IMPORTANT INSTRUCTIONS:
 - You will receive a QUESTION AND STUDENTS ANSWER: evaluate the student's answer based on the CONTEXT and provide feedback.

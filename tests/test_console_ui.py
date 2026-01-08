@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 
 class TestConsoleUI:
-
     @pytest.fixture
     def ui(self):
         return ConsoleUI()
