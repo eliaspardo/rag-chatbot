@@ -229,12 +229,14 @@ class TestMain:
             # Assert
             mock_console_ui_instance.show_operational_mode_selection.assert_called()
 
+    @patch("src.main.DomainExpertCore")
     @patch("src.main.domain_expert_ui")
     @patch("src.main.exam_prep")
     def test_run_chat_loop_select_modes(
         self,
         mock_exam_prep,
         mock_domain_expert_ui,
+        mock_domain_expert_core,
         mock_console_ui_instance,
         mock_vectordb_instance,
     ):
@@ -242,18 +244,27 @@ class TestMain:
         modes = [ChatbotMode.DOMAIN_EXPERT, ChatbotMode.EXAM_PREP]
         mock_exam_prep.return_value = None
         mock_domain_expert_ui.return_value = None
-        mock_console_ui_instance.get_operational_mode_selection.side_effect = ["1", "2"]
-        with pytest.raises(StopIteration):
+        mock_domain_expert_core.return_value = Mock()
+        mock_console_ui_instance.get_operational_mode_selection.side_effect = [
+            "1",
+            "2",
+            "quit",
+        ]
 
-            for mode in modes:
+        # Act
+        with pytest.raises(ExitApp):
+            run_chat_loop(mock_console_ui_instance, mock_vectordb_instance)
 
-                # Act
-                run_chat_loop(mock_console_ui_instance, mock_vectordb_instance)
-
-                # Assert
-                mock_console_ui_instance.show_entering_mode.assert_called_with(mode)
-            mock_exam_prep.assert_called_once()
-            mock_domain_expert_ui.assert_called_once()
+        # Assert
+        for mode in modes:
+            mock_console_ui_instance.show_entering_mode.assert_any_call(mode)
+        mock_domain_expert_core.assert_called_once_with(mock_vectordb_instance)
+        mock_domain_expert_ui.assert_called_once_with(
+            mock_console_ui_instance, mock_domain_expert_core.return_value
+        )
+        mock_exam_prep.assert_called_once_with(
+            mock_console_ui_instance, mock_vectordb_instance
+        )
 
     def test_run_chat_loop_invalid_input(
         self,

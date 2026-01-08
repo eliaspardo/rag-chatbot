@@ -210,13 +210,13 @@ class TestExamPrep:
         self, mock_console_ui, mock_chain_manager, mock_conversational_retrieval_chain
     ):
         # Arrange
-        mock_console_ui.get_user_input.side_effect = "Sample Topic"
+        mock_console_ui.get_user_input.side_effect = ["Sample Topic", "quit"]
         mock_chain_manager.ask_question.side_effect = Exception(
             "Error getting question"
         )
 
         # Act
-        with pytest.raises(StopIteration):
+        with pytest.raises(ExitApp):
             run_chat_loop(
                 mock_console_ui,
                 mock_chain_manager,

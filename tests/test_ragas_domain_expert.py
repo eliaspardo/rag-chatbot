@@ -5,7 +5,7 @@ from ragas import evaluate
 from ragas.metrics import answer_relevancy, faithfulness, context_precision
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.core.domain_expert_core import setup_domain_expert_chain
+from src.core.domain_expert_core import DomainExpertCore
 from src.core.rag_preprocessor import RAGPreprocessor
 from src.core.chain_manager import ChainManager
 from tests.utils.ragas_utils import (
@@ -45,8 +45,7 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
 
     rag_preprocessor = RAGPreprocessor()
     vectordb = rag_preprocessor.load_vector_store(RAGAS_DB_DIR, EMBED_MODEL)
-    chain_manager = ChainManager(vectordb)
-    qa_chain = setup_domain_expert_chain(chain_manager)
+    domain_expert = DomainExpertCore(vectordb)
 
     try:
         questions, ground_truths = load_golden_set_dataset()
@@ -57,13 +56,13 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     contexts_list = []
 
     for question in questions:
-        answer = chain_manager.ask_question(question, qa_chain)
+        answer = domain_expert.ask_question(question)
         answers.append(str(answer))
 
-        docs = chain_manager.retriever.get_relevant_documents(question)
+        docs = domain_expert.chain_manager.retriever.get_relevant_documents(question)
         contexts = [doc.page_content for doc in docs]
         contexts_list.append(contexts)
-        chain_manager.reset_chain_memory(qa_chain)
+        domain_expert.chain_manager.reset_chain_memory(domain_expert.qa_chain)
 
     ds = Dataset.from_dict(
         {

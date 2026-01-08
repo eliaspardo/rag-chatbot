@@ -1,18 +1,13 @@
-from langchain_community.vectorstores import FAISS
-from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from src.core.chain_manager import ChainManager
 from src.core.constants import EXIT_WORDS, ChatbotMode, Error
 from src.ui.console_ui import ConsoleUI
 from src.core.exceptions import ExitApp
-from src.core.domain_expert_core import setup_domain_expert_chain
+from src.core.domain_expert_core import DomainExpertCore
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def run_chat_loop(
-    ui: ConsoleUI, chain_manager: ChainManager, qa_chain: ConversationalRetrievalChain
-) -> None:
+def domain_expert_ui(ui: ConsoleUI, domain_expert: DomainExpertCore) -> None:   
     ui.show_welcome_mode(ChatbotMode.DOMAIN_EXPERT)
 
     try:
@@ -33,7 +28,7 @@ def run_chat_loop(
             ui.show_info_message("\n🤔 Thinking...")
 
             try:
-                answer = chain_manager.ask_question(question, qa_chain)
+                answer = domain_expert.ask_question(question)
                 ui.show_answer(answer)
             except Exception as exception:
                 logger.error(f"Error retrieving answer: {exception}")
@@ -42,24 +37,3 @@ def run_chat_loop(
 
     except KeyboardInterrupt:
         raise ExitApp()
-
-
-def domain_expert_ui(ui: ConsoleUI, vectordb: FAISS) -> None:
-    try:
-        chain_manager = ChainManager(vectordb)
-    except ValueError as exception:
-        logger.error(f"Error instantiating Chain Manager: {exception}")
-        ui.show_error(Error.EXCEPTION, exception)
-        raise ExitApp()
-    ui.show_info_message("\n🧠 Setting up Domain Expert.")
-    try:
-        qa_chain = setup_domain_expert_chain(
-            chain_manager
-        )
-    except Exception as exception:
-        logger.error(f"Error setting up Domain Expert: {exception}")
-        ui.show_error(Error.EXCEPTION, exception)
-        raise ExitApp()
-
-    run_chat_loop(ui, chain_manager, qa_chain)
-    return
