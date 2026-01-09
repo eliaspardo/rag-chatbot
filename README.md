@@ -48,13 +48,26 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
    pip install -r requirements.txt
    ```
 
-3. **Create your secrets file**
+3. **Optional: install pre-commit hooks**
+
+   ```bash
+   pip install -r requirements-dev.txt
+   pre-commit install
+   ```
+
+   To run all hooks on demand:
+
+   ```bash
+   pre-commit run --all-files
+   ```
+
+4. **Create your secrets file**
 
    ```bash
    cp .env.example .env
    ```
 
-4. **Create and configure your runtime parameters**
+5. **Create and configure your runtime parameters**
 
    ```bash
    cp config/params.env.example config/params.env
