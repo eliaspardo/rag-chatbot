@@ -1,8 +1,7 @@
 from contextlib import asynccontextmanager
 
+from src.api.session_manager import SessionManager
 from src.core.app_bootstrap import prepare_vector_store
-from src.core.domain_expert_core import DomainExpertCore
-from src.core.exam_prep_core import ExamPrepCore
 from src.core.rag_preprocessor import RAGPreprocessor
 from src.core.exceptions import (
     ServerSetupException,
@@ -34,20 +33,7 @@ async def lifespan(app):
         raise ServerSetupException()
     print("Vector store loaded")
 
-    try:
-        app.state.domain_expert = DomainExpertCore(vectordb)
-    except Exception as exception:
-        logger.error(f"Error setting up Domain Expert: {exception}")
-        raise ServerSetupException()
-    print("Domain Expert mode ready")
-
-    try:
-        app.state.exam_prep = ExamPrepCore(vectordb)
-    except Exception as exception:
-        logger.error(f"Error setting up Exam Prep: {exception}")
-        raise ServerSetupException()
-    print("Exam Prep mode ready")
-
+    app.state.session_manager = SessionManager(vectordb)
     yield
 
     # Shutdown

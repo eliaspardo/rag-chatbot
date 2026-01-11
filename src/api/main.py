@@ -1,3 +1,4 @@
+from typing import Union
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -8,6 +9,12 @@ app = FastAPI(lifespan=lifespan)
 
 class Query(BaseModel):
     question: str = Field(..., min_length=1)
+    session_id: Union[None, str] = None
+
+
+class Reply(BaseModel):
+    answer: str = Field(..., min_length=1)
+    session_id: str
 
 
 class Topic(BaseModel):
@@ -23,9 +30,12 @@ def read_root():
 def ask_question(query: Query):
     if not query.question or query.question.strip() == "":
         raise HTTPException(status_code=400, detail="Question cannot be empty")
-    domain_expert = app.state.domain_expert
-    answer = domain_expert.ask_question(query.question)
-    return answer
+    domain_expert_session = app.state.session_manager.get_domain_expert_session(
+        query.session_id
+    )
+    answer = domain_expert_session.domain_expert_core.ask_question(query.question)
+    session_id = domain_expert_session.id
+    return Reply(answer=answer, session_id=session_id)
 
 
 @app.post("/chat/exam-prep/question")
