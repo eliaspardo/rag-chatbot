@@ -163,7 +163,7 @@ class TestExamPrepCore:
         mock_chain_manager.ask_question.return_value = "Sample answer"
 
         # Act
-        answer = core.get_answer("Sample question\nSample answer")
+        answer = core.get_feedback("Sample question", "Sample answer")
 
         # Assert
         assert answer == "Sample answer"
@@ -188,4 +188,4 @@ class TestExamPrepCore:
 
         # Act
         with pytest.raises(ExamPrepQueryException):
-            core.get_answer("Sample question\nSample answer")
+            core.get_feedback("Sample question", "Sample answer")

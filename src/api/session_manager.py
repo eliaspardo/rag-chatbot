@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class Session:
     def __init__(self):
-        self.id = str(uuid.uuid4())
+        self.session_id = str(uuid.uuid4())
 
 
 class DomainExpertSession(Session):
@@ -38,29 +38,29 @@ class SessionManager:
 
     def create_domain_expert_session(self):
         session = DomainExpertSession(self.vectordb)
-        self.sessions[session.id] = session
+        self.sessions[session.session_id] = session
         return session
 
     def create_exam_prep_session(self):
         session = ExamPrepSession(self.vectordb)
-        self.sessions[session.id] = session
+        self.sessions[session.session_id] = session
         return session
 
     def remove_session(self, session: Session):
-        del self.sessions[session.id]
+        del self.sessions[session.session_id]
 
-    def get_session_by_id(self, id: str):
-        return self.sessions.get(id)
+    def get_session_by_id(self, session_id: str):
+        return self.sessions.get(session_id)
 
-    def remove_session_by_id(self, id: str):
-        del self.sessions[id]
+    def remove_session_by_id(self, session_id: str):
+        del self.sessions[session_id]
 
-    def get_domain_expert_session(self, id: str = None) -> DomainExpertSession:
-        if not id:
+    def get_domain_expert_session(self, session_id: str = None) -> DomainExpertSession:
+        if not session_id:
             # If no session id, create session.
             logger.info("No session id provided. Creating new Domain Expert session.")
             return self.create_domain_expert_session()
-        session = self.sessions.get(id)
+        session = self.sessions.get(session_id)
         if not session:
             # The client might have a stale id - generate a new session
             # TODO - show some kind of message to the user saying chat history is gone?
@@ -73,12 +73,12 @@ class SessionManager:
             return self.create_domain_expert_session()
         return session
 
-    def get_exam_prep_session(self, id: str = None) -> ExamPrepSession:
-        if not id:
+    def get_exam_prep_session(self, session_id: str = None) -> ExamPrepSession:
+        if not session_id:
             # If no session id, create session.
             logger.info("No session id provided. Creating new Exam Prep session.")
             return self.create_exam_prep_session()
-        session = self.sessions.get(id)
+        session = self.sessions.get(session_id)
         if not session:
             # The client might have a stale id - generate a new session
             logger.warning("Session id not found. Creating new Exam Prep session.")

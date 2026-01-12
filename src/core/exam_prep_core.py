@@ -46,7 +46,8 @@ class ExamPrepCore:
             raise ExamPrepQueryException("Error retrieving question") from exception
         return llm_question
 
-    def get_answer(self, llm_question_user_answer: str):
+    def get_feedback(self, llm_question: str, user_answer: str):
+        llm_question_user_answer = llm_question + "\n" + user_answer
         try:
             llm_answer = self.chain_manager.ask_question(
                 llm_question_user_answer, self.answer_chain

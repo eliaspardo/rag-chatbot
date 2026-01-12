@@ -117,7 +117,7 @@ class TestExamPrepUi:
             "quit",
         ]
         mock_exam_prep_core.get_question.return_value = "Sample Question"
-        mock_exam_prep_core.get_answer.side_effect = exception
+        mock_exam_prep_core.get_feedback.side_effect = exception
 
         # Act
         with pytest.raises(ExitApp):
@@ -151,7 +151,7 @@ class TestExamPrepUi:
             "quit",
         ]
         mock_exam_prep_core.get_question.return_value = "Sample Question"
-        mock_exam_prep_core.get_answer.return_value = "Sample Answer"
+        mock_exam_prep_core.get_feedback.return_value = "Sample Answer"
 
         # Act
         with pytest.raises(ExitApp):
@@ -159,5 +159,5 @@ class TestExamPrepUi:
 
         # Assert
         mock_console_ui.show_answer.assert_called_with(
-            mock_exam_prep_core.get_answer.return_value
+            mock_exam_prep_core.get_feedback.return_value
         )

@@ -1,5 +1,5 @@
 from typing import Union
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from src.api.lifespan import lifespan
@@ -7,18 +7,35 @@ from src.api.lifespan import lifespan
 app = FastAPI(lifespan=lifespan)
 
 
-class Query(BaseModel):
+class DomainExpertRequest(BaseModel):
     question: str = Field(..., min_length=1)
     session_id: Union[None, str] = None
 
 
-class Reply(BaseModel):
-    answer: str = Field(..., min_length=1)
+class DomainExpertResponse(BaseModel):
+    answer: str
     session_id: str
 
 
-class Topic(BaseModel):
-    topic: str = Field(..., min_length=1)
+class ExamPrepQuestionRequest(BaseModel):
+    user_topic: str = Field(..., min_length=1)
+    session_id: Union[None, str] = None
+
+
+class ExamPrepQuestionResponse(BaseModel):
+    llm_question: str
+    session_id: str
+
+
+class ExamPrepFeedbackRequest(BaseModel):
+    llm_question: str = Field(..., min_length=1)
+    user_answer: str = Field(..., min_length=1)
+    session_id: Union[None, str] = None
+
+
+class ExamPrepFeedbackResponse(BaseModel):
+    feedback: str
+    session_id: str
 
 
 @app.get("/health")
@@ -27,30 +44,37 @@ def read_root():
 
 
 @app.post("/chat/domain-expert/")
-def ask_question(query: Query):
-    if not query.question or query.question.strip() == "":
-        raise HTTPException(status_code=400, detail="Question cannot be empty")
+def ask_question(request: DomainExpertRequest):
     domain_expert_session = app.state.session_manager.get_domain_expert_session(
-        query.session_id
+        request.session_id
     )
-    answer = domain_expert_session.domain_expert_core.ask_question(query.question)
-    session_id = domain_expert_session.id
-    return Reply(answer=answer, session_id=session_id)
+    answer = domain_expert_session.domain_expert_core.ask_question(request.question)
+    return DomainExpertResponse(
+        answer=answer, session_id=domain_expert_session.session_id
+    )
 
 
-@app.post("/chat/exam-prep/question")
-def get_question(topic: Query):
-    if not topic.question or topic.question.strip() == "":
-        raise HTTPException(status_code=400, detail="Question cannot be empty")
-    exam_prep = app.state.exam_prep
-    question = exam_prep.ask_question(topic.question)
-    return question
+@app.post("/chat/exam-prep/get_question")
+def get_question(question_request: ExamPrepQuestionRequest):
+    exam_prep_session = app.state.session_manager.get_exam_prep_session(
+        question_request.session_id
+    )
+    llm_question = exam_prep_session.exam_prep_core.get_question(
+        question_request.user_topic
+    )
+    return ExamPrepQuestionResponse(
+        llm_question=llm_question, session_id=exam_prep_session.session_id
+    )
 
 
-@app.post("/chat/exam-prep/answer")
-def get_answer(answer: Query):
-    if not answer.question or answer.question.strip() == "":
-        raise HTTPException(status_code=400, detail="Question cannot be empty")
-    exam_prep = app.state.exam_prep
-    answer = exam_prep.get_answer(answer.question)
-    return answer
+@app.post("/chat/exam-prep/get_feedback")
+def get_feedback(feedback_request: ExamPrepFeedbackRequest):
+    exam_prep_session = app.state.session_manager.get_exam_prep_session(
+        feedback_request.session_id
+    )
+    feedback = exam_prep_session.exam_prep_core.get_feedback(
+        feedback_request.llm_question, feedback_request.user_answer
+    )
+    return ExamPrepFeedbackResponse(
+        feedback=feedback, session_id=exam_prep_session.session_id
+    )

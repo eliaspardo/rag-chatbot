@@ -33,7 +33,11 @@ async def lifespan(app):
         raise ServerSetupException()
     print("Vector store loaded")
 
-    app.state.session_manager = SessionManager(vectordb)
+    try:
+        app.state.session_manager: SessionManager = SessionManager(vectordb)
+    except Exception as exception:
+        logger.error(Error.EXCEPTION, exception)
+        raise ServerSetupException()
     yield
 
     # Shutdown
