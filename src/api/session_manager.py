@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Tuple, Union, Optional
 import uuid
 
 from langchain_core.vectorstores import VectorStore
@@ -55,38 +55,42 @@ class SessionManager:
     def remove_session_by_id(self, session_id: str):
         del self.sessions[session_id]
 
-    def get_domain_expert_session(self, session_id: str = None) -> DomainExpertSession:
+    def get_domain_expert_session(
+        self, session_id: str = None
+    ) -> Tuple[DomainExpertSession, Optional[str]]:
         if not session_id:
             # If no session id, create session.
             logger.info("No session id provided. Creating new Domain Expert session.")
-            return self.create_domain_expert_session()
+            return self.create_domain_expert_session(), None
         session = self.sessions.get(session_id)
         if not session:
             # The client might have a stale id - generate a new session
-            # TODO - show some kind of message to the user saying chat history is gone?
-            logger.warning("Session id not found. Creating new Domain Expert session.")
-            return self.create_domain_expert_session()
+            system_message = "Session id not found. Creating new Domain Expert session. Chat history will be lost"
+            logger.warning(system_message)
+            return self.create_domain_expert_session(), system_message
         if not isinstance(session, DomainExpertSession):
             # If incorrect type, create new session
-            logger.warning("Session mismatch. Creating new Domain Expert session.")
-            # TODO - show some kind of message saying session is of another type
-            return self.create_domain_expert_session()
-        return session
+            system_message = "Session mismatch. Creating new Domain Expert session. Chat history will be lost"
+            logger.warning(system_message)
+            return self.create_domain_expert_session(), system_message
+        return session, None
 
-    def get_exam_prep_session(self, session_id: str = None) -> ExamPrepSession:
+    def get_exam_prep_session(
+        self, session_id: str = None
+    ) -> Tuple[ExamPrepSession, Optional[str]]:
         if not session_id:
             # If no session id, create session.
             logger.info("No session id provided. Creating new Exam Prep session.")
-            return self.create_exam_prep_session()
+            return self.create_exam_prep_session(), None
         session = self.sessions.get(session_id)
         if not session:
             # The client might have a stale id - generate a new session
-            logger.warning("Session id not found. Creating new Exam Prep session.")
-            # TODO - show some kind of message saying chat history is gone
-            return self.create_exam_prep_session()
+            system_message = "Session id not found. Creating new Exam Prep session."
+            logger.warning(system_message)
+            return self.create_exam_prep_session(), system_message
         if not isinstance(session, ExamPrepSession):
             # If incorrect type, create new session
-            logger.warning("Session mismatch. Creating new Exam Prep session.")
-            # TODO - show some kind of message saying session is of another type
-            return self.create_exam_prep_session()
-        return session
+            system_message = "Session mismatch. Creating new Exam Prep session."
+            logger.warning(system_message)
+            return self.create_exam_prep_session(), system_message
+        return session, None

@@ -15,6 +15,7 @@ class DomainExpertRequest(BaseModel):
 class DomainExpertResponse(BaseModel):
     answer: str
     session_id: str
+    system_message: Union[str, None] = None
 
 
 class ExamPrepQuestionRequest(BaseModel):
@@ -25,6 +26,7 @@ class ExamPrepQuestionRequest(BaseModel):
 class ExamPrepQuestionResponse(BaseModel):
     llm_question: str
     session_id: str
+    system_message: Union[str, None] = None
 
 
 class ExamPrepFeedbackRequest(BaseModel):
@@ -36,6 +38,7 @@ class ExamPrepFeedbackRequest(BaseModel):
 class ExamPrepFeedbackResponse(BaseModel):
     feedback: str
     session_id: str
+    system_message: Union[str, None] = None
 
 
 @app.get("/health")
@@ -43,38 +46,57 @@ def read_root():
     return {"status": "ok"}
 
 
-@app.post("/chat/domain-expert/")
+@app.post(
+    "/chat/domain-expert/",
+    response_model=DomainExpertResponse,
+    response_model_exclude_none=True,
+)
 def ask_question(request: DomainExpertRequest):
-    domain_expert_session = app.state.session_manager.get_domain_expert_session(
-        request.session_id
-    )
+    (
+        domain_expert_session,
+        system_message,
+    ) = app.state.session_manager.get_domain_expert_session(request.session_id)
     answer = domain_expert_session.domain_expert_core.ask_question(request.question)
     return DomainExpertResponse(
-        answer=answer, session_id=domain_expert_session.session_id
+        answer=answer,
+        session_id=domain_expert_session.session_id,
+        system_message=system_message,
     )
 
 
-@app.post("/chat/exam-prep/get_question")
+@app.post(
+    "/chat/exam-prep/get_question",
+    response_model=ExamPrepQuestionResponse,
+    response_model_exclude_none=True,
+)
 def get_question(question_request: ExamPrepQuestionRequest):
-    exam_prep_session = app.state.session_manager.get_exam_prep_session(
+    exam_prep_session, system_message = app.state.session_manager.get_exam_prep_session(
         question_request.session_id
     )
     llm_question = exam_prep_session.exam_prep_core.get_question(
         question_request.user_topic
     )
     return ExamPrepQuestionResponse(
-        llm_question=llm_question, session_id=exam_prep_session.session_id
+        llm_question=llm_question,
+        session_id=exam_prep_session.session_id,
+        system_message=system_message,
     )
 
 
-@app.post("/chat/exam-prep/get_feedback")
+@app.post(
+    "/chat/exam-prep/get_feedback",
+    response_model=ExamPrepFeedbackResponse,
+    response_model_exclude_none=True,
+)
 def get_feedback(feedback_request: ExamPrepFeedbackRequest):
-    exam_prep_session = app.state.session_manager.get_exam_prep_session(
+    exam_prep_session, system_message = app.state.session_manager.get_exam_prep_session(
         feedback_request.session_id
     )
     feedback = exam_prep_session.exam_prep_core.get_feedback(
         feedback_request.llm_question, feedback_request.user_answer
     )
     return ExamPrepFeedbackResponse(
-        feedback=feedback, session_id=exam_prep_session.session_id
+        feedback=feedback,
+        session_id=exam_prep_session.session_id,
+        system_message=system_message,
     )
