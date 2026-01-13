@@ -47,13 +47,13 @@ class SessionManager:
         return session
 
     def remove_session(self, session: Session):
-        del self.sessions[session.session_id]
+        self.sessions.pop(session.session_id, None)
 
     def get_session_by_id(self, session_id: str):
         return self.sessions.get(session_id)
 
     def remove_session_by_id(self, session_id: str):
-        del self.sessions[session_id]
+        self.sessions.pop(session_id, None)
 
     def get_domain_expert_session(
         self, session_id: str = None

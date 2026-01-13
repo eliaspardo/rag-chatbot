@@ -65,7 +65,7 @@ def ask_question(request: DomainExpertRequest):
 
 
 @app.post(
-    "/chat/exam-prep/get_question",
+    "/chat/exam-prep/get_question/",
     response_model=ExamPrepQuestionResponse,
     response_model_exclude_none=True,
 )
@@ -84,7 +84,7 @@ def get_question(question_request: ExamPrepQuestionRequest):
 
 
 @app.post(
-    "/chat/exam-prep/get_feedback",
+    "/chat/exam-prep/get_feedback/",
     response_model=ExamPrepFeedbackResponse,
     response_model_exclude_none=True,
 )

@@ -25,18 +25,18 @@ async def lifespan(app):
     except NoDocumentsException:
         logger.error(Error.NO_DOCUMENTS)
         raise ServerSetupException()
-    except (FaissException, VectorStoreException) as exception:
-        logger.error(Error.EXCEPTION, exception)
+    except (FaissException, VectorStoreException):
+        logger.error(Error.EXCEPTION)
         raise ServerSetupException()
-    except Exception as exception:
-        logger.error(Error.EXCEPTION, exception)
+    except Exception:
+        logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     print("Vector store loaded")
 
     try:
         app.state.session_manager: SessionManager = SessionManager(vectordb)
-    except Exception as exception:
-        logger.error(Error.EXCEPTION, exception)
+    except Exception:
+        logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     yield
 
