@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import FAISS
 from src.core.chain_manager import ChainManager
-from src.core.prompts import condense_question_prompt, domain_expert_prompt
+from src.core.prompts import domain_expert_condense_prompt, domain_expert_prompt
 from src.core.exceptions import DomainExpertSetupException
 import logging
 
@@ -26,7 +26,7 @@ class DomainExpertCore:
             self.qa_chain = self.chain_manager.get_conversationalRetrievalChain(
                 llm,
                 {"prompt": domain_expert_prompt},
-                condense_question_prompt=condense_question_prompt,
+                condense_question_prompt=domain_expert_condense_prompt,
             )
 
         except Exception as exception:

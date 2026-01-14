@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from src.api.session_manager import SessionManager
 from src.core.app_bootstrap import prepare_vector_store
 from src.core.rag_preprocessor import RAGPreprocessor
+from src.core.exam_prep_core import ExamPrepCore
 from src.core.exceptions import (
     ServerSetupException,
     FaissException,
@@ -35,6 +36,11 @@ async def lifespan(app):
 
     try:
         app.state.session_manager: SessionManager = SessionManager(vectordb)
+    except Exception:
+        logger.error(Error.EXCEPTION)
+        raise ServerSetupException()
+    try:
+        app.state.exam_prep_core = ExamPrepCore(vectordb)
     except Exception:
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()

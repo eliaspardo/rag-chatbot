@@ -1,2 +1,3 @@
 -r requirements.txt       # Include production deps
+-r requirements-ui.txt       # Include ui deps
 pre_commit==4.5.1

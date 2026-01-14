@@ -20,25 +20,19 @@ class DomainExpertResponse(BaseModel):
 
 class ExamPrepQuestionRequest(BaseModel):
     user_topic: str = Field(..., min_length=1)
-    session_id: Union[None, str] = None
 
 
 class ExamPrepQuestionResponse(BaseModel):
     llm_question: str
-    session_id: str
-    system_message: Union[str, None] = None
 
 
 class ExamPrepFeedbackRequest(BaseModel):
     llm_question: str = Field(..., min_length=1)
     user_answer: str = Field(..., min_length=1)
-    session_id: Union[None, str] = None
 
 
 class ExamPrepFeedbackResponse(BaseModel):
     feedback: str
-    session_id: str
-    system_message: Union[str, None] = None
 
 
 @app.get("/health")
@@ -70,16 +64,9 @@ def ask_question(request: DomainExpertRequest):
     response_model_exclude_none=True,
 )
 def get_question(question_request: ExamPrepQuestionRequest):
-    exam_prep_session, system_message = app.state.session_manager.get_exam_prep_session(
-        question_request.session_id
-    )
-    llm_question = exam_prep_session.exam_prep_core.get_question(
-        question_request.user_topic
-    )
+    llm_question = app.state.exam_prep_core.get_question(question_request.user_topic)
     return ExamPrepQuestionResponse(
         llm_question=llm_question,
-        session_id=exam_prep_session.session_id,
-        system_message=system_message,
     )
 
 
@@ -89,14 +76,9 @@ def get_question(question_request: ExamPrepQuestionRequest):
     response_model_exclude_none=True,
 )
 def get_feedback(feedback_request: ExamPrepFeedbackRequest):
-    exam_prep_session, system_message = app.state.session_manager.get_exam_prep_session(
-        feedback_request.session_id
-    )
-    feedback = exam_prep_session.exam_prep_core.get_feedback(
+    feedback = app.state.exam_prep_core.get_feedback(
         feedback_request.llm_question, feedback_request.user_answer
     )
     return ExamPrepFeedbackResponse(
         feedback=feedback,
-        session_id=exam_prep_session.session_id,
-        system_message=system_message,
     )

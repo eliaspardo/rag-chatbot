@@ -51,36 +51,24 @@ def test_domain_expert_chat_endpoint():
 
 
 def test_exam_prep_get_question_endpoint():
-    session_manager = Mock()
-    session = Mock()
-    session.session_id = "session-2"
-    session.exam_prep_core.get_question.return_value = "generated question"
-    session_manager.get_exam_prep_session.return_value = (session, "system note")
-    api_main.app.state.session_manager = session_manager
+    exam_prep_core = Mock()
+    exam_prep_core.get_question.return_value = "generated question"
+    api_main.app.state.exam_prep_core = exam_prep_core
 
     with _build_client_no_lifespan() as client:
         response = client.post(
-            "/chat/exam-prep/get_question/",
-            json={"user_topic": "Vectors", "session_id": None},
+            "/chat/exam-prep/get_question/", json={"user_topic": "Vectors"}
         )
 
         assert response.status_code == 200
-        assert response.json() == {
-            "llm_question": "generated question",
-            "session_id": "session-2",
-            "system_message": "system note",
-        }
-        session_manager.get_exam_prep_session.assert_called_once_with(None)
-        session.exam_prep_core.get_question.assert_called_once_with("Vectors")
+        assert response.json() == {"llm_question": "generated question"}
+        exam_prep_core.get_question.assert_called_once_with("Vectors")
 
 
 def test_exam_prep_get_feedback_endpoint():
-    session_manager = Mock()
-    session = Mock()
-    session.session_id = "session-3"
-    session.exam_prep_core.get_feedback.return_value = "feedback"
-    session_manager.get_exam_prep_session.return_value = (session, None)
-    api_main.app.state.session_manager = session_manager
+    exam_prep_core = Mock()
+    exam_prep_core.get_feedback.return_value = "feedback"
+    api_main.app.state.exam_prep_core = exam_prep_core
 
     with _build_client_no_lifespan() as client:
         response = client.post(
@@ -88,14 +76,12 @@ def test_exam_prep_get_feedback_endpoint():
             json={
                 "llm_question": "What is FAISS?",
                 "user_answer": "Vector store library",
-                "session_id": "session-3",
             },
         )
 
         assert response.status_code == 200
-        assert response.json() == {"feedback": "feedback", "session_id": "session-3"}
-        session_manager.get_exam_prep_session.assert_called_once_with("session-3")
-        session.exam_prep_core.get_feedback.assert_called_once_with(
+        assert response.json() == {"feedback": "feedback"}
+        exam_prep_core.get_feedback.assert_called_once_with(
             "What is FAISS?", "Vector store library"
         )
 
