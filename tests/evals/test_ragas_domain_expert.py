@@ -26,12 +26,25 @@ logger = logging.getLogger(__name__)
 RAGAS_DB_DIR = os.getenv("RAGAS_DB_DIR")
 EMBED_MODEL = os.getenv("EMBEDDING_MODEL")
 MODEL_NAME = os.getenv("MODEL_NAME")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 
 
 @pytest.mark.slow
 @pytest.mark.ragas
-@pytest.mark.skipif(not TOGETHER_API_KEY, reason="TOGETHER_API_KEY not set")
+@pytest.mark.skipif(
+    LLM_PROVIDER == "together" and not TOGETHER_API_KEY,
+    reason="TOGETHER_API_KEY environment variable is required",
+)
+@pytest.mark.skipif(
+    LLM_PROVIDER == "ollama" and not OLLAMA_BASE_URL,
+    reason="OLLAMA_BASE_URL environment variable is required",
+)
+@pytest.mark.skipif(
+    not LLM_PROVIDER or (LLM_PROVIDER != "together" and LLM_PROVIDER != "ollama"),
+    reason="LLM_PROVIDER environment variable must be together or ollama",
+)
 def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     """
     For Domain Expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.

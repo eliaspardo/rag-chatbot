@@ -2,6 +2,7 @@ import os
 from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
 from langchain_together import Together
+from langchain_community.llms import Ollama
 from langchain.llms.base import LLM
 from langchain.chains import RetrievalQA
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
@@ -15,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 load_environment()
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 RETRIEVAL_K = int(os.getenv("RETRIEVAL_K", "4"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "512"))
@@ -37,25 +40,52 @@ class ChainManager:
     ):
         if vectordb is None:
             raise ValueError("vectordb cannot be None")
-        if not TOGETHER_API_KEY:
+        self.llm_provider = LLM_PROVIDER
+        if not self.llm_provider or (
+            self.llm_provider != "together" and self.llm_provider != "ollama"
+        ):
+            raise ValueError(
+                "LLM_PROVIDER environment variable must be together or ollama"
+            )
+        if self.llm_provider == "together" and not TOGETHER_API_KEY:
             raise ValueError("TOGETHER_API_KEY environment variable is required")
+        if self.llm_provider == "ollama" and not OLLAMA_BASE_URL:
+            raise ValueError("OLLAMA_BASE_URL environment variable is required")
         self.model = MODEL_NAME
         self.together_api_key = TOGETHER_API_KEY
+        self.base_url = OLLAMA_BASE_URL
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.retriever = vectordb.as_retriever(search_kwargs={"k": retrieval_k})
 
-    # --- Initialize Together AI LLM ---
+    # --- Initialize LLM ---
     def get_llm(self) -> LLM:
-        try:
-            return Together(
-                model=self.model,
-                together_api_key=self.together_api_key,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-            )
-        except Exception as exception:
-            raise Exception(f"❌ Error setting up LLM: {exception}") from exception
+        if self.llm_provider == "together":
+            try:
+                return Together(
+                    model=self.model,
+                    together_api_key=self.together_api_key,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                )
+            except Exception as exception:
+                raise Exception(
+                    f"❌ Error setting up Together AI LLM: {exception}"
+                ) from exception
+        if self.llm_provider == "ollama":
+            try:
+                return Ollama(
+                    model=self.model,
+                    base_url=self.base_url,
+                    temperature=self.temperature,
+                    num_predict=self.max_tokens,
+                )
+            except Exception as exception:
+                raise Exception(
+                    f"❌ Error setting up Ollama LLM: {exception}"
+                ) from exception
+        else:
+            raise ValueError(f"Unsupported LLM_PROVIDER: {self.llm_provider}")
 
     # --- Get Conversational Chain based on a Document, resets memory ---
     def get_conversationalRetrievalChain(

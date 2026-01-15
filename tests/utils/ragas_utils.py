@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from langchain_together import Together
 from langchain.llms.base import LLM
+from langchain_community.llms import Ollama
 import logging
 from src.env_loader import load_environment
 
@@ -23,7 +24,9 @@ RAGAS_PRECISION_MIN = float(os.getenv("RAGAS_PRECISION_MIN", "0.2"))
 RAGAS_ANSWER_RECALL_MIN = float(os.getenv("RAGAS_ANSWER_RECALL_MIN", "0.2"))
 
 MODEL_NAME = os.getenv("MODEL_NAME", "mistralai/Mistral-7B-Instruct-v0.1")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
 RAGAS_MAX_TOKENS = int(os.getenv("RAGAS_MAX_TOKENS", "512"))
 RAGAS_RESULTS_DIR = os.getenv("RAGAS_RESULTS_DIR", "tests/artifacts/ragas")
@@ -348,13 +351,35 @@ def assert_ragas_thresholds(
         print(f"   Recall: {recall_mean:.3f} (min: {min_rec:.3f})")
 
 
+# --- Initialize LLM ---
 def get_ragas_llm() -> LLM:
-    try:
-        return Together(
-            model=MODEL_NAME,
-            together_api_key=TOGETHER_API_KEY,
-            temperature=TEMPERATURE,
-            max_tokens=RAGAS_MAX_TOKENS,
-        )
-    except Exception as exception:
-        raise Exception(f"❌ Error setting up LLM: {exception}") from exception
+    if not LLM_PROVIDER or (LLM_PROVIDER != "together" and LLM_PROVIDER != "ollama"):
+        raise ValueError("LLM_PROVIDER environment variable must be together or ollama")
+    if LLM_PROVIDER == "together" and not TOGETHER_API_KEY:
+        raise ValueError("TOGETHER_API_KEY environment variable is required")
+    if LLM_PROVIDER == "ollama" and not OLLAMA_BASE_URL:
+        raise ValueError("OLLAMA_BASE_URL environment variable is required")
+    if LLM_PROVIDER == "together":
+        try:
+            return Together(
+                model=MODEL_NAME,
+                together_api_key=TOGETHER_API_KEY,
+                temperature=TEMPERATURE,
+                max_tokens=RAGAS_MAX_TOKENS,
+            )
+        except Exception as exception:
+            raise Exception(
+                f"❌ Error setting up Together AI LLM: {exception}"
+            ) from exception
+    if LLM_PROVIDER == "ollama":
+        try:
+            return Ollama(
+                model=MODEL_NAME,
+                base_url=OLLAMA_BASE_URL,
+                temperature=TEMPERATURE,
+                num_predict=RAGAS_MAX_TOKENS,
+            )
+        except Exception as exception:
+            raise Exception(
+                f"❌ Error setting up Ollama LLM: {exception}"
+            ) from exception

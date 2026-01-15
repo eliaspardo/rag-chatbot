@@ -20,7 +20,7 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 
 ## Technology Stack
 
-- **LLM**: Together AI
+- **LLM**: Together AI or Ollama (select via `LLM_PROVIDER`)
 - **Vector Database**: FAISS
 - **Embeddings**: HuggingFace Sentence Transformers (configurable via `config/params.env`)
 - **Framework**: LangChain
@@ -31,7 +31,9 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 ### Prerequisites
 
 - Python 3.8 or higher
-- Together AI API key
+- LLM provider setup:
+  - Together AI: API key in `.env` (`TOGETHER_API_KEY`)
+  - Ollama: running local server (default `http://localhost:11434`)
 
 ### Setup
 
@@ -77,7 +79,8 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
      - Important: customize the chatbot for your use case by updating:
        - CHATBOT_ROLE
        - USE_CASE
-   - Add secrets to `.env` (untracked, example provide): set `TOGETHER_API_KEY=`.
+   - Add secrets to `.env` (untracked, example provide): set `TOGETHER_API_KEY=` when using Together AI.
+   - Choose your LLM provider in `config/params.env` via `LLM_PROVIDER=together` or `LLM_PROVIDER=ollama`.
 
    The app always loads `.env` first and `config/params.env` second (no profiles to manage).
 
@@ -142,11 +145,13 @@ rag-chatbot/
 
 ## Configuration Options
 
-- Secrets live in `.env` (untracked): `TOGETHER_API_KEY`.
+- Secrets live in `.env` (untracked): `TOGETHER_API_KEY` (Together AI only).
 - Tunables live in `config/params.env` (tracked): table below.
 
 | Variable          | Default                                         | Description                           |
 | ----------------- | ----------------------------------------------- | ------------------------------------- |
+| `LLM_PROVIDER`    | `together`                                      | LLM provider: `together` or `ollama`  |
+| `OLLAMA_BASE_URL` | `http://localhost:11434`                        | Ollama server URL (Ollama only)       |
 | `CHATBOT_ROLE`    | expert tutor                                    | Chatbot's role                        |
 | `USE_CASE`        | learn from the provided materials               | Learning goal                         |
 | `MODEL_NAME`      | `mistralai/Mistral-7B-Instruct-v0.1`            | LLM model to use                      |
@@ -203,6 +208,11 @@ Ragas tests are disabled by default when running pytest to avoid breaking CI/CD 
 
 - Verify your API key is valid and has sufficient credits
 - Check network connectivity
+
+**Ollama Errors**
+
+- Ensure the Ollama server is running at `OLLAMA_BASE_URL`
+- Verify the model is available locally (e.g., `ollama list`)
 
 **Memory Issues**
 
