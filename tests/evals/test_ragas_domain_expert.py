@@ -1,7 +1,7 @@
 import os
 import pytest
 from datasets import Dataset
-from ragas import evaluate
+from ragas import RunConfig, evaluate
 from ragas.metrics import answer_relevancy, faithfulness, context_precision
 from langchain_huggingface import HuggingFaceEmbeddings
 
@@ -30,20 +30,27 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 
+RAGAS_MODEL_NAME = os.getenv("RAGAS_MODEL_NAME", MODEL_NAME)
+RAGAS_LLM_PROVIDER = os.getenv("RAGAS_LLM_PROVIDER", LLM_PROVIDER).strip().lower()
+RAGAS_TOGETHER_API_KEY = os.getenv("RAGAS_TOGETHER_API_KEY", TOGETHER_API_KEY)
+RAGAS_OLLAMA_BASE_URL = os.getenv("RAGAS_OLLAMA_BASE_URL", OLLAMA_BASE_URL)
+RAGAS_TIMEOUT = int(os.getenv("RAGAS_TIMEOUT", "300"))
+
 
 @pytest.mark.slow
 @pytest.mark.ragas
 @pytest.mark.skipif(
-    LLM_PROVIDER == "together" and not TOGETHER_API_KEY,
-    reason="TOGETHER_API_KEY environment variable is required",
+    RAGAS_LLM_PROVIDER == "together" and not RAGAS_TOGETHER_API_KEY,
+    reason="RAGAS_TOGETHER_API_KEY environment variable is required",
 )
 @pytest.mark.skipif(
-    LLM_PROVIDER == "ollama" and not OLLAMA_BASE_URL,
-    reason="OLLAMA_BASE_URL environment variable is required",
+    RAGAS_LLM_PROVIDER == "ollama" and not RAGAS_OLLAMA_BASE_URL,
+    reason="RAGAS_OLLAMA_BASE_URL environment variable is required",
 )
 @pytest.mark.skipif(
-    not LLM_PROVIDER or (LLM_PROVIDER != "together" and LLM_PROVIDER != "ollama"),
-    reason="LLM_PROVIDER environment variable must be together or ollama",
+    not RAGAS_LLM_PROVIDER
+    or (RAGAS_LLM_PROVIDER != "together" and RAGAS_LLM_PROVIDER != "ollama"),
+    reason="RAGAS_LLM_PROVIDER environment variable must be together or ollama",
 )
 def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     """
@@ -52,6 +59,7 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     context_precision -> Are the relevant contexts ranked higher than irrelevant ones?
     answer_relevancy -> infer the QUESTIONS based on the LLM's response
     """
+    __tracebackhide__ = True
     if not RAGAS_DB_DIR:
         pytest.skip("RAGAS_DB_DIR not set; see README for RAGAS setup.")
 
@@ -94,6 +102,7 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
             metrics=[answer_relevancy, faithfulness, context_precision],
             llm=ragas_llm,
             embeddings=embeddings,
+            run_config=RunConfig(timeout=RAGAS_TIMEOUT),
         )
     except Exception as exception:
         logger.error(f"Evaluation error: {exception}")

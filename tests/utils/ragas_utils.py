@@ -28,6 +28,12 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.3"))
+
+RAGAS_MODEL_NAME = os.getenv("RAGAS_MODEL_NAME", MODEL_NAME)
+RAGAS_LLM_PROVIDER = os.getenv("RAGAS_LLM_PROVIDER", LLM_PROVIDER).strip().lower()
+RAGAS_TOGETHER_API_KEY = os.getenv("RAGAS_TOGETHER_API_KEY", TOGETHER_API_KEY)
+RAGAS_OLLAMA_BASE_URL = os.getenv("RAGAS_OLLAMA_BASE_URL", OLLAMA_BASE_URL)
+RAGAS_TEMPERATURE = float(os.getenv("RAGAS_TEMPERATURE", str(TEMPERATURE)))
 RAGAS_MAX_TOKENS = int(os.getenv("RAGAS_MAX_TOKENS", "512"))
 RAGAS_RESULTS_DIR = os.getenv("RAGAS_RESULTS_DIR", "tests/artifacts/ragas")
 
@@ -287,6 +293,7 @@ def assert_ragas_thresholds(
     Raises:
         AssertionError: If any threshold is not met
     """
+    __tracebackhide__ = True
     results_df = results.to_pandas()
 
     # Check mean scores
@@ -353,30 +360,34 @@ def assert_ragas_thresholds(
 
 # --- Initialize LLM ---
 def get_ragas_llm() -> LLM:
-    if not LLM_PROVIDER or (LLM_PROVIDER != "together" and LLM_PROVIDER != "ollama"):
-        raise ValueError("LLM_PROVIDER environment variable must be together or ollama")
-    if LLM_PROVIDER == "together" and not TOGETHER_API_KEY:
-        raise ValueError("TOGETHER_API_KEY environment variable is required")
-    if LLM_PROVIDER == "ollama" and not OLLAMA_BASE_URL:
-        raise ValueError("OLLAMA_BASE_URL environment variable is required")
-    if LLM_PROVIDER == "together":
+    if not RAGAS_LLM_PROVIDER or (
+        RAGAS_LLM_PROVIDER != "together" and RAGAS_LLM_PROVIDER != "ollama"
+    ):
+        raise ValueError(
+            "RAGAS_LLM_PROVIDER environment variable must be together or ollama"
+        )
+    if RAGAS_LLM_PROVIDER == "together" and not RAGAS_TOGETHER_API_KEY:
+        raise ValueError("RAGAS_TOGETHER_API_KEY environment variable is required")
+    if RAGAS_LLM_PROVIDER == "ollama" and not RAGAS_OLLAMA_BASE_URL:
+        raise ValueError("RAGAS_OLLAMA_BASE_URL environment variable is required")
+    if RAGAS_LLM_PROVIDER == "together":
         try:
             return Together(
-                model=MODEL_NAME,
-                together_api_key=TOGETHER_API_KEY,
-                temperature=TEMPERATURE,
+                model=RAGAS_MODEL_NAME,
+                together_api_key=RAGAS_TOGETHER_API_KEY,
+                temperature=RAGAS_TEMPERATURE,
                 max_tokens=RAGAS_MAX_TOKENS,
             )
         except Exception as exception:
             raise Exception(
                 f"❌ Error setting up Together AI LLM: {exception}"
             ) from exception
-    if LLM_PROVIDER == "ollama":
+    if RAGAS_LLM_PROVIDER == "ollama":
         try:
             return Ollama(
-                model=MODEL_NAME,
-                base_url=OLLAMA_BASE_URL,
-                temperature=TEMPERATURE,
+                model=RAGAS_MODEL_NAME,
+                base_url=RAGAS_OLLAMA_BASE_URL,
+                temperature=RAGAS_TEMPERATURE,
                 num_predict=RAGAS_MAX_TOKENS,
             )
         except Exception as exception:
