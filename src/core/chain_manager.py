@@ -3,6 +3,7 @@ from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
 from langchain_together import Together
 from langchain.llms.base import LLM
+from langchain.chains import RetrievalQA
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
 from langchain.chains.base import Chain
@@ -84,6 +85,23 @@ class ChainManager:
         except Exception as exception:
             raise Exception(f"❌ Error setting up Chain: {exception}") from exception
 
+    # --- Get Retrieval QA Chain without memory ---
+    def get_retrieval_qa_chain(
+        self,
+        llm: LLM,
+        prompt: dict,
+        verbose: bool = False,
+    ) -> Chain:
+        try:
+            return RetrievalQA.from_chain_type(
+                llm=llm,
+                retriever=self.retriever,
+                chain_type_kwargs=prompt,
+                verbose=verbose,
+            )
+        except Exception as exception:
+            raise Exception(f"❌ Error setting up Chain: {exception}") from exception
+
     def reset_chain_memory(self, chain: Chain) -> None:
         if hasattr(chain, "memory") and chain.memory is not None:
             if hasattr(chain.memory, "clear"):
@@ -92,6 +110,9 @@ class ChainManager:
     # --- Run QA Chain ---
     def ask_question(self, question: str, qa_chain: Chain) -> str:
         try:
+            if isinstance(qa_chain, RetrievalQA):
+                response = qa_chain.invoke({"query": question})
+                return str(response["result"])
             response = qa_chain.invoke({"question": question})
             return str(response["answer"])
         except Exception as exception:

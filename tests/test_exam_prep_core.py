@@ -4,7 +4,10 @@ from langchain_core.vectorstores import VectorStore
 from src.core.exam_prep_core import ExamPrepCore
 from src.core.chain_manager import ChainManager
 from src.core.exceptions import ExamPrepQueryException, ExamPrepSetupException
-from src.core.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
+from src.core.prompts import (
+    exam_prep_get_question_prompt,
+    exam_prep_get_feedback_prompt,
+)
 
 
 class TestExamPrepCore:
@@ -20,14 +23,14 @@ class TestExamPrepCore:
         mock_chain_manager_class.return_value = mock_chain_manager
         mock_llm = Mock()
         mock_chain_manager.get_llm.return_value = mock_llm
-        question_chain = Mock()
-        answer_chain = Mock()
-        mock_chain_manager.get_conversationalRetrievalChain.side_effect = [
-            question_chain,
-            answer_chain,
+        get_question_chain = Mock()
+        get_feedback_chain = Mock()
+        mock_chain_manager.get_retrieval_qa_chain.side_effect = [
+            get_question_chain,
+            get_feedback_chain,
         ]
         core = ExamPrepCore(mock_vectordb)
-        return core, question_chain, answer_chain
+        return core, get_question_chain, get_feedback_chain
 
     @patch("src.core.exam_prep_core.ChainManager")
     def test_exam_prep_init_success(
@@ -37,28 +40,28 @@ class TestExamPrepCore:
         mock_chain_manager,
     ):
         # Act
-        core, question_chain, answer_chain = self._build_core(
+        core, get_question_chain, get_feedback_chain = self._build_core(
             mock_chain_manager_class, mock_chain_manager, mock_vectordb
         )
 
         # Assert
         mock_chain_manager_class.assert_called_once_with(mock_vectordb)
         mock_chain_manager.get_llm.assert_called_once()
-        mock_chain_manager.get_conversationalRetrievalChain.assert_has_calls(
+        mock_chain_manager.get_retrieval_qa_chain.assert_has_calls(
             [
                 call(
                     mock_chain_manager.get_llm.return_value,
-                    {"prompt": exam_prep_question_prompt},
+                    {"prompt": exam_prep_get_question_prompt},
                 ),
                 call(
                     mock_chain_manager.get_llm.return_value,
-                    {"prompt": exam_prep_answer_prompt},
+                    {"prompt": exam_prep_get_feedback_prompt},
                 ),
             ]
         )
         assert core.chain_manager == mock_chain_manager
-        assert core.question_chain == question_chain
-        assert core.answer_chain == answer_chain
+        assert core.get_question_chain == get_question_chain
+        assert core.get_feedback_chain == get_feedback_chain
 
     @patch("src.core.exam_prep_core.ChainManager")
     def test_exam_prep_init_chain_manager_error(
@@ -91,7 +94,7 @@ class TestExamPrepCore:
             ExamPrepCore(mock_vectordb)
 
     @patch("src.core.exam_prep_core.ChainManager")
-    def test_exam_prep_get_conversational_chain_error(
+    def test_exam_prep_get_retrieval_qa_chain_error(
         self,
         mock_chain_manager_class,
         mock_vectordb,
@@ -100,8 +103,8 @@ class TestExamPrepCore:
         # Arrange
         mock_chain_manager_class.return_value = mock_chain_manager
         mock_chain_manager.get_llm.return_value = Mock()
-        mock_chain_manager.get_conversationalRetrievalChain.side_effect = Exception(
-            "Error getting ConversationalRetrievalChain"
+        mock_chain_manager.get_retrieval_qa_chain.side_effect = Exception(
+            "Error getting RetrievalQA chain"
         )
 
         # Act
@@ -127,7 +130,7 @@ class TestExamPrepCore:
         # Assert
         assert question == "Sample question"
         mock_chain_manager.ask_question.assert_called_once_with(
-            "Sample topic", core.question_chain
+            "Sample topic", core.get_question_chain
         )
 
     @patch("src.core.exam_prep_core.ChainManager")
@@ -163,12 +166,12 @@ class TestExamPrepCore:
         mock_chain_manager.ask_question.return_value = "Sample answer"
 
         # Act
-        answer = core.get_answer("Sample question\nSample answer")
+        answer = core.get_feedback("Sample question", "Sample answer")
 
         # Assert
         assert answer == "Sample answer"
         mock_chain_manager.ask_question.assert_called_once_with(
-            "Sample question\nSample answer", core.answer_chain
+            "Sample question\nSample answer", core.get_feedback_chain
         )
 
     @patch("src.core.exam_prep_core.ChainManager")
@@ -188,4 +191,4 @@ class TestExamPrepCore:
 
         # Act
         with pytest.raises(ExamPrepQueryException):
-            core.get_answer("Sample question\nSample answer")
+            core.get_feedback("Sample question", "Sample answer")

@@ -50,10 +50,9 @@ def run_exam_prep_chat_loop(ui: ConsoleUI, exam_prep: ExamPrepCore) -> None:
                 continue
 
             # Evaluate user's answer
-            llm_question_user_answer = llm_question + "\n" + user_answer
             ui.show_info_message("\n🤔 Thinking...")
             try:
-                llm_answer = exam_prep.get_answer(llm_question_user_answer)
+                llm_answer = exam_prep.get_feedback(llm_question, user_answer)
                 ui.show_answer(llm_answer)
             except Exception as exception:
                 logger.error(f"Error retrieving answer: {exception}")

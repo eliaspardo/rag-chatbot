@@ -9,7 +9,7 @@ CHATBOT_ROLE = os.getenv("CHATBOT_ROLE", "expert tutor")
 USE_CASE = os.getenv("USE_CASE", "learn from the provided materials")
 
 # Condense into a single question taking into account history
-condense_question_prompt = PromptTemplate(
+domain_expert_condense_prompt = PromptTemplate(
     input_variables=["chat_history", "question"],
     template="""Rephrase the Follow Up Input as a standalone question. Output ONLY the question, then STOP.
 
@@ -38,7 +38,7 @@ QUESTION: {{question}}
 ### ANSWER ###""",
 )
 
-exam_prep_question_prompt = PromptTemplate(
+exam_prep_get_question_prompt = PromptTemplate(
     input_variables=["context", "question"],
     template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE} by providing questions about specific subjects, sections, or topics.
 
@@ -55,7 +55,7 @@ TOPIC: {{question}}
 RESPONSE:""",
 )
 
-exam_prep_answer_prompt = PromptTemplate(
+exam_prep_get_feedback_prompt = PromptTemplate(
     input_variables=["context", "question"],
     template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE}.
 

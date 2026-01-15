@@ -4,6 +4,12 @@ class ExitApp(Exception):
     pass
 
 
+class ServerSetupException(Exception):
+    """Raised when there's an issue starting up the server."""
+
+    pass
+
+
 class DomainExpertSetupException(Exception):
     """Raised when there's an issue setting up the Domain Expert."""
 

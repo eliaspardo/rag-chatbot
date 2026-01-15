@@ -4,7 +4,7 @@ from langchain_community.vectorstores import FAISS
 from src.core.domain_expert_core import DomainExpertCore
 from src.core.chain_manager import ChainManager
 from src.core.exceptions import DomainExpertSetupException
-from src.core.prompts import condense_question_prompt, domain_expert_prompt
+from src.core.prompts import domain_expert_condense_prompt, domain_expert_prompt
 
 
 class TestDomainExpertCore:
@@ -42,7 +42,7 @@ class TestDomainExpertCore:
         mock_chain_manager.get_conversationalRetrievalChain.assert_called_once_with(
             mock_chain_manager.get_llm.return_value,
             {"prompt": domain_expert_prompt},
-            condense_question_prompt=condense_question_prompt,
+            condense_question_prompt=domain_expert_condense_prompt,
         )
         assert core.chain_manager == mock_chain_manager
         assert (

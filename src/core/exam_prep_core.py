@@ -1,9 +1,9 @@
-from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from langchain.llms.base import LLM
-from langchain.prompts import PromptTemplate
 from langchain_core.vectorstores import VectorStore
 from src.core.chain_manager import ChainManager
-from src.core.prompts import exam_prep_question_prompt, exam_prep_answer_prompt
+from src.core.prompts import (
+    exam_prep_get_question_prompt,
+    exam_prep_get_feedback_prompt,
+)
 from src.core.exceptions import ExamPrepQueryException, ExamPrepSetupException
 import logging
 
@@ -27,12 +27,11 @@ class ExamPrepCore:
             raise ExamPrepSetupException("Error getting LLM") from exception
 
         try:
-            self.question_chain = setup_exam_prep_chain(
-                self.chain_manager, llm, exam_prep_question_prompt
+            self.get_question_chain = self.chain_manager.get_retrieval_qa_chain(
+                llm, {"prompt": exam_prep_get_question_prompt}
             )
-
-            self.answer_chain = setup_exam_prep_chain(
-                self.chain_manager, llm, exam_prep_answer_prompt
+            self.get_feedback_chain = self.chain_manager.get_retrieval_qa_chain(
+                llm, {"prompt": exam_prep_get_feedback_prompt}
             )
         except Exception as exception:
             logger.error(f"Error setting up chains: {exception}")
@@ -40,29 +39,21 @@ class ExamPrepCore:
 
     def get_question(self, topic: str):
         try:
-            llm_question = self.chain_manager.ask_question(topic, self.question_chain)
+            llm_question = self.chain_manager.ask_question(
+                topic, self.get_question_chain
+            )
         except Exception as exception:
             logger.error(f"Error retrieving question: {exception}")
             raise ExamPrepQueryException("Error retrieving question") from exception
         return llm_question
 
-    def get_answer(self, llm_question_user_answer: str):
+    def get_feedback(self, llm_question: str, user_answer: str):
+        llm_question_user_answer = llm_question + "\n" + user_answer
         try:
             llm_answer = self.chain_manager.ask_question(
-                llm_question_user_answer, self.answer_chain
+                llm_question_user_answer, self.get_feedback_chain
             )
         except Exception as exception:
             logger.error(f"Error retrieving answer: {exception}")
             raise ExamPrepQueryException("Error retrieving answer") from exception
         return llm_answer
-
-
-def setup_exam_prep_chain(
-    chain_manager: ChainManager,
-    llm: LLM,
-    prompt: PromptTemplate = None,
-) -> ConversationalRetrievalChain:
-    return chain_manager.get_conversationalRetrievalChain(
-        llm,
-        {"prompt": prompt},
-    )

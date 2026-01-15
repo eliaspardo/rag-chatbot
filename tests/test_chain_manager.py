@@ -2,8 +2,9 @@ import pytest
 from src.core.chain_manager import ChainManager
 from langchain_community.vectorstores import FAISS
 from unittest.mock import Mock, patch
+from langchain.chains import RetrievalQA
 from langchain.llms.base import LLM
-from src.core.prompts import domain_expert_prompt, condense_question_prompt
+from src.core.prompts import domain_expert_prompt, domain_expert_condense_prompt
 
 
 class TestChainManager:
@@ -91,7 +92,7 @@ class TestChainManager:
             chain_manager.get_conversationalRetrievalChain(
                 chain_manager.get_llm(),
                 {"prompt": domain_expert_prompt},
-                condense_question_prompt=condense_question_prompt,
+                condense_question_prompt=domain_expert_condense_prompt,
             )
 
     def test_ask_question_success(self, chain_manager):
@@ -106,6 +107,19 @@ class TestChainManager:
 
         # Assert
         assert answer == "This is the answer"
+
+    def test_ask_question_retrieval_qa(self, chain_manager):
+        # Arrange
+        question = "This is the question"
+        mock_chain = Mock(spec=RetrievalQA)
+        mock_chain.invoke.return_value = {"result": "This is the answer"}
+
+        # Act
+        answer = chain_manager.ask_question(question, mock_chain)
+
+        # Assert
+        assert answer == "This is the answer"
+        mock_chain.invoke.assert_called_once_with({"query": question})
 
     def test_ask_question_failure(self, chain_manager):
         # Arrange
