@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 # Default path to the golden set used by RAGAS evaluations (env overrides allowed)
-DEFAULT_GOLDEN_SET_PATH = Path(os.getenv("RAGAS_GOLDEN_SET_PATH"))
+DEFAULT_GOLDEN_SET_PATH = Path(os.getenv("EVAL_GOLDEN_SET_PATH"))
 
 
 class GoldenSetValidationError(ValueError):
@@ -40,7 +40,7 @@ def load_golden_set_dataset(
 
     Args:
         path: Optional custom path to the dataset JSON file. Defaults to tests/data/golden_set.json
-              (overridable via RAGAS_GOLDEN_SET_PATH).
+              (overridable via EVAL_GOLDEN_SET_PATH).
 
     Returns:
         A tuple of (questions, ground_truths) lists.

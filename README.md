@@ -187,9 +187,9 @@ Ragas tests are disabled by default when running pytest to avoid breaking CI/CD 
 
 - Relevant variables for paths and file names are all under a Ragas section in `config/params.env`:
 
-  - RAGAS_PDF_PATH - source document
-  - RAGAS_GOLDEN_SET_PATH - golden test dataset
-  - RAGAS_DB_DIR - where the tests will create the vector store
+  - EVAL_PDF_PATH - source document
+  - EVAL_GOLDEN_SET_PATH - golden test dataset
+  - EVAL_DB_DIR - where the tests will create the vector store
 
 - Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
 - How to run: prepare your dataset and vector store locally, then execute `pytest -m ragas`.

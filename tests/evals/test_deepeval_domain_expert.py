@@ -1,27 +1,24 @@
+import json
 import os
+from deepeval import assert_test
+from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+from deepeval.metrics import GEval
 import pytest
 from datasets import Dataset
-from ragas import RunConfig, evaluate
-from ragas.metrics import answer_relevancy, faithfulness, context_precision
-from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.core.domain_expert_core import DomainExpertCore
 from src.core.rag_preprocessor import RAGPreprocessor
-from tests.utils.ragas_utils import (
-    print_ragas_results,
-    save_ragas_results,
-    assert_ragas_thresholds,
-    get_ragas_llm,
-)
+from tests.utils.deepeval_utils import DeepEvalLLMAdapter
 from tests.utils.ragas_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
 )
+
 import logging
-import json
+from src.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
-
+load_environment()
 
 EVAL_DB_DIR = os.getenv("EVAL_DB_DIR")
 EMBED_MODEL = os.getenv("EMBEDDING_MODEL")
@@ -38,7 +35,7 @@ EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
 
 
 @pytest.mark.slow
-@pytest.mark.ragas
+@pytest.mark.deepeval
 @pytest.mark.skipif(
     EVAL_LLM_PROVIDER == "together" and not EVAL_TOGETHER_API_KEY,
     reason="EVAL_TOGETHER_API_KEY environment variable is required",
@@ -52,14 +49,7 @@ EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
     or (EVAL_LLM_PROVIDER != "together" and EVAL_LLM_PROVIDER != "ollama"),
     reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
-def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
-    """
-    For Domain Expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
-    faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
-    context_precision -> Are the relevant contexts ranked higher than irrelevant ones?
-    answer_relevancy -> infer the QUESTIONS based on the LLM's response
-    """
-    __tracebackhide__ = True
+def test_correctness(ragas_test_vectordb):
     if not EVAL_DB_DIR:
         pytest.skip("EVAL_DB_DIR not set; see README for RAGAS setup.")
 
@@ -93,22 +83,27 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
         }
     )
 
-    embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
+    # embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
 
-    ragas_llm = get_ragas_llm()
-    try:
-        res = evaluate(
-            ds,
-            metrics=[answer_relevancy, faithfulness, context_precision],
-            llm=ragas_llm,
-            embeddings=embeddings,
-            run_config=RunConfig(timeout=EVAL_TIMEOUT),
-        )
-    except Exception as exception:
-        logger.error(f"Evaluation error: {exception}")
-        pytest.fail(f"RAGAS evaluation failed: {exception}")  # pragma: no cover
+    deepeval_llm = DeepEvalLLMAdapter()
 
-    print_ragas_results(res)
-    save_paths = save_ragas_results(res)
-    logger.info(f"Saved RAGAS results: {save_paths}")
-    assert_ragas_thresholds(res)
+    correctness_metric = GEval(
+        name="Correctness",
+        criteria="Determine if the 'actual output' is correct based on the 'expected output'.",
+        evaluation_params=[
+            LLMTestCaseParams.ACTUAL_OUTPUT,
+            LLMTestCaseParams.EXPECTED_OUTPUT,
+        ],
+        threshold=0.5,
+        model=deepeval_llm,
+    )
+
+    print(f"{ds[0]['question']}")
+    print(f"{ds[0]['answer']}")
+    print(f"{ds[0]['ground_truth']}")
+    test_case = LLMTestCase(
+        input=ds[0]["question"],
+        actual_output=ds[0]["answer"],
+        expected_output=ds[0]["ground_truth"],
+    )
+    assert_test(test_case, [correctness_metric])
