@@ -9,6 +9,9 @@ from datasets import Dataset
 from src.core.domain_expert_core import DomainExpertCore
 from src.core.rag_preprocessor import RAGPreprocessor
 from tests.utils.deepeval_utils import DeepEvalLLMAdapter
+from tests.evals.metrics.grounding.v1 import (
+    EVALUATION_STEPS as GROUNDING_EVALUATION_STEPS,
+)
 from tests.utils.ragas_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
@@ -34,6 +37,25 @@ EVAL_OLLAMA_BASE_URL = os.getenv("EVAL_OLLAMA_BASE_URL", OLLAMA_BASE_URL)
 EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
 
 
+@pytest.fixture
+def deepeval_metrics():
+    deepeval_llm = DeepEvalLLMAdapter()
+
+    grounding_metric = GEval(
+        name="Grounding",
+        evaluation_steps=GROUNDING_EVALUATION_STEPS,
+        evaluation_params=[
+            LLMTestCaseParams.ACTUAL_OUTPUT,
+            LLMTestCaseParams.EXPECTED_OUTPUT,
+            LLMTestCaseParams.CONTEXT,
+        ],
+        threshold=0.5,
+        model=deepeval_llm,
+    )
+
+    return [grounding_metric]
+
+
 @pytest.mark.slow
 @pytest.mark.deepeval
 @pytest.mark.skipif(
@@ -49,7 +71,8 @@ EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
     or (EVAL_LLM_PROVIDER != "together" and EVAL_LLM_PROVIDER != "ollama"),
     reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
-def test_correctness(ragas_test_vectordb):
+def test_correctness(ragas_test_vectordb, deepeval_metrics):
+    __tracebackhide__ = True
     if not EVAL_DB_DIR:
         pytest.skip("EVAL_DB_DIR not set; see README for RAGAS setup.")
 
@@ -83,21 +106,6 @@ def test_correctness(ragas_test_vectordb):
         }
     )
 
-    # embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
-
-    deepeval_llm = DeepEvalLLMAdapter()
-
-    correctness_metric = GEval(
-        name="Correctness",
-        criteria="Determine if the 'actual output' is correct based on the 'expected output'.",
-        evaluation_params=[
-            LLMTestCaseParams.ACTUAL_OUTPUT,
-            LLMTestCaseParams.EXPECTED_OUTPUT,
-        ],
-        threshold=0.5,
-        model=deepeval_llm,
-    )
-
     print(f"{ds[0]['question']}")
     print(f"{ds[0]['answer']}")
     print(f"{ds[0]['ground_truth']}")
@@ -105,5 +113,13 @@ def test_correctness(ragas_test_vectordb):
         input=ds[0]["question"],
         actual_output=ds[0]["answer"],
         expected_output=ds[0]["ground_truth"],
+        context=ds[0]["contexts"],
     )
-    assert_test(test_case, [correctness_metric])
+    try:
+        assert_test(test_case, deepeval_metrics)
+        # evaluate(
+        #    test_cases=[test_case],  # or a list of many cases
+        #    metrics=deepeval_metrics,  # one or more metrics
+        # )
+    except AssertionError as e:
+        pytest.fail(str(e), pytrace=False)
