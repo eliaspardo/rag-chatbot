@@ -218,6 +218,14 @@ cython_debug/
 # Codex
 AGENTS.md
 
+# Deepeval
+.deepeval
+
+# MLFlow
+mlruns
+.mlruns
+mlflow.db
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

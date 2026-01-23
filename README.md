@@ -179,21 +179,53 @@ During chat sessions:
 
 ## Testing
 
-Standard suite: `pytest` (RAGAS tests are marked and excluded by default, see below). Make sure `.env` and `config/params.env` exist so env loading succeeds.
+Standard suite: `pytest` (eval tests are marked and excluded by default, see below). Make sure `.env` and `config/params.env` exist so env loading succeeds.
 
-### Optional RAGAS Evaluations (local only)
+### Evals (local only)
 
-Ragas tests are disabled by default when running pytest to avoid breaking CI/CD runs as they need a source document and a golden dataset.
+Eval tests are disabled by default when running pytest to avoid breaking CI/CD runs as they need a source document and a golden dataset.
 
-- Relevant variables for paths and file names are all under a Ragas section in `config/params.env`:
+Prereq: install dev deps to run evals: `pip install -r requirements-dev.txt`
 
-  - EVAL_PDF_PATH - source document
-  - EVAL_GOLDEN_SET_PATH - golden test dataset
-  - EVAL_DB_DIR - where the tests will create the vector store
+Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
 
-- Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
-- How to run: prepare your dataset and vector store locally, then execute `pytest -m ragas`.
-- Expected behavior: if files are missing, tests skip/fail with a clear message; no proprietary data is required for CI.
+#### RAGAS
+
+Relevant variables in `config/params.env`:
+- EVAL_PDF_PATH, EVAL_DB_DIR, EVAL_GOLDEN_SET_PATH
+- EVAL_LLM_PROVIDER, EVAL_MODEL_NAME, EVAL_OLLAMA_BASE_URL, EVAL_TOGETHER_API_KEY
+- EVAL_RESULTS_DIR, EVAL_*_THRESHOLD, EVAL_*_MIN
+
+
+How to run:
+
+```bash
+pytest -m ragas
+```
+
+Expected behavior: if files are missing, tests skip/fail with a clear message; results are saved under EVAL_RESULTS_DIR (CSV/JSON, plus plots if matplotlib/plotly are installed).
+
+#### DeepEval
+
+DeepEval tests log results to MLflow.
+
+Relevant variables in `config/params.env`:
+- EVAL_PDF_PATH, EVAL_DB_DIR, EVAL_GOLDEN_SET_PATH
+- EVAL_LLM_PROVIDER, EVAL_MODEL_NAME, EVAL_OLLAMA_BASE_URL, EVAL_TOGETHER_API_KEY
+- MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME
+
+How to run:
+
+```bash
+pytest -m deepeval --run-name "prompt-tweak-2026-01-23"
+```
+
+The `--run-name` flag controls the MLflow parent run name. If omitted, the default is `deepeval-YYYY-MM-DD-HH-MM-SS` (UTC).
+
+Example (quick regression after a prompt tweak):
+- You update `src/core/prompts.py` to refine `domain_expert_prompt`
+- Run: `pytest -m deepeval --run-name "domain-expert-prompt-v2-2026-01-23"`
+- The run and nested per-question results are tracked under that name in MLflow
 
 ## Troubleshooting
 

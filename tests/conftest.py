@@ -1,5 +1,6 @@
 import shutil
 import os
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,29 @@ load_environment()
 EVAL_PDF_PATH = os.getenv("EVAL_PDF_PATH")
 EVAL_DB_DIR_ENV = os.getenv("EVAL_DB_DIR")
 EVAL_DB_DIR = Path(EVAL_DB_DIR_ENV) if EVAL_DB_DIR_ENV else None
+
+
+def pytest_addoption(parser):
+    """Add custom command-line options for pytest."""
+    parser.addoption(
+        "--run-name",
+        action="store",
+        default=None,
+        help="Custom name for MLflow run (default: deepeval-YYYY-MM-DD-HH-MM-SS)",
+    )
+
+
+@pytest.fixture(scope="session")
+def run_name(request):
+    """
+    Fixture to provide run name for MLflow runs.
+    Uses --run-name command-line option if provided, otherwise defaults to
+    deepeval-{timestamp}.
+    """
+    custom_run_name = request.config.getoption("--run-name")
+    if custom_run_name:
+        return custom_run_name
+    return f"deepeval-{datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S')}"
 
 
 @pytest.fixture(scope="session")
