@@ -18,7 +18,7 @@ from tests.evals.metrics.grounding.v1 import (
     EVALUATION_STEPS as GROUNDING_EVALUATION_STEPS,
     METADATA as GROUNDING_METADATA,
 )
-from tests.evals.metrics.completeness.v1 import (
+from tests.evals.metrics.completeness.v2 import (
     EVALUATION_STEPS as COMPLETENESS_EVALUATION_STEPS,
     METADATA as COMPLETENESS_METADATA,
 )
@@ -97,8 +97,23 @@ def mlflow_parent_run(run_name):
         mlflow.log_param(
             "metrics_file_grounding", "tests/evals/metrics/grounding/v1.py"
         )
-        mlflow.log_dict(GROUNDING_METADATA, "tests/evals/metrics/grounding/v1.py")
-        mlflow.log_dict(COMPLETENESS_METADATA, "tests/evals/metrics/completeness/v1.py")
+        mlflow.log_param(
+            "metrics_file_correctness", "tests/evals/metrics/correctness/v2.py"
+        )
+        mlflow.log_dict(
+            GROUNDING_EVALUATION_STEPS,
+            "tests/evals/metrics/evaluation_steps/grounding/v1.py",
+        )
+        mlflow.log_dict(
+            GROUNDING_METADATA, "tests/evals/metrics/metadata/grounding/v1.py"
+        )
+        mlflow.log_dict(
+            COMPLETENESS_EVALUATION_STEPS,
+            "tests/evals/metrics/evaluation_steps/completeness/v2.py",
+        )
+        mlflow.log_dict(
+            COMPLETENESS_METADATA, "tests/evals/metrics/metadata/completeness/v2.py"
+        )
         mlflow.log_dict(
             {"template": domain_expert_prompt.template},
             "src/core/prompts/domain_expert_prompt.json",
@@ -180,6 +195,7 @@ def test_grounding_and_correctness(
         metrics=deepeval_metrics,
         display_config=DisplayConfig(show_indicator=False, print_results=False),
         async_config=AsyncConfig(run_async=False),  # Run sequentially
+        hyperparameters={"prompt": domain_expert_prompt.template},
     )
 
     for index, test_result in enumerate(evaluation_result.test_results):
