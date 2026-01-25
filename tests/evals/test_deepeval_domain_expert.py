@@ -18,6 +18,10 @@ from tests.evals.metrics.grounding.v1 import (
     EVALUATION_STEPS as GROUNDING_EVALUATION_STEPS,
     METADATA as GROUNDING_METADATA,
 )
+from tests.evals.metrics.completeness.v1 import (
+    EVALUATION_STEPS as COMPLETENESS_EVALUATION_STEPS,
+    METADATA as COMPLETENESS_METADATA,
+)
 from tests.utils.ragas_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
@@ -61,7 +65,19 @@ def deepeval_metrics():
         model=deepeval_llm,
     )
 
-    return [grounding_and_correctness_metric]
+    completeness_metric = GEval(
+        name="Completeness",
+        evaluation_steps=COMPLETENESS_EVALUATION_STEPS,
+        evaluation_params=[
+            LLMTestCaseParams.ACTUAL_OUTPUT,
+            LLMTestCaseParams.EXPECTED_OUTPUT,
+            LLMTestCaseParams.CONTEXT,
+        ],
+        threshold=0.5,
+        model=deepeval_llm,
+    )
+
+    return [grounding_and_correctness_metric, completeness_metric]
 
 
 @pytest.fixture(scope="session")
@@ -82,6 +98,7 @@ def mlflow_parent_run(run_name):
             "metrics_file_grounding", "tests/evals/metrics/grounding/v1.py"
         )
         mlflow.log_dict(GROUNDING_METADATA, "tests/evals/metrics/grounding/v1.py")
+        mlflow.log_dict(COMPLETENESS_METADATA, "tests/evals/metrics/completeness/v1.py")
         mlflow.log_dict(
             {"template": domain_expert_prompt.template},
             "src/core/prompts/domain_expert_prompt.json",

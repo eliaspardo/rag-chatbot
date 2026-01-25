@@ -1,3 +1,5 @@
+# flake8: noqa
+
 EVALUATION_STEPS = [
     "Extract factual claims from the actual output.",
     "Verify each claim is supported by the retrieval context.",
@@ -10,6 +12,5 @@ METADATA = {
     "version": "v1",
     "date": "2025-01-19",
     "description": "Grounding focused on retrieval context support.",
-    "motivation": "Track grounding steps as a single combined metric.",
     "notes": "Works with EVAL_MODEL_NAME=meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
 }
