@@ -49,6 +49,12 @@ MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
 MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "rag-evals")
 
 
+class EvalResults:
+    def __init__(self):
+        self.metric_scores = defaultdict(list)
+        self.failures = []
+
+
 @pytest.fixture
 def deepeval_metrics():
     deepeval_llm = DeepEvalLLMAdapter()
@@ -86,8 +92,9 @@ def mlflow_parent_run(run_name):
     if MLFLOW_TRACKING_URI:
         mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+    eval_results = EvalResults()
 
-    with mlflow.start_run(run_name=run_name) as parent_run:
+    with mlflow.start_run(run_name=run_name):
         # Log suite-level params
         mlflow.log_param("test_date", datetime.now().isoformat())
         mlflow.log_param("app_llm_provider", LLM_PROVIDER)
@@ -120,10 +127,23 @@ def mlflow_parent_run(run_name):
         )
         mlflow.set_tag("run_type", "parent")
 
-        yield parent_run  # Tests run here
+        yield run_name, eval_results  # Tests run here
 
         # Aggregate metrics after all tests complete
-        # (you'd collect these during tests)
+        if eval_results.failures:
+            mlflow.set_tag("status", "failed")
+            mlflow.log_param("failure_count", len(eval_results.failures))
+            pytest.fail(
+                f"{len(eval_results.failures)} test case(s) failed", pytrace=False
+            )
+        else:
+            mlflow.set_tag("status", "passed")
+        for metric_name, scores in eval_results.metric_scores.items():
+            if not scores:
+                continue
+            mlflow.log_metric(f"{metric_name}_mean", sum(scores) / len(scores))
+            mlflow.log_metric(f"{metric_name}_min", min(scores))
+            mlflow.log_metric(f"{metric_name}_max", max(scores))
 
 
 @pytest.mark.slow
@@ -142,7 +162,7 @@ def mlflow_parent_run(run_name):
     reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
 def test_grounding_and_correctness(
-    ragas_test_vectordb, deepeval_metrics, mlflow_parent_run, run_name
+    eval_test_vectordb, deepeval_metrics, mlflow_parent_run
 ):
     __tracebackhide__ = True
     if not EVAL_DB_DIR:
@@ -159,6 +179,7 @@ def test_grounding_and_correctness(
 
     answers = []
     contexts_list = []
+    parent_run_name, eval_results = mlflow_parent_run
 
     for question in questions:
         answer = domain_expert.ask_question(question)
@@ -188,8 +209,7 @@ def test_grounding_and_correctness(
         )
         for item in ds
     ]
-    metric_scores = defaultdict(list)
-    failures = []
+
     evaluation_result = evaluate(
         test_cases=test_cases,
         metrics=deepeval_metrics,
@@ -210,7 +230,7 @@ def test_grounding_and_correctness(
             mlflow.log_param("test result", test_result.success)
 
             mlflow.set_tag("run_type", "child")
-            mlflow.set_tag("parent_run", run_name)
+            mlflow.set_tag("parent_run", parent_run_name)
             mlflow.set_tag("question", f"question-{index + 1}")
 
             metrics_data = test_result.metrics_data or []
@@ -218,7 +238,7 @@ def test_grounding_and_correctness(
                 sanitized_metric_name = sanitize_mlflow_name(metric_data.name)
                 score = metric_data.score
                 if score is not None:
-                    metric_scores[sanitized_metric_name].append(score)
+                    eval_results.metric_scores[sanitized_metric_name].append(score)
                     mlflow.log_metric(sanitized_metric_name, score)
                     mlflow.log_param(f"{sanitized_metric_name} score", score)
                     mlflow.log_param(
@@ -245,26 +265,13 @@ def test_grounding_and_correctness(
             )
 
             if not test_result.success:
-                failures.append(test_result.name)
+                eval_results.failures.append(test_result.name)
                 mlflow.set_tag("status", "failed")
                 mlflow.log_param("failure", "metric threshold not met")
                 mlflow.log_param("context", test_result.context)
             else:
                 mlflow.set_tag("status", "passed")
                 mlflow.log_param("context", test_result.context)
-
-    if failures:
-        mlflow.set_tag("status", "failed")
-        mlflow.log_param("failure_count", len(failures))
-        pytest.fail(f"{len(failures)} test case(s) failed", pytrace=False)
-    else:
-        mlflow.set_tag("status", "passed")
-        for metric_name, scores in metric_scores.items():
-            if not scores:
-                continue
-            mlflow.log_metric(f"{metric_name}_mean", sum(scores) / len(scores))
-            mlflow.log_metric(f"{metric_name}_min", min(scores))
-            mlflow.log_metric(f"{metric_name}_max", max(scores))
 
 
 def sanitize_mlflow_name(name: str) -> str:

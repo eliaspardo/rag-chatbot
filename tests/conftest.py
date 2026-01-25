@@ -38,14 +38,14 @@ def run_name(request):
 
 
 @pytest.fixture(scope="session")
-def ragas_test_vectordb():
+def eval_test_vectordb():
     """
-    Build the Ragas test FAISS database once per test session so ragas tests run
+    Build the Eval test FAISS database once per test session so eval tests run
     against fresh embeddings and leave no artifacts behind.
     """
     if not EVAL_PDF_PATH or not EVAL_DB_DIR:
         pytest.skip(
-            "Ragas eval skipped: set EVAL_PDF_PATH and EVAL_DB_DIR to run these tests."
+            "Evals skipped: set EVAL_PDF_PATH and EVAL_DB_DIR to run these tests."
         )
 
     preprocessor = RAGPreprocessor()

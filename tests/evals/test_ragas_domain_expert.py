@@ -52,7 +52,7 @@ EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
     or (EVAL_LLM_PROVIDER != "together" and EVAL_LLM_PROVIDER != "ollama"),
     reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
-def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
+def test_ragas_domain_expert(eval_test_vectordb):  # noqa: ARG001
     """
     For Domain Expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
