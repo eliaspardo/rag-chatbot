@@ -22,6 +22,10 @@ from tests.evals.metrics.completeness.v2 import (
     EVALUATION_STEPS as COMPLETENESS_EVALUATION_STEPS,
     METADATA as COMPLETENESS_METADATA,
 )
+from tests.evals.metrics.reasoning.v1 import (
+    EVALUATION_STEPS as REASONING_EVALUATION_STEPS,
+    METADATA as REASONING_METADATA,
+)
 from tests.utils.ragas_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
@@ -83,7 +87,19 @@ def deepeval_metrics():
         model=deepeval_llm,
     )
 
-    return [grounding_and_correctness_metric, completeness_metric]
+    reasoning_metric = GEval(
+        name="Reasoning",
+        evaluation_steps=REASONING_EVALUATION_STEPS,
+        evaluation_params=[
+            LLMTestCaseParams.ACTUAL_OUTPUT,
+            LLMTestCaseParams.EXPECTED_OUTPUT,
+            LLMTestCaseParams.CONTEXT,
+        ],
+        threshold=0.5,
+        model=deepeval_llm,
+    )
+
+    return [grounding_and_correctness_metric, completeness_metric, reasoning_metric]
 
 
 @pytest.fixture(scope="session")
@@ -120,6 +136,13 @@ def mlflow_parent_run(run_name):
         )
         mlflow.log_dict(
             COMPLETENESS_METADATA, "tests/evals/metrics/metadata/completeness/v2.py"
+        )
+        mlflow.log_dict(
+            REASONING_EVALUATION_STEPS,
+            "tests/evals/metrics/evaluation_steps/reasoning/v1.py",
+        )
+        mlflow.log_dict(
+            REASONING_METADATA, "tests/evals/metrics/metadata/reasoning/v1.py"
         )
         mlflow.log_dict(
             {"template": domain_expert_prompt.template},
@@ -161,7 +184,7 @@ def mlflow_parent_run(run_name):
     or (EVAL_LLM_PROVIDER != "together" and EVAL_LLM_PROVIDER != "ollama"),
     reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
-def test_grounding_and_correctness(
+def test_deepeval_domain_expert(
     eval_test_vectordb, deepeval_metrics, mlflow_parent_run
 ):
     __tracebackhide__ = True

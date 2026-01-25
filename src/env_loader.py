@@ -53,6 +53,8 @@ def _configure_default_logger_levels() -> None:
     logging.getLogger("faiss").setLevel(logging.ERROR)
     logging.getLogger("faiss.loader").setLevel(logging.ERROR)
     logging.getLogger("transformers").setLevel(logging.ERROR)
+    logging.getLogger("mlflow").setLevel(logging.WARNING)
+    logging.getLogger("alembic").setLevel(logging.WARNING)
 
 
 def load_environment() -> None:

@@ -10,7 +10,7 @@ EVALUATION_STEPS = [
 
 METADATA = {
     "version": "v2",
-    "date": "2025-01-24",
+    "date": "2025-01-25",
     "description": "Completeness focused on the ground truth.",
     "notes": "Focused check based on expected output",
 }
