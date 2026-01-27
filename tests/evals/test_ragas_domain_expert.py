@@ -13,7 +13,7 @@ from tests.utils.ragas_utils import (
     assert_ragas_thresholds,
     get_ragas_llm,
 )
-from tests.utils.ragas_dataset_loader import (
+from tests.utils.eval_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
 )
@@ -68,7 +68,7 @@ def test_ragas_domain_expert(eval_test_vectordb):  # noqa: ARG001
     domain_expert = DomainExpertCore(vectordb)
 
     try:
-        questions, ground_truths = load_golden_set_dataset()
+        questions, ground_truths, question_ids = load_golden_set_dataset()
     except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
         pytest.fail(f"Invalid RAGAS golden set: {exc}")
 

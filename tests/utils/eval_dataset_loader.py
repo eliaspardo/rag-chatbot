@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import List, Tuple
 
 # Default path to the golden set used by RAGAS evaluations (env overrides allowed)
-DEFAULT_GOLDEN_SET_PATH = Path(os.getenv("EVAL_GOLDEN_SET_PATH"))
+EVAL_GOLDEN_SET_PATH = Path(os.getenv("EVAL_GOLDEN_SET_PATH"))
 
 
 class GoldenSetValidationError(ValueError):
     """Raised when the golden set JSON does not match the expected schema."""
 
 
-def _validate_entry(index: int, entry: dict) -> Tuple[str, str]:
+def _validate_entry(index: int, entry: dict) -> Tuple[str, str, int | None]:
     if not isinstance(entry, dict):
         raise GoldenSetValidationError(
             f"Invalid item at index {index}: expected an object with 'question' and 'ground_truth' fields."
@@ -19,6 +19,7 @@ def _validate_entry(index: int, entry: dict) -> Tuple[str, str]:
 
     question = entry.get("question")
     ground_truth = entry.get("ground_truth")
+    question_id = entry.get("question_id")
 
     if not isinstance(question, str) or not question.strip():
         raise GoldenSetValidationError(
@@ -29,12 +30,17 @@ def _validate_entry(index: int, entry: dict) -> Tuple[str, str]:
             f"Invalid or missing 'ground_truth' at index {index}: expected a non-empty string."
         )
 
-    return question, ground_truth
+    if question_id is not None and not isinstance(question_id, int):
+        raise GoldenSetValidationError(
+            f"Invalid 'question_id' at index {index}: expected an integer."
+        )
+
+    return question, ground_truth, question_id
 
 
 def load_golden_set_dataset(
     path: Path | str | None = None,
-) -> Tuple[List[str], List[str]]:
+) -> Tuple[List[str], List[str], List[int | None]]:
     """
     Load and validate the golden set dataset for RAGAS tests.
 
@@ -43,14 +49,15 @@ def load_golden_set_dataset(
               (overridable via EVAL_GOLDEN_SET_PATH).
 
     Returns:
-        A tuple of (questions, ground_truths) lists.
+        A tuple of (questions, ground_truths, question_ids) lists.
+        question_ids may contain None values for entries without question_id.
 
     Raises:
         FileNotFoundError: If the dataset file does not exist.
         GoldenSetValidationError: If the file contents fail schema validation.
         json.JSONDecodeError: If the file is not valid JSON.
     """
-    dataset_path = Path(path) if path else DEFAULT_GOLDEN_SET_PATH
+    dataset_path = Path(path) if path else EVAL_GOLDEN_SET_PATH
 
     if not dataset_path.exists():
         raise FileNotFoundError(
@@ -68,9 +75,11 @@ def load_golden_set_dataset(
 
     questions: List[str] = []
     ground_truths: List[str] = []
+    question_ids: List[int | None] = []
     for index, entry in enumerate(data):
-        question, ground_truth = _validate_entry(index, entry)
+        question, ground_truth, question_id = _validate_entry(index, entry)
         questions.append(question)
         ground_truths.append(ground_truth)
+        question_ids.append(question_id)
 
-    return questions, ground_truths
+    return questions, ground_truths, question_ids

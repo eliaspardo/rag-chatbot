@@ -26,7 +26,7 @@ from tests.evals.metrics.reasoning.v1 import (
     EVALUATION_STEPS as REASONING_EVALUATION_STEPS,
     METADATA as REASONING_METADATA,
 )
-from tests.utils.ragas_dataset_loader import (
+from tests.utils.eval_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
 )
@@ -196,7 +196,7 @@ def test_deepeval_domain_expert(
     domain_expert = DomainExpertCore(vectordb)
 
     try:
-        questions, ground_truths = load_golden_set_dataset()
+        questions, ground_truths, question_ids = load_golden_set_dataset()
     except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
         pytest.fail(f"Invalid RAGAS golden set: {exc}")
 
@@ -219,6 +219,7 @@ def test_deepeval_domain_expert(
             "answer": answers,
             "contexts": contexts_list,
             "ground_truth": ground_truths,
+            "question_id": question_ids,
         }
     )
 
@@ -229,6 +230,7 @@ def test_deepeval_domain_expert(
             actual_output=item["answer"],
             expected_output=item["ground_truth"],
             context=item["contexts"],
+            additional_metadata={"question_id": item["question_id"]},
         )
         for item in ds
     ]
@@ -236,17 +238,23 @@ def test_deepeval_domain_expert(
     evaluation_result = evaluate(
         test_cases=test_cases,
         metrics=deepeval_metrics,
-        display_config=DisplayConfig(show_indicator=False, print_results=False),
-        async_config=AsyncConfig(run_async=False),  # Run sequentially
+        display_config=DisplayConfig(show_indicator=True, print_results=False),
+        async_config=AsyncConfig(max_concurrent=4, throttle_value=1),
         hyperparameters={"prompt": domain_expert_prompt.template},
     )
 
-    for index, test_result in enumerate(evaluation_result.test_results):
+    for test_result in evaluation_result.test_results:
+        question_id = (
+            test_result.additional_metadata.get("question_id")
+            if test_result.additional_metadata.get("question_id")
+            else None
+        )
+
         with mlflow.start_run(
-            run_name=f"question-{index + 1}",
+            run_name=f"question-{question_id}",
             nested=True,
         ):
-            mlflow.log_param("question_index", index + 1)
+            mlflow.log_param("question_id", question_id)
             mlflow.log_param("question", test_result.input)
             mlflow.log_param("actual output", test_result.actual_output)
             mlflow.log_param("expected output", test_result.expected_output)
@@ -254,7 +262,7 @@ def test_deepeval_domain_expert(
 
             mlflow.set_tag("run_type", "child")
             mlflow.set_tag("parent_run", parent_run_name)
-            mlflow.set_tag("question", f"question-{index + 1}")
+            mlflow.set_tag("question", f"question-{question_id}")
 
             metrics_data = test_result.metrics_data or []
             for metric_data in metrics_data:

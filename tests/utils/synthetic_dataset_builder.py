@@ -13,7 +13,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from src.env_loader import load_environment
-from tests.utils.ragas_utils import get_ragas_llm
+from tests.utils.evals_utils import build_provider_llm
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +218,7 @@ def answer_question_with_context(question: str, retriever, llm, top_k: int) -> s
     return answer or "INSUFFICIENT_CONTEXT"
 
 
-def build_synthetic_ragas_dataset_from_pdf(
+def build_synthetic_dataset_from_pdf(
     pdf_path: str,
     start_page: int,
     end_page: int,
@@ -251,7 +251,7 @@ def build_synthetic_ragas_dataset_from_pdf(
         logger.warning("No chunks produced; returning empty dataset.")
         return [] if not return_debug else ([], {"pages": len(pages), "chunks": 0})
 
-    llm = get_ragas_llm()
+    llm = build_provider_llm()
 
     raw_questions: List[str] = []
     for chunk in chunks:
@@ -291,10 +291,10 @@ def build_synthetic_ragas_dataset_from_pdf(
 
 def example_usage() -> None:
     """Minimal example to build and persist a dataset to JSON."""
-    pdf_path = "data/ISTQB_CTAL-TM_Syllabus_v3.0.pdf"
+    pdf_path = "data/your_pdf.pdf"
     output_path = Path("tests/artifacts/synthetic_dataset.json")
 
-    dataset = build_synthetic_ragas_dataset_from_pdf(
+    dataset = build_synthetic_dataset_from_pdf(
         pdf_path=pdf_path,
         start_page=18,
         end_page=70,
