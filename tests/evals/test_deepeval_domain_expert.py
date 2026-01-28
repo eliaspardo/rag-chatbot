@@ -18,7 +18,7 @@ from tests.evals.metrics.grounding.v1 import (
     EVALUATION_STEPS as GROUNDING_EVALUATION_STEPS,
     METADATA as GROUNDING_METADATA,
 )
-from tests.evals.metrics.completeness.v2 import (
+from tests.evals.metrics.completeness.v3 import (
     EVALUATION_STEPS as COMPLETENESS_EVALUATION_STEPS,
     METADATA as COMPLETENESS_METADATA,
 )
@@ -121,7 +121,7 @@ def mlflow_parent_run(run_name):
             "metrics_file_grounding", "tests/evals/metrics/grounding/v1.py"
         )
         mlflow.log_param(
-            "metrics_file_correctness", "tests/evals/metrics/correctness/v2.py"
+            "metrics_file_correctness", "tests/evals/metrics/correctness/v3.py"
         )
         mlflow.log_dict(
             GROUNDING_EVALUATION_STEPS,
@@ -132,10 +132,10 @@ def mlflow_parent_run(run_name):
         )
         mlflow.log_dict(
             COMPLETENESS_EVALUATION_STEPS,
-            "tests/evals/metrics/evaluation_steps/completeness/v2.py",
+            "tests/evals/metrics/evaluation_steps/completeness/v3.py",
         )
         mlflow.log_dict(
-            COMPLETENESS_METADATA, "tests/evals/metrics/metadata/completeness/v2.py"
+            COMPLETENESS_METADATA, "tests/evals/metrics/metadata/completeness/v3.py"
         )
         mlflow.log_dict(
             REASONING_EVALUATION_STEPS,
