@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
+from importlib import import_module
 import json
 import os
 import mlflow
@@ -14,18 +15,6 @@ from src.core.domain_expert_core import DomainExpertCore
 from src.core.prompts import domain_expert_prompt
 from src.core.rag_preprocessor import RAGPreprocessor
 from tests.utils.deepeval_utils import DeepEvalLLMAdapter
-from tests.evals.metrics.grounding.v1 import (
-    EVALUATION_STEPS as GROUNDING_EVALUATION_STEPS,
-    METADATA as GROUNDING_METADATA,
-)
-from tests.evals.metrics.completeness.v3 import (
-    EVALUATION_STEPS as COMPLETENESS_EVALUATION_STEPS,
-    METADATA as COMPLETENESS_METADATA,
-)
-from tests.evals.metrics.reasoning.v1 import (
-    EVALUATION_STEPS as REASONING_EVALUATION_STEPS,
-    METADATA as REASONING_METADATA,
-)
 from tests.utils.eval_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
@@ -51,6 +40,25 @@ EVAL_OLLAMA_BASE_URL = os.getenv("EVAL_OLLAMA_BASE_URL", OLLAMA_BASE_URL)
 EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
 MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "rag-evals")
+
+GROUNDING_VERSION = "v1"
+COMPLETENESS_VERSION = "v3"
+REASONING_VERSION = "v1"
+CORRECTNESS_VERSION = "v3"
+
+_grounding_module = import_module(f"tests.evals.metrics.grounding.{GROUNDING_VERSION}")
+GROUNDING_EVALUATION_STEPS = _grounding_module.EVALUATION_STEPS
+GROUNDING_METADATA = _grounding_module.METADATA
+
+_completeness_module = import_module(
+    f"tests.evals.metrics.completeness.{COMPLETENESS_VERSION}"
+)
+COMPLETENESS_EVALUATION_STEPS = _completeness_module.EVALUATION_STEPS
+COMPLETENESS_METADATA = _completeness_module.METADATA
+
+_reasoning_module = import_module(f"tests.evals.metrics.reasoning.{REASONING_VERSION}")
+REASONING_EVALUATION_STEPS = _reasoning_module.EVALUATION_STEPS
+REASONING_METADATA = _reasoning_module.METADATA
 
 
 class EvalResults:
@@ -118,31 +126,36 @@ def mlflow_parent_run(run_name):
         mlflow.log_param("eval_llm_provider", EVAL_LLM_PROVIDER)
         mlflow.log_param("eval_model_name", EVAL_MODEL_NAME)
         mlflow.log_param(
-            "metrics_file_grounding", "tests/evals/metrics/grounding/v1.py"
+            "metrics_file_grounding",
+            f"tests/evals/metrics/grounding/{GROUNDING_VERSION}.py",
         )
         mlflow.log_param(
-            "metrics_file_correctness", "tests/evals/metrics/correctness/v3.py"
+            "metrics_file_correctness",
+            f"tests/evals/metrics/correctness/{CORRECTNESS_VERSION}.py",
         )
         mlflow.log_dict(
             GROUNDING_EVALUATION_STEPS,
-            "tests/evals/metrics/evaluation_steps/grounding/v1.py",
+            f"tests/evals/metrics/evaluation_steps/grounding/{GROUNDING_VERSION}.py",
         )
         mlflow.log_dict(
-            GROUNDING_METADATA, "tests/evals/metrics/metadata/grounding/v1.py"
+            GROUNDING_METADATA,
+            f"tests/evals/metrics/metadata/grounding/{GROUNDING_VERSION}.py",
         )
         mlflow.log_dict(
             COMPLETENESS_EVALUATION_STEPS,
-            "tests/evals/metrics/evaluation_steps/completeness/v3.py",
+            f"tests/evals/metrics/evaluation_steps/completeness/{COMPLETENESS_VERSION}.py",
         )
         mlflow.log_dict(
-            COMPLETENESS_METADATA, "tests/evals/metrics/metadata/completeness/v3.py"
+            COMPLETENESS_METADATA,
+            f"tests/evals/metrics/metadata/completeness/{COMPLETENESS_VERSION}.py",
         )
         mlflow.log_dict(
             REASONING_EVALUATION_STEPS,
-            "tests/evals/metrics/evaluation_steps/reasoning/v1.py",
+            f"tests/evals/metrics/evaluation_steps/reasoning/{REASONING_VERSION}.py",
         )
         mlflow.log_dict(
-            REASONING_METADATA, "tests/evals/metrics/metadata/reasoning/v1.py"
+            REASONING_METADATA,
+            f"tests/evals/metrics/metadata/reasoning/{REASONING_VERSION}.py",
         )
         mlflow.log_dict(
             {"template": domain_expert_prompt.template},
@@ -185,7 +198,7 @@ def mlflow_parent_run(run_name):
     reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
 def test_deepeval_domain_expert(
-    eval_test_vectordb, deepeval_metrics, mlflow_parent_run
+    eval_test_vectordb, run_specific_question_id, deepeval_metrics, mlflow_parent_run
 ):
     __tracebackhide__ = True
     if not EVAL_DB_DIR:
@@ -196,7 +209,9 @@ def test_deepeval_domain_expert(
     domain_expert = DomainExpertCore(vectordb)
 
     try:
-        questions, ground_truths, question_ids = load_golden_set_dataset()
+        questions, ground_truths, question_ids = load_golden_set_dataset(
+            run_specific_question_id=run_specific_question_id
+        )
     except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
         pytest.fail(f"Invalid RAGAS golden set: {exc}")
 

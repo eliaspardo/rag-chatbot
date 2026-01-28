@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import List, Tuple
 
-# Default path to the golden set used by RAGAS evaluations (env overrides allowed)
+# Default path to the golden set used by evals (env overrides allowed)
 EVAL_GOLDEN_SET_PATH = Path(os.getenv("EVAL_GOLDEN_SET_PATH"))
 
 
@@ -39,14 +39,15 @@ def _validate_entry(index: int, entry: dict) -> Tuple[str, str, int | None]:
 
 
 def load_golden_set_dataset(
-    path: Path | str | None = None,
+    path: Path | str | None = None, run_specific_question_id: int | None = None
 ) -> Tuple[List[str], List[str], List[int | None]]:
     """
-    Load and validate the golden set dataset for RAGAS tests.
+    Load and validate the golden set dataset for evals.
 
     Args:
         path: Optional custom path to the dataset JSON file. Defaults to tests/data/golden_set.json
               (overridable via EVAL_GOLDEN_SET_PATH).
+        run_specific_question_id: Optional, only load that question_id.
 
     Returns:
         A tuple of (questions, ground_truths, question_ids) lists.
@@ -76,10 +77,24 @@ def load_golden_set_dataset(
     questions: List[str] = []
     ground_truths: List[str] = []
     question_ids: List[int | None] = []
+    found_specific = False
     for index, entry in enumerate(data):
         question, ground_truth, question_id = _validate_entry(index, entry)
-        questions.append(question)
-        ground_truths.append(ground_truth)
-        question_ids.append(question_id)
+        # If we're only running one question, only load that question
+        if run_specific_question_id is not None:
+            if question_id != run_specific_question_id:
+                continue
+            questions.append(question)
+            ground_truths.append(ground_truth)
+            question_ids.append(question_id)
+            found_specific = True
+            break
+        else:
+            questions.append(question)
+            ground_truths.append(ground_truth)
+            question_ids.append(question_id)
+
+    if run_specific_question_id is not None and not found_specific:
+        raise GoldenSetValidationError("Specific question_id not found.")
 
     return questions, ground_truths, question_ids
