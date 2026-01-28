@@ -1,6 +1,6 @@
 import shutil
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -42,7 +42,7 @@ def run_name(request):
     if custom_run_name:
         return custom_run_name
     return (
-        f"deepeval-{datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d-%H-%M-%S')}"
+        return f"deepeval-{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S')}"
     )
 
 
