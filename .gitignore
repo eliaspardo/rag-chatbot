@@ -215,6 +215,17 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Codex
+AGENTS.md
+
+# Deepeval
+.deepeval
+
+# MLFlow
+mlruns
+.mlruns
+mlflow.db
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

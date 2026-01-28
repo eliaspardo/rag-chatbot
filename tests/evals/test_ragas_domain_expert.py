@@ -13,7 +13,7 @@ from tests.utils.ragas_utils import (
     assert_ragas_thresholds,
     get_ragas_llm,
 )
-from tests.utils.ragas_dataset_loader import (
+from tests.utils.eval_dataset_loader import (
     load_golden_set_dataset,
     GoldenSetValidationError,
 )
@@ -23,36 +23,36 @@ import json
 logger = logging.getLogger(__name__)
 
 
-RAGAS_DB_DIR = os.getenv("RAGAS_DB_DIR")
+EVAL_DB_DIR = os.getenv("EVAL_DB_DIR")
 EMBED_MODEL = os.getenv("EMBEDDING_MODEL")
 MODEL_NAME = os.getenv("MODEL_NAME")
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
 
-RAGAS_MODEL_NAME = os.getenv("RAGAS_MODEL_NAME", MODEL_NAME)
-RAGAS_LLM_PROVIDER = os.getenv("RAGAS_LLM_PROVIDER", LLM_PROVIDER).strip().lower()
-RAGAS_TOGETHER_API_KEY = os.getenv("RAGAS_TOGETHER_API_KEY", TOGETHER_API_KEY)
-RAGAS_OLLAMA_BASE_URL = os.getenv("RAGAS_OLLAMA_BASE_URL", OLLAMA_BASE_URL)
-RAGAS_TIMEOUT = int(os.getenv("RAGAS_TIMEOUT", "300"))
+EVAL_MODEL_NAME = os.getenv("EVAL_MODEL_NAME", MODEL_NAME)
+EVAL_LLM_PROVIDER = os.getenv("EVAL_LLM_PROVIDER", LLM_PROVIDER).strip().lower()
+EVAL_TOGETHER_API_KEY = os.getenv("EVAL_TOGETHER_API_KEY", TOGETHER_API_KEY)
+EVAL_OLLAMA_BASE_URL = os.getenv("EVAL_OLLAMA_BASE_URL", OLLAMA_BASE_URL)
+EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
 
 
 @pytest.mark.slow
 @pytest.mark.ragas
 @pytest.mark.skipif(
-    RAGAS_LLM_PROVIDER == "together" and not RAGAS_TOGETHER_API_KEY,
-    reason="RAGAS_TOGETHER_API_KEY environment variable is required",
+    EVAL_LLM_PROVIDER == "together" and not EVAL_TOGETHER_API_KEY,
+    reason="EVAL_TOGETHER_API_KEY environment variable is required",
 )
 @pytest.mark.skipif(
-    RAGAS_LLM_PROVIDER == "ollama" and not RAGAS_OLLAMA_BASE_URL,
-    reason="RAGAS_OLLAMA_BASE_URL environment variable is required",
+    EVAL_LLM_PROVIDER == "ollama" and not EVAL_OLLAMA_BASE_URL,
+    reason="EVAL_OLLAMA_BASE_URL environment variable is required",
 )
 @pytest.mark.skipif(
-    not RAGAS_LLM_PROVIDER
-    or (RAGAS_LLM_PROVIDER != "together" and RAGAS_LLM_PROVIDER != "ollama"),
-    reason="RAGAS_LLM_PROVIDER environment variable must be together or ollama",
+    not EVAL_LLM_PROVIDER
+    or (EVAL_LLM_PROVIDER != "together" and EVAL_LLM_PROVIDER != "ollama"),
+    reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
-def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
+def test_ragas_domain_expert(eval_test_vectordb):  # noqa: ARG001
     """
     For Domain Expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
@@ -60,15 +60,15 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
     answer_relevancy -> infer the QUESTIONS based on the LLM's response
     """
     __tracebackhide__ = True
-    if not RAGAS_DB_DIR:
-        pytest.skip("RAGAS_DB_DIR not set; see README for RAGAS setup.")
+    if not EVAL_DB_DIR:
+        pytest.skip("EVAL_DB_DIR not set; see README for RAGAS setup.")
 
     rag_preprocessor = RAGPreprocessor()
-    vectordb = rag_preprocessor.load_vector_store(RAGAS_DB_DIR, EMBED_MODEL)
+    vectordb = rag_preprocessor.load_vector_store(EVAL_DB_DIR, EMBED_MODEL)
     domain_expert = DomainExpertCore(vectordb)
 
     try:
-        questions, ground_truths = load_golden_set_dataset()
+        questions, ground_truths, question_ids = load_golden_set_dataset()
     except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
         pytest.fail(f"Invalid RAGAS golden set: {exc}")
 
@@ -102,7 +102,7 @@ def test_ragas_domain_expert(ragas_test_vectordb):  # noqa: ARG001
             metrics=[answer_relevancy, faithfulness, context_precision],
             llm=ragas_llm,
             embeddings=embeddings,
-            run_config=RunConfig(timeout=RAGAS_TIMEOUT),
+            run_config=RunConfig(timeout=EVAL_TIMEOUT),
         )
     except Exception as exception:
         logger.error(f"Evaluation error: {exception}")
