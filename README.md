@@ -24,7 +24,7 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 - **Vector Database**: FAISS
 - **Embeddings**: HuggingFace Sentence Transformers (configurable via `config/params.env`)
 - **Framework**: LangChain
-- **PDF Processing**: PyMuPDF (fitz)
+- **PDF Processing**: PyMuPDF (fitz) or Docling (select via `RAG_PREPROCESSOR`)
 
 ## Installation
 
@@ -163,6 +163,8 @@ rag-chatbot/
 | `RETRIEVAL_K`     | `4`                                             | Number of relevant chunks to retrieve |
 | `TEMPERATURE`     | `0.3`                                           | LLM temperature (creativity)          |
 | `MAX_TOKENS`      | `512`                                           | Maximum tokens in LLM response        |
+| `RAG_PREPROCESSOR`| `legacy`                                        | PDF preprocessor: `legacy` or `docling` |
+| `DOCLING_EXPORT_TYPE` | `doc_chunks`                                 | Docling export: `markdown` or `doc_chunks` |
 
 ## Dependencies
 
@@ -258,14 +260,14 @@ Example (quick regression after a prompt tweak):
 
 ### Debugging
 
-Enable verbose mode by uncommenting the `verbose=True` lines in the chain configurations:
+Enable verbose mode by adding the `verbose=True` line in the chain configurations:
 
 ```python
 qa_chain = ConversationalRetrievalChain.from_llm(
     llm=llm,
     retriever=retriever,
     memory=memory,
-    verbose=True,  # Uncomment for debugging
+    verbose=True,  # Add for debugging
 )
 ```
 

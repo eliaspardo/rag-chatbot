@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from src.api.session_manager import SessionManager
 from src.core.app_bootstrap import prepare_vector_store
-from src.core.rag_preprocessor import RAGPreprocessor
+from src.core.rag_preprocessor import get_rag_preprocessor
 from src.core.exam_prep_core import ExamPrepCore
 from src.core.exceptions import (
     ServerSetupException,
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app):
     # Startup
     print("Loading vector store...")
-    rag_preprocessor = RAGPreprocessor()
+    rag_preprocessor = get_rag_preprocessor()
     try:
         vectordb = prepare_vector_store(rag_preprocessor=rag_preprocessor)
     except NoDocumentsException:
