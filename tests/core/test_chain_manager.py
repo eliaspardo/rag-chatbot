@@ -55,6 +55,7 @@ class TestChainManager:
 
     @patch("src.core.chain_manager.LLM_PROVIDER", "ollama")
     @patch("src.core.chain_manager.TOGETHER_API_KEY", None)
+    @patch("src.core.chain_manager.OLLAMA_BASE_URL", "http://localhost:11434")
     def test_init_missing_together_api_key_using_ollama(self, mock_vectordb):
         ChainManager(mock_vectordb, temperature=0.7, max_tokens=256, retrieval_k=1)
 
