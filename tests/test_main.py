@@ -40,17 +40,17 @@ class TestMain:
         mock_console_ui.return_value.show_exit_message.assert_called_once()
 
     @patch("src.main.run_chat_loop")
-    @patch("src.main.RAGPreprocessor")
+    @patch("src.main.get_rag_preprocessor")
     @patch("os.path.exists", return_value=True)
     def test_run_app_path_exists_uses_existing_vector_store_success(
         self,
         os_path_exists,
-        mock_rag_preprocessor,
+        mock_get_rag_preprocessor,
         mock_run_chat_loop,
         mock_console_ui_instance,
     ):
         # Arrange
-        mock_rag_preprocessor.load_vector_store.return_value = None
+        mock_get_rag_preprocessor.return_value.load_vector_store.return_value = None
         mock_run_chat_loop.return_value = None
 
         # Act
@@ -65,17 +65,17 @@ class TestMain:
         )
         mock_run_chat_loop.assert_called_once()
 
-    @patch("src.main.RAGPreprocessor")
+    @patch("src.main.get_rag_preprocessor")
     @patch("os.path.exists", return_value=True)
     def test_run_app_path_exists_error_loading_store(
         self,
         os_path_exists,
-        mock_rag_preprocessor,
+        mock_get_rag_preprocessor,
         mock_console_ui_instance,
     ):
         # Arrange
-        mock_rag_preprocessor.return_value.load_vector_store.side_effect = Exception(
-            "Error loading vector store"
+        mock_get_rag_preprocessor.return_value.load_vector_store.side_effect = (
+            Exception("Error loading vector store")
         )
 
         # Act
@@ -85,19 +85,19 @@ class TestMain:
         # Assert
         mock_console_ui_instance.show_error.assert_called_with(
             Error.EXCEPTION,
-            mock_rag_preprocessor.return_value.load_vector_store.side_effect,
+            mock_get_rag_preprocessor.return_value.load_vector_store.side_effect,
         )
 
-    @patch("src.main.RAGPreprocessor")
+    @patch("src.main.get_rag_preprocessor")
     @patch("os.path.exists", return_value=False)
     def test_run_app_path_not_exists_error_loading_pdf_text(
         self,
         os_path_exists,
-        mock_rag_preprocessor,
+        mock_get_rag_preprocessor,
         mock_console_ui_instance,
     ):
         # Arrange
-        mock_rag_preprocessor.return_value.load_pdf_text.side_effect = Exception(
+        mock_get_rag_preprocessor.return_value.load_pdf_text.side_effect = Exception(
             "Error loading pdf"
         )
 
@@ -108,20 +108,20 @@ class TestMain:
         # Assert
         mock_console_ui_instance.show_error.assert_called_with(
             Error.EXCEPTION,
-            mock_rag_preprocessor.return_value.load_pdf_text.side_effect,
+            mock_get_rag_preprocessor.return_value.load_pdf_text.side_effect,
         )
 
-    @patch("src.main.RAGPreprocessor")
+    @patch("src.main.get_rag_preprocessor")
     @patch("os.path.exists", return_value=False)
     def test_run_app_path_not_exists_error_splitting_text(
         self,
         os_path_exists,
-        mock_rag_preprocessor,
+        mock_get_rag_preprocessor,
         mock_console_ui_instance,
     ):
         # Arrange
-        mock_rag_preprocessor.return_value.split_text_to_docs.side_effect = Exception(
-            "Error splitting text"
+        mock_get_rag_preprocessor.return_value.split_text_to_docs.side_effect = (
+            Exception("Error splitting text")
         )
 
         # Act
@@ -131,20 +131,20 @@ class TestMain:
         # Assert
         mock_console_ui_instance.show_error.assert_called_with(
             Error.EXCEPTION,
-            mock_rag_preprocessor.return_value.split_text_to_docs.side_effect,
+            mock_get_rag_preprocessor.return_value.split_text_to_docs.side_effect,
         )
 
-    @patch("src.main.RAGPreprocessor")
+    @patch("src.main.get_rag_preprocessor")
     @patch("os.path.exists", return_value=False)
     def test_run_app_path_not_exists_error_no_docs(
         self,
         os_path_exists,
-        mock_rag_preprocessor,
+        mock_get_rag_preprocessor,
         mock_console_ui_instance,
     ):
         # Arrange
-        mock_rag_preprocessor.return_value.load_pdf_text.return_value = []
-        mock_rag_preprocessor.return_value.split_text_to_docs.return_value = []
+        mock_get_rag_preprocessor.return_value.load_pdf_text.return_value = []
+        mock_get_rag_preprocessor.return_value.split_text_to_docs.return_value = []
 
         # Act
         with pytest.raises(ExitApp):
@@ -153,22 +153,22 @@ class TestMain:
         # Assert
         mock_console_ui_instance.show_error.assert_called_with(Error.NO_DOCUMENTS)
 
-    @patch("src.main.RAGPreprocessor")
+    @patch("src.main.get_rag_preprocessor")
     @patch("os.path.exists", return_value=False)
     def test_run_app_path_not_exists_error_create_vector_store(
         self,
         os_path_exists,
-        mock_rag_preprocessor,
+        mock_get_rag_preprocessor,
         mock_console_ui_instance,
     ):
         # Arrange
-        mock_rag_preprocessor.return_value.load_pdf_text.return_value = []
-        mock_rag_preprocessor.return_value.split_text_to_docs.return_value = [
+        mock_get_rag_preprocessor.return_value.load_pdf_text.return_value = []
+        mock_get_rag_preprocessor.return_value.split_text_to_docs.return_value = [
             "Sample Text"
         ]
         exceptions = [FaissException(), VectorStoreException()]
         for exception in exceptions:
-            mock_rag_preprocessor.return_value.create_vector_store.side_effect = (
+            mock_get_rag_preprocessor.return_value.create_vector_store.side_effect = (
                 exception
             )
 
@@ -182,26 +182,26 @@ class TestMain:
             )
             mock_console_ui_instance.show_error.assert_called_with(
                 Error.EXCEPTION,
-                mock_rag_preprocessor.return_value.create_vector_store.side_effect,
+                mock_get_rag_preprocessor.return_value.create_vector_store.side_effect,
             )
 
     @patch("src.main.run_chat_loop")
-    @patch("src.main.RAGPreprocessor")
+    @patch("src.main.get_rag_preprocessor")
     @patch("os.path.exists", return_value=False)
     def test_run_app_path_not_exists_success(
         self,
         os_path_exists,
-        mock_rag_preprocessor,
+        mock_get_rag_preprocessor,
         mock_run_chat_loop,
         mock_console_ui_instance,
     ):
         # Arrange
-        mock_rag_preprocessor.return_value.load_pdf_text.return_value = []
-        mock_rag_preprocessor.return_value.split_text_to_docs.return_value = [
+        mock_get_rag_preprocessor.return_value.load_pdf_text.return_value = []
+        mock_get_rag_preprocessor.return_value.split_text_to_docs.return_value = [
             "Sample Text"
         ]
-        mock_rag_preprocessor.return_value.create_vector_store.return_value = Mock()
-        mock_rag_preprocessor.return_value.load_vector_store.return_value = Mock()
+        mock_get_rag_preprocessor.return_value.create_vector_store.return_value = Mock()
+        mock_get_rag_preprocessor.return_value.load_vector_store.return_value = Mock()
         mock_run_chat_loop.return_value = None
 
         # Act

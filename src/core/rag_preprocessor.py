@@ -148,7 +148,19 @@ class DoclingRAGPreprocessor(RAGPreprocessor):
         chunk_overlap: int = CHUNK_OVERLAP,
     ) -> list[Document]:
         if self.EXPORT_TYPE == ExportType.DOC_CHUNKS:
-            splits = docs
+            # splits = docs
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=CHUNK_SIZE,
+                chunk_overlap=CHUNK_OVERLAP,
+                separators=[
+                    "\n\n## ",
+                    "\n\n### ",
+                    "\n\n",
+                    "\n",
+                    " ",
+                ],  # Respect structure but allow merging
+            )
+            splits = splitter.split_documents(docs)
         elif self.EXPORT_TYPE == ExportType.MARKDOWN:
             splits = self.split_with_fallback(docs)
         else:
@@ -194,8 +206,15 @@ class DoclingRAGPreprocessor(RAGPreprocessor):
         full_text = "\n\n".join(d.page_content for d in docs)
         sections = self.split_by_numbered_headings(full_text)
 
+        # Add section context BEFORE secondary split
+        for doc in sections:
+            if "section" in doc.metadata:
+                doc.page_content = (
+                    f"Section: {doc.metadata['section']}\n\n{doc.page_content}"
+                )
+
         # Optional secondary split for very long sections
-        splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
         refined = []
         for doc in sections:
             chunks = splitter.split_text(doc.page_content)
