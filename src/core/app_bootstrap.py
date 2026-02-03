@@ -1,10 +1,7 @@
 from __future__ import annotations
-
 from collections.abc import Callable
 import os
-
 from langchain_community.vectorstores import FAISS
-
 from src.core.exceptions import NoDocumentsException
 from src.core.rag_preprocessor import DB_DIR, RAGPreprocessor
 

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.rag_preprocessor import RAGPreprocessor
+from src.core.rag_preprocessor import get_rag_preprocessor
 from src.env_loader import load_environment
 
 load_environment()
@@ -41,9 +41,7 @@ def run_name(request):
     custom_run_name = request.config.getoption("--run-name")
     if custom_run_name:
         return custom_run_name
-    return (
-        return f"deepeval-{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S')}"
-    )
+    return f"deepeval-{datetime.now(timezone.utc).strftime('%Y-%m-%d-%H-%M-%S')}"
 
 
 @pytest.fixture(scope="session")
@@ -69,7 +67,7 @@ def eval_test_vectordb():
             "Evals skipped: set EVAL_PDF_PATH and EVAL_DB_DIR to run these tests."
         )
 
-    preprocessor = RAGPreprocessor()
+    preprocessor = get_rag_preprocessor()
     texts = preprocessor.load_pdf_text(str(EVAL_PDF_PATH))
     docs = preprocessor.split_text_to_docs(texts)
 

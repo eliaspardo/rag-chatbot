@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from importlib import import_module
 import json
 import os
@@ -38,8 +38,11 @@ EVAL_LLM_PROVIDER = os.getenv("EVAL_LLM_PROVIDER", LLM_PROVIDER).strip().lower()
 EVAL_TOGETHER_API_KEY = os.getenv("EVAL_TOGETHER_API_KEY", TOGETHER_API_KEY)
 EVAL_OLLAMA_BASE_URL = os.getenv("EVAL_OLLAMA_BASE_URL", OLLAMA_BASE_URL)
 EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
+DEEPEVAL_MAX_CONCURRENT = int(os.getenv("DEEPEVAL_MAX_CONCURRENT", "4"))
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
 MLFLOW_EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "rag-evals")
+RAG_PREPROCESSOR = os.getenv("RAG_PREPROCESSOR", "legacy")
+DOCLING_EXPORT_TYPE = os.getenv("DOCLING_EXPORT_TYPE", "")
 
 GROUNDING_VERSION = "v1"
 COMPLETENESS_VERSION = "v3"
@@ -125,6 +128,9 @@ def mlflow_parent_run(run_name):
         mlflow.log_param("app_model_name", MODEL_NAME)
         mlflow.log_param("eval_llm_provider", EVAL_LLM_PROVIDER)
         mlflow.log_param("eval_model_name", EVAL_MODEL_NAME)
+        mlflow.log_param("rag_preprocessor", RAG_PREPROCESSOR)
+        mlflow.log_param("docling_export_type", DOCLING_EXPORT_TYPE)
+
         mlflow.log_param(
             "metrics_file_grounding",
             f"tests/evals/metrics/grounding/{GROUNDING_VERSION}.py",
@@ -166,6 +172,13 @@ def mlflow_parent_run(run_name):
         yield run_name, eval_results  # Tests run here
 
         # Aggregate metrics after all tests complete
+        for metric_name, scores in eval_results.metric_scores.items():
+            if not scores:
+                continue
+            mlflow.log_metric(f"{metric_name}_mean", sum(scores) / len(scores))
+            mlflow.log_metric(f"{metric_name}_min", min(scores))
+            mlflow.log_metric(f"{metric_name}_max", max(scores))
+
         if eval_results.failures:
             mlflow.set_tag("status", "failed")
             mlflow.log_param("failure_count", len(eval_results.failures))
@@ -174,12 +187,6 @@ def mlflow_parent_run(run_name):
             )
         else:
             mlflow.set_tag("status", "passed")
-        for metric_name, scores in eval_results.metric_scores.items():
-            if not scores:
-                continue
-            mlflow.log_metric(f"{metric_name}_mean", sum(scores) / len(scores))
-            mlflow.log_metric(f"{metric_name}_min", min(scores))
-            mlflow.log_metric(f"{metric_name}_max", max(scores))
 
 
 @pytest.mark.slow
@@ -254,7 +261,9 @@ def test_deepeval_domain_expert(
         test_cases=test_cases,
         metrics=deepeval_metrics,
         display_config=DisplayConfig(show_indicator=True, print_results=False),
-        async_config=AsyncConfig(max_concurrent=4, throttle_value=1),
+        async_config=AsyncConfig(
+            max_concurrent=DEEPEVAL_MAX_CONCURRENT, throttle_value=1
+        ),
         hyperparameters={"prompt": domain_expert_prompt.template},
     )
 
@@ -274,6 +283,10 @@ def test_deepeval_domain_expert(
             mlflow.log_param("actual output", test_result.actual_output)
             mlflow.log_param("expected output", test_result.expected_output)
             mlflow.log_param("test result", test_result.success)
+            mlflow.log_param("parent_run", parent_run_name)
+            mlflow.log_param(
+                "timestamp", datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S")
+            )
 
             mlflow.set_tag("run_type", "child")
             mlflow.set_tag("parent_run", parent_run_name)

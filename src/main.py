@@ -8,7 +8,7 @@ from src.core.exam_prep_core import ExamPrepCore
 from src.ui.domain_expert_ui import run_domain_expert_chat_loop
 from src.ui.console_ui import ConsoleUI
 from src.core.constants import ChatbotMode, EXIT_WORDS, Error
-from src.core.rag_preprocessor import RAGPreprocessor
+from src.core.rag_preprocessor import get_rag_preprocessor
 from src.core.exceptions import (
     ExitApp,
     FaissException,
@@ -29,7 +29,7 @@ load_environment()
 
 
 def run_app(ui: ConsoleUI) -> None:
-    rag_preprocessor = RAGPreprocessor()
+    rag_preprocessor = get_rag_preprocessor()
     try:
         vectordb = prepare_vector_store(
             rag_preprocessor=rag_preprocessor,

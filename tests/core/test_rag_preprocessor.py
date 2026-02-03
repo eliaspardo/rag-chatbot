@@ -1,6 +1,11 @@
 import pytest
 from unittest.mock import Mock, patch
-from src.core.rag_preprocessor import RAGPreprocessor
+from src.core import rag_preprocessor as rag_preprocessor_module
+from src.core.rag_preprocessor import (
+    DoclingRAGPreprocessor,
+    LegacyRAGPreprocessor,
+    RAGPreprocessor,
+)
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
 import os
@@ -20,7 +25,15 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 class TestRagPreprocessor:
     @pytest.fixture
     def rag_preprocessor(self):
-        return RAGPreprocessor()
+        return LegacyRAGPreprocessor()
+
+    def test_base_load_pdf_text_not_implemented(self):
+        with pytest.raises(NotImplementedError):
+            RAGPreprocessor().load_pdf_text(TEST_PDF)
+
+    def test_base_split_text_to_docs_not_implemented(self):
+        with pytest.raises(NotImplementedError):
+            RAGPreprocessor().split_text_to_docs([Document(page_content="test")])
 
     def test_load_pdf_text_no_file(self, rag_preprocessor):
         with pytest.raises(Exception, match="Error reading PDF file"):
@@ -33,12 +46,14 @@ class TestRagPreprocessor:
             rag_preprocessor.load_pdf_text()
 
     def test_load_pdf_text_successful(self, rag_preprocessor):
-        texts = rag_preprocessor.load_pdf_text(TEST_PDF)
-        full_text = "".join(texts)
+        docs = rag_preprocessor.load_pdf_text(TEST_PDF)
+        full_text = "".join(doc.page_content for doc in docs)
         assert "Congratulations" in full_text
 
     def test_split_text_to_docs_success(self, rag_preprocessor):
-        documents = rag_preprocessor.split_text_to_docs(STRING_LIST)
+        documents = rag_preprocessor.split_text_to_docs(
+            [Document(page_content=item) for item in STRING_LIST]
+        )
         assert len(documents) > 0
         for document in documents:
             print("document")
@@ -49,7 +64,9 @@ class TestRagPreprocessor:
         assert len(documents) == 0
 
     def test_split_text_to_docs_empty_chunks(self, rag_preprocessor):
-        documents = rag_preprocessor.split_text_to_docs(STRING_LIST_EMPTY_CHUNKS)
+        documents = rag_preprocessor.split_text_to_docs(
+            [Document(page_content=item) for item in STRING_LIST_EMPTY_CHUNKS]
+        )
         assert all(document.page_content.strip() for document in documents)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
@@ -206,3 +223,35 @@ class TestRagPreprocessor:
             mock_huggingFaceEmbeddings.return_value,
             allow_dangerous_deserialization=True,
         )
+
+    def test_get_rag_preprocessor_legacy(self, monkeypatch):
+        monkeypatch.setattr(rag_preprocessor_module, "RAG_PREPROCESSOR", "legacy")
+        preprocessor = rag_preprocessor_module.get_rag_preprocessor()
+        assert isinstance(preprocessor, LegacyRAGPreprocessor)
+
+    def test_get_rag_preprocessor_docling(self, monkeypatch):
+        monkeypatch.setattr(rag_preprocessor_module, "RAG_PREPROCESSOR", "docling")
+        preprocessor = rag_preprocessor_module.get_rag_preprocessor()
+        assert isinstance(preprocessor, DoclingRAGPreprocessor)
+
+    def test_get_rag_preprocessor_default(self, monkeypatch, caplog):
+        monkeypatch.setattr(rag_preprocessor_module, "RAG_PREPROCESSOR", "unknown")
+        preprocessor = rag_preprocessor_module.get_rag_preprocessor()
+        assert isinstance(preprocessor, LegacyRAGPreprocessor)
+        assert "Defaulting to legacy" in caplog.text
+
+    def test_docling_split_by_numbered_headings(self):
+        preprocessor = DoclingRAGPreprocessor()
+        text = "1 Intro\nFirst line\n1.1 Details\nSecond line"
+        sections = preprocessor.split_by_numbered_headings(text)
+        assert len(sections) == 2
+        assert sections[0].metadata["section"] == "1 Intro"
+        assert "First line" in sections[0].page_content
+
+    def test_docling_split_with_fallback(self):
+        preprocessor = DoclingRAGPreprocessor()
+        docs = [Document(page_content="1 Intro\nFirst line\n1.1 Details\nSecond line")]
+        splits = preprocessor.split_with_fallback(docs)
+        assert splits
+        for doc in splits:
+            assert isinstance(doc, Document)
