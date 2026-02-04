@@ -152,6 +152,7 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.fresh_env
 env/
 venv/
 ENV/
@@ -225,6 +226,7 @@ AGENTS.md
 mlruns
 .mlruns
 mlflow.db
+patches/backup
 
 # Marimo
 marimo/_static/
