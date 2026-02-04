@@ -183,6 +183,20 @@ During chat sessions:
 
 Standard suite: `pytest` (eval tests are marked and excluded by default, see below). Make sure `.env` and `config/params.env` exist so env loading succeeds.
 
+## MLflow UI Patch (Parent Compare)
+
+This repo includes a small patch to add a custom MLflow compare page (`/compare-parents`) for parent-run child comparisons.
+
+Apply after creating your virtualenv and installing dependencies:
+
+```bash
+./scripts/apply_mlflow_compare_patch.sh
+```
+
+Notes:
+- The patch overwrites the MLflow server file in the venv and backs up the original to `patches/backup/`.
+- Reapply after recreating the venv or upgrading MLflow.
+
 ### Evals (local only)
 
 Eval tests are disabled by default when running pytest to avoid breaking CI/CD runs as they need a source document and a golden dataset.
