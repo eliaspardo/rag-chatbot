@@ -216,6 +216,27 @@ Relevant variables in `config/params.env`:
 - EVAL_LLM_PROVIDER, EVAL_MODEL_NAME, EVAL_OLLAMA_BASE_URL, EVAL_TOGETHER_API_KEY
 - MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME
 
+##### MLflow UI Patch (Parent Compare)
+
+This repo includes a small patch to add a custom MLflow compare page (`/compare-parents`) for parent-run child comparisons.
+
+Apply after creating your virtualenv and installing dependencies (uses the active venv if `VIRTUAL_ENV` is set, otherwise defaults to `./.venv`):
+
+```bash
+./tools/mlflow_patches/scripts/apply_mlflow_compare_patch.sh
+```
+
+Windows (PowerShell):
+
+```powershell
+.\tools\mlflow_patches\scripts\apply_mlflow_compare_patch.ps1
+```
+
+Notes:
+- The script copies `tools/mlflow_patches/patches/mlflow_server_init.py` into the active venv as `mlflow/server/__init__.py` (and backs up any existing file to `tools/mlflow_patches/backup/`).
+- If the template is missing, it falls back to applying `tools/mlflow_patches/patches/mlflow-compare-parents.patch`.
+- Reapply after recreating the venv or upgrading MLflow.
+
 How to run:
 
 ```bash
