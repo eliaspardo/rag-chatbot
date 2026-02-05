@@ -183,27 +183,6 @@ During chat sessions:
 
 Standard suite: `pytest` (eval tests are marked and excluded by default, see below). Make sure `.env` and `config/params.env` exist so env loading succeeds.
 
-## MLflow UI Patch (Parent Compare)
-
-This repo includes a small patch to add a custom MLflow compare page (`/compare-parents`) for parent-run child comparisons.
-
-Apply after creating your virtualenv and installing dependencies (uses the active venv if `VIRTUAL_ENV` is set, otherwise defaults to `./.venv`):
-
-```bash
-./tools/mlflow_patches/scripts/apply_mlflow_compare_patch.sh
-```
-
-Windows (PowerShell):
-
-```powershell
-.\tools\mlflow_patches\scripts\apply_mlflow_compare_patch.ps1
-```
-
-Notes:
-- The script copies `tools/mlflow_patches/patches/mlflow_server_init.py` into the active venv as `mlflow/server/__init__.py` (and backs up any existing file to `tools/mlflow_patches/backup/`).
-- If the template is missing, it falls back to applying `tools/mlflow_patches/patches/mlflow-compare-parents.patch`.
-- Reapply after recreating the venv or upgrading MLflow.
-
 ### Evals (local only)
 
 Eval tests are disabled by default when running pytest to avoid breaking CI/CD runs as they need a source document and a golden dataset.
@@ -236,6 +215,27 @@ Relevant variables in `config/params.env`:
 - EVAL_PDF_PATH, EVAL_DB_DIR, EVAL_GOLDEN_SET_PATH
 - EVAL_LLM_PROVIDER, EVAL_MODEL_NAME, EVAL_OLLAMA_BASE_URL, EVAL_TOGETHER_API_KEY
 - MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME
+
+##### MLflow UI Patch (Parent Compare)
+
+This repo includes a small patch to add a custom MLflow compare page (`/compare-parents`) for parent-run child comparisons.
+
+Apply after creating your virtualenv and installing dependencies (uses the active venv if `VIRTUAL_ENV` is set, otherwise defaults to `./.venv`):
+
+```bash
+./tools/mlflow_patches/scripts/apply_mlflow_compare_patch.sh
+```
+
+Windows (PowerShell):
+
+```powershell
+.\tools\mlflow_patches\scripts\apply_mlflow_compare_patch.ps1
+```
+
+Notes:
+- The script copies `tools/mlflow_patches/patches/mlflow_server_init.py` into the active venv as `mlflow/server/__init__.py` (and backs up any existing file to `tools/mlflow_patches/backup/`).
+- If the template is missing, it falls back to applying `tools/mlflow_patches/patches/mlflow-compare-parents.patch`.
+- Reapply after recreating the venv or upgrading MLflow.
 
 How to run:
 
