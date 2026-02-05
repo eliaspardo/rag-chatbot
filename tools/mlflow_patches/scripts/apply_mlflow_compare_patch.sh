@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PATCH_FILE="$ROOT_DIR/patches/mlflow-compare-parents.patch"
-TEMPLATE_FILE="$ROOT_DIR/patches/mlflow_server_init.py"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PATCH_FILE="$ROOT_DIR/tools/mlflow_patches/patches/mlflow-compare-parents.patch"
+TEMPLATE_FILE="$ROOT_DIR/tools/mlflow_patches/patches/mlflow_server_init.py"
 
 VENV_PATH="${VIRTUAL_ENV:-}"
 if [[ -z "$VENV_PATH" ]]; then
@@ -37,7 +37,7 @@ if [[ -z "${VENV_MLFLOW:-}" ]]; then
   echo "Unable to determine site-packages path from venv: $VENV_PATH" >&2
   exit 1
 fi
-BACKUP_DIR="$ROOT_DIR/patches/backup"
+BACKUP_DIR="$ROOT_DIR/tools/mlflow_patches/backup"
 
 if [[ ! -f "$PATCH_FILE" && ! -f "$TEMPLATE_FILE" ]]; then
   echo "Patch/template file not found: $PATCH_FILE or $TEMPLATE_FILE" >&2

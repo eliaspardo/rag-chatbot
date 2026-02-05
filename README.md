@@ -190,18 +190,18 @@ This repo includes a small patch to add a custom MLflow compare page (`/compare-
 Apply after creating your virtualenv and installing dependencies (uses the active venv if `VIRTUAL_ENV` is set, otherwise defaults to `./.venv`):
 
 ```bash
-./scripts/apply_mlflow_compare_patch.sh
+./tools/mlflow_patches/scripts/apply_mlflow_compare_patch.sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-.\scripts\apply_mlflow_compare_patch.ps1
+.\tools\mlflow_patches\scripts\apply_mlflow_compare_patch.ps1
 ```
 
 Notes:
-- The script copies `patches/mlflow_server_init.py` into the active venv as `mlflow/server/__init__.py` (and backs up any existing file to `patches/backup/`).
-- If the template is missing, it falls back to applying `patches/mlflow-compare-parents.patch`.
+- The script copies `tools/mlflow_patches/patches/mlflow_server_init.py` into the active venv as `mlflow/server/__init__.py` (and backs up any existing file to `tools/mlflow_patches/backup/`).
+- If the template is missing, it falls back to applying `tools/mlflow_patches/patches/mlflow-compare-parents.patch`.
 - Reapply after recreating the venv or upgrading MLflow.
 
 ### Evals (local only)

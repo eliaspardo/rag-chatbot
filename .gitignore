@@ -222,6 +222,9 @@ AGENTS.md
 # Deepeval
 .deepeval
 
+# Streamlit
+.streamlit
+
 # MLFlow
 mlruns
 .mlruns
