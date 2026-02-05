@@ -20,7 +20,7 @@
 $ErrorActionPreference = "Stop"
 
 # Resolve repo root based on this script's location.
-$RootDir = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$RootDir = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $PatchFile = Join-Path $RootDir "tools\mlflow_patches\patches\mlflow-compare-parents.patch"
 $TemplateFile = Join-Path $RootDir "tools\mlflow_patches\patches\mlflow_server_init.py"
 $BackupDir = Join-Path $RootDir "tools\mlflow_patches\backup"

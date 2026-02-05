@@ -230,6 +230,7 @@ mlruns
 .mlruns
 mlflow.db
 patches/backup
+tools/mlflow_patches/backup
 
 # Marimo
 marimo/_static/

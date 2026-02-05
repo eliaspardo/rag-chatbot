@@ -1,6 +1,6 @@
 --- /dev/null	2026-02-05 00:00:00.000000000 +0000
 +++ .venv/lib/python3.12/site-packages/mlflow/server/__init__.py	2026-02-05 00:00:00.000000000 +0000
-@@ -0,0 +1,1459 @@
+@@ -0,0 +1,1476 @@
 +# flake8: noqa
 +import importlib
 +import importlib.metadata
@@ -74,7 +74,9 @@
 +
 +@app.after_request
 +def _compare_parents_csp(response):
-+    if request.path.endswith("/compare-parents") or request.path.endswith("/compare-parents.js"):
++    if request.path.endswith("/compare-parents") or request.path.endswith(
++        "/compare-parents.js"
++    ):
 +        response.headers["Content-Security-Policy"] = (
 +            "default-src 'self' data: blob:; "
 +            "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; "
@@ -84,6 +86,7 @@
 +            "font-src 'self' data: blob:;"
 +        )
 +    return response
++
 +
 +if is_running_as_server:
 +    from mlflow.server import security
@@ -196,8 +199,6 @@
 +    return post_ui_telemetry_handler()
 +
 +
-+
-+
 +_COMPARE_PARENTS_JS = textwrap.dedent(
 +    """
 +              window.__compareParentsLoaded = true;
@@ -277,6 +278,10 @@
 +                });
 +                const data = await res.json();
 +                return data.runs || [];
++              }
++
++              function isLikelyRunId(value) {
++                return /^[0-9a-f]{32}$/i.test(value);
 +              }
 +
 +              async function resolveParentRunId(experimentId, parentInput) {
@@ -752,15 +757,15 @@
 +                  }
 +
 +                  statusEl.textContent = "Loading parent runs...";
-+                  parentInputs = await Promise.all(
-+                    parentInputs.map(async (parentInput) => {
-+                      if (parentInput.length < 20) {
-+                        const resolved = await resolveParentRunId(experimentId, parentInput);
-+                        return resolved || parentInput;
-+                      }
-+                      return parentInput;
-+                    })
-+                  );
++                parentInputs = await Promise.all(
++                  parentInputs.map(async (parentInput) => {
++                    if (!isLikelyRunId(parentInput)) {
++                      const resolved = await resolveParentRunId(experimentId, parentInput);
++                      return resolved || parentInput;
++                    }
++                    return parentInput;
++                  })
++                );
 +                  parentInputs = parentInputs.filter(Boolean);
 +                  if (!parentInputs.length) {
 +                    statusEl.textContent = "No parent runs resolved.";
@@ -904,6 +909,15 @@
 +              .controls > div {
 +                display: flex;
 +                flex-direction: column;
++              }
++              .button-col {
++                display: flex;
++                flex-direction: column;
++              }
++              .button-col label {
++                visibility: hidden;
++                height: 12px;
++                margin-bottom: 6px;
 +              }
 +              label {
 +                display: block;
@@ -1119,19 +1133,22 @@
 +                  <div>
 +                    <label>Experiment ID</label>
 +                    <input id="experimentId" placeholder="e.g. 2" />
++                    <div class="status" id="status"></div>
 +                  </div>
 +                  <div>
 +                    <label>Parent Runs</label>
 +                    <input id="parentsInput" placeholder="parent_a, parent_b, parent_c" />
 +                    <div class="help">Comma or newline separated run names or IDs.</div>
-+                    <div class="status" id="status"></div>
 +                  </div>
 +                  <div>
 +                    <label>Metrics</label>
 +                    <input id="metricsInput" placeholder="Completeness_GEval, Grounding_GEval, Reasoning_GEval" />
 +                    <div class="help">Comma or newline separated metric keys.</div>
 +                  </div>
-+                  <button id="loadBtn">Load</button>
++                  <div class="button-col">
++                    <label>Load</label>
++                    <button id="loadBtn">Load</button>
++                  </div>
 +                </div>
 +              </div>
 +              <div class="panel">

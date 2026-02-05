@@ -139,6 +139,10 @@ def mlflow_parent_run(run_name):
             "metrics_file_correctness",
             f"tests/evals/metrics/correctness/{CORRECTNESS_VERSION}.py",
         )
+        mlflow.log_param(
+            "metrics_file_reasoning",
+            f"tests/evals/metrics/reasoning/{REASONING_VERSION}.py",
+        )
         mlflow.log_dict(
             GROUNDING_EVALUATION_STEPS,
             f"tests/evals/metrics/evaluation_steps/grounding/{GROUNDING_VERSION}.py",

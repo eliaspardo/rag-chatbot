@@ -277,6 +277,10 @@ _COMPARE_PARENTS_JS = textwrap.dedent(
                 return data.runs || [];
               }
 
+              function isLikelyRunId(value) {
+                return /^[0-9a-f]{32}$/i.test(value);
+              }
+
               async function resolveParentRunId(experimentId, parentInput) {
                 if (!parentInput) return "";
                 const body = {
@@ -750,15 +754,15 @@ _COMPARE_PARENTS_JS = textwrap.dedent(
                   }
 
                   statusEl.textContent = "Loading parent runs...";
-                  parentInputs = await Promise.all(
-                    parentInputs.map(async (parentInput) => {
-                      if (parentInput.length < 20) {
-                        const resolved = await resolveParentRunId(experimentId, parentInput);
-                        return resolved || parentInput;
-                      }
-                      return parentInput;
-                    })
-                  );
+                parentInputs = await Promise.all(
+                  parentInputs.map(async (parentInput) => {
+                    if (!isLikelyRunId(parentInput)) {
+                      const resolved = await resolveParentRunId(experimentId, parentInput);
+                      return resolved || parentInput;
+                    }
+                    return parentInput;
+                  })
+                );
                   parentInputs = parentInputs.filter(Boolean);
                   if (!parentInputs.length) {
                     statusEl.textContent = "No parent runs resolved.";
@@ -902,6 +906,15 @@ def serve_compare_parents():
               .controls > div {
                 display: flex;
                 flex-direction: column;
+              }
+              .button-col {
+                display: flex;
+                flex-direction: column;
+              }
+              .button-col label {
+                visibility: hidden;
+                height: 12px;
+                margin-bottom: 6px;
               }
               label {
                 display: block;
@@ -1117,19 +1130,22 @@ def serve_compare_parents():
                   <div>
                     <label>Experiment ID</label>
                     <input id="experimentId" placeholder="e.g. 2" />
+                    <div class="status" id="status"></div>
                   </div>
                   <div>
                     <label>Parent Runs</label>
                     <input id="parentsInput" placeholder="parent_a, parent_b, parent_c" />
                     <div class="help">Comma or newline separated run names or IDs.</div>
-                    <div class="status" id="status"></div>
                   </div>
                   <div>
                     <label>Metrics</label>
                     <input id="metricsInput" placeholder="Completeness_GEval, Grounding_GEval, Reasoning_GEval" />
                     <div class="help">Comma or newline separated metric keys.</div>
                   </div>
-                  <button id="loadBtn">Load</button>
+                  <div class="button-col">
+                    <label>Load</label>
+                    <button id="loadBtn">Load</button>
+                  </div>
                 </div>
               </div>
               <div class="panel">
