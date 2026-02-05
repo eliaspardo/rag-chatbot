@@ -1,6 +1,7 @@
---- /dev/null	2026-02-03 20:17:21.722131884 +0100
-+++ .venv/lib/python3.12/site-packages/mlflow/server/__init__.py	2026-02-03 21:56:59.335347124 +0100
-@@ -0,0 +1,1309 @@
+--- /dev/null	2026-02-05 00:00:00.000000000 +0000
++++ .venv/lib/python3.12/site-packages/mlflow/server/__init__.py	2026-02-05 00:00:00.000000000 +0000
+@@ -0,0 +1,1459 @@
++# flake8: noqa
 +import importlib
 +import importlib.metadata
 +import logging
@@ -14,7 +15,7 @@
 +
 +_logger = logging.getLogger("mlflow.server")
 +
-+from flask import Flask, Response, send_from_directory
++from flask import Flask, Response, request, send_from_directory
 +from packaging.version import Version
 +
 +from mlflow.environment_variables import (
@@ -70,6 +71,20 @@
 +    or os.getenv(SERVE_ARTIFACTS_ENV_VAR)
 +)
 +
++
++@app.after_request
++def _compare_parents_csp(response):
++    if request.path.endswith("/compare-parents") or request.path.endswith("/compare-parents.js"):
++        response.headers["Content-Security-Policy"] = (
++            "default-src 'self' data: blob:; "
++            "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; "
++            "style-src 'self' 'unsafe-inline' data: blob:; "
++            "img-src 'self' data: blob:; "
++            "connect-src 'self' data: blob:; "
++            "font-src 'self' data: blob:;"
++        )
++    return response
++
 +if is_running_as_server:
 +    from mlflow.server import security
 +
@@ -124,18 +139,26 @@
 +
 +
 +# Serve the "experiments/search-datasets" route.
-+@app.route(_add_static_prefix("/ajax-api/2.0/mlflow/experiments/search-datasets"), methods=["POST"])
++@app.route(
++    _add_static_prefix("/ajax-api/2.0/mlflow/experiments/search-datasets"),
++    methods=["POST"],
++)
 +def serve_search_datasets():
 +    return _search_datasets_handler()
 +
 +
 +# Serve the "runs/create-promptlab-run" route.
-+@app.route(_add_static_prefix("/ajax-api/2.0/mlflow/runs/create-promptlab-run"), methods=["POST"])
++@app.route(
++    _add_static_prefix("/ajax-api/2.0/mlflow/runs/create-promptlab-run"),
++    methods=["POST"],
++)
 +def serve_create_promptlab_run():
 +    return create_promptlab_run_handler()
 +
 +
-+@app.route(_add_static_prefix("/ajax-api/2.0/mlflow/gateway-proxy"), methods=["POST", "GET"])
++@app.route(
++    _add_static_prefix("/ajax-api/2.0/mlflow/gateway-proxy"), methods=["POST", "GET"]
++)
 +def serve_gateway_proxy():
 +    return gateway_proxy_handler()
 +
@@ -148,7 +171,9 @@
 +# Serve the "/get-trace-artifact" route to allow frontend to fetch trace artifacts
 +# and render them in the Trace UI. The request body should contain the request_id
 +# of the trace.
-+@app.route(_add_static_prefix("/ajax-api/2.0/mlflow/get-trace-artifact"), methods=["GET"])
++@app.route(
++    _add_static_prefix("/ajax-api/2.0/mlflow/get-trace-artifact"), methods=["GET"]
++)
 +def serve_get_trace_artifact():
 +    return get_trace_artifact_handler()
 +
@@ -171,355 +196,71 @@
 +    return post_ui_telemetry_handler()
 +
 +
-+@app.route(_add_static_prefix("/compare-parents"))
-+def serve_compare_parents():
-+    html = textwrap.dedent(
-+        """
-+        <!doctype html>
-+        <html lang="en">
-+          <head>
-+            <meta charset="utf-8" />
-+            <meta name="viewport" content="width=device-width, initial-scale=1" />
-+            <title>MLflow Parent Run Compare</title>
-+            <style>
-+              :root {
-+                color-scheme: light dark;
-+                --bg: #0e1116;
-+                --panel: #151a21;
-+                --muted: #9aa4b2;
-+                --text: #e6e9ef;
-+                --accent-a: #4d9de0;
-+                --accent-b: #f07167;
-+                --grid: rgba(255, 255, 255, 0.08);
-+              }
-+              body {
-+                margin: 0;
-+                font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-+                background: var(--bg);
-+                color: var(--text);
-+              }
-+              header {
-+                padding: 16px 20px;
-+                border-bottom: 1px solid var(--grid);
-+                background: linear-gradient(180deg, #12161d, #0e1116);
-+              }
-+              h1 {
-+                margin: 0 0 6px 0;
-+                font-size: 18px;
-+                font-weight: 600;
-+              }
-+              .subtle {
-+                color: var(--muted);
-+                font-size: 13px;
-+              }
-+              .container {
-+                padding: 16px 20px 28px 20px;
-+                display: grid;
-+                gap: 16px;
-+              }
-+              .panel {
-+                background: var(--panel);
-+                border: 1px solid var(--grid);
-+                border-radius: 10px;
-+                padding: 12px;
-+              }
-+              .controls {
-+                display: grid;
-+                gap: 10px;
-+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-+                align-items: end;
-+              }
-+              label {
-+                display: block;
-+                font-size: 12px;
-+                color: var(--muted);
-+                margin-bottom: 6px;
-+              }
-+              input {
-+                width: 100%;
-+                box-sizing: border-box;
-+                padding: 8px 10px;
-+                border-radius: 6px;
-+                border: 1px solid var(--grid);
-+                background: #0f1319;
-+                color: var(--text);
-+                font-size: 13px;
-+              }
-+              button {
-+                padding: 9px 12px;
-+                border-radius: 6px;
-+                border: 1px solid var(--grid);
-+                background: #1b2230;
-+                color: var(--text);
-+                cursor: pointer;
-+                font-size: 13px;
-+                font-weight: 600;
-+              }
-+              button:hover {
-+                background: #222b3d;
-+              }
-+              .legend {
-+                display: flex;
-+                gap: 16px;
-+                align-items: center;
-+                font-size: 12px;
-+                color: var(--muted);
-+              }
-+              .tooltip {
-+                position: fixed;
-+                pointer-events: auto;
-+                z-index: 9999;
-+                background: #0f1319;
-+                border: 1px solid var(--grid);
-+                border-radius: 8px;
-+                padding: 10px;
-+                max-width: 560px;
-+                max-height: 420px;
-+                overflow: auto;
-+                overscroll-behavior: contain;
-+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-+                display: none;
-+              }
-+              .sidebar {
-+                position: fixed;
-+                right: 16px;
-+                top: 16px;
-+                bottom: 16px;
-+                width: 520px;
-+                background: #0f1319;
-+                border: 1px solid var(--grid);
-+                border-radius: 10px;
-+                padding: 12px;
-+                overflow: auto;
-+                display: none;
-+                z-index: 10000;
-+                box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
-+                font-size: 13px;
-+                min-width: 520px;
-+                max-width: 90vw;
-+              }
-+              .sidebar-resize {
-+                position: absolute;
-+                left: -6px;
-+                top: 0;
-+                bottom: 0;
-+                width: 12px;
-+                cursor: ew-resize;
-+                background: rgba(255, 255, 255, 0.04);
-+                border-left: 1px solid rgba(255, 255, 255, 0.08);
-+                z-index: 1;
-+                pointer-events: auto;
-+              }
-+              .sidebar h3 {
-+                margin: 0 0 8px 0;
-+                font-size: 14px;
-+                font-weight: 600;
-+              }
-+              .sidebar .cols {
-+                display: grid;
-+                grid-template-columns: 1fr 1fr;
-+                gap: 10px;
-+                margin-bottom: 12px;
-+              }
-+              .sidebar .card {
-+                border: 1px solid var(--grid);
-+                border-radius: 8px;
-+                padding: 8px;
-+                background: #10151d;
-+              }
-+              .sidebar .card h4 {
-+                margin: 0 0 6px 0;
-+                font-size: 13px;
-+                font-weight: 600;
-+                color: var(--text);
-+              }
-+              .kv {
-+                font-size: 12px;
-+                color: var(--muted);
-+                line-height: 1.5;
-+              }
-+              .kv b {
-+                color: var(--text);
-+                font-weight: 600;
-+              }
-+              details {
-+                margin-top: 10px;
-+                border: 1px solid var(--grid);
-+                border-radius: 8px;
-+                padding: 6px 8px;
-+                background: #0f1319;
-+              }
-+              details summary {
-+                cursor: pointer;
-+                color: var(--muted);
-+                font-size: 11px;
-+                user-select: none;
-+              }
-+              .sidebar .close {
-+                position: absolute;
-+                top: 10px;
-+                right: 10px;
-+                border: 1px solid var(--grid);
-+                background: #141923;
-+                color: var(--text);
-+                border-radius: 6px;
-+                padding: 4px 8px;
-+                cursor: pointer;
-+                font-size: 12px;
-+              }
-+              .tooltip h4 {
-+                margin: 0 0 6px 0;
-+                font-size: 12px;
-+                font-weight: 600;
-+                color: var(--text);
-+              }
-+              .tooltip pre {
-+                margin: 0;
-+                white-space: pre-wrap;
-+                word-break: break-word;
-+                color: var(--muted);
-+                font-size: 11px;
-+              }
-+              .dot {
-+                width: 10px;
-+                height: 10px;
-+                border-radius: 50%;
-+                display: inline-block;
-+                margin-right: 6px;
-+              }
-+              canvas {
-+                width: 100%;
-+                height: 240px;
-+                background: #0f1319;
-+                border-radius: 8px;
-+              }
-+              table {
-+                width: 100%;
-+                border-collapse: collapse;
-+                font-size: 12px;
-+              }
-+              th, td {
-+                border-bottom: 1px solid var(--grid);
-+                padding: 6px 8px;
-+                text-align: left;
-+                vertical-align: top;
-+              }
-+              th {
-+                color: var(--muted);
-+                font-weight: 600;
-+              }
-+              .muted {
-+                color: var(--muted);
-+              }
-+            </style>
-+          </head>
-+          <body>
-+            <header>
-+              <h1>Parent Run Comparison</h1>
-+              <div class="subtle">Grouped child runs, colored by parent run</div>
-+            </header>
-+            <div class="container">
-+              <div class="panel">
-+                <div class="controls">
-+                  <div>
-+                    <label>Experiment ID</label>
-+                    <input id="experimentId" placeholder="e.g. 2" />
-+                  </div>
-+                  <div>
-+                    <label>Parent Run A</label>
-+                    <input id="parentA" placeholder="parent run id A" />
-+                  </div>
-+                  <div>
-+                    <label>Parent Run B</label>
-+                    <input id="parentB" placeholder="parent run id B" />
-+                  </div>
-+                  <div>
-+                    <label>Metric 1</label>
-+                    <input id="metric1" placeholder="Completeness_GEval" />
-+                  </div>
-+                  <div>
-+                    <label>Metric 2</label>
-+                    <input id="metric2" placeholder="Grounding_GEval" />
-+                  </div>
-+                  <div>
-+                    <label>Metric 3</label>
-+                    <input id="metric3" placeholder="Reasoning_GEval" />
-+                  </div>
-+                  <button id="loadBtn">Load</button>
-+                </div>
-+              </div>
-+              <div class="panel">
-+                <div class="legend">
-+                  <span><span class="dot" style="background: var(--accent-a);"></span><span id="legendA">Parent A</span></span>
-+                  <span><span class="dot" style="background: var(--accent-b);"></span><span id="legendB">Parent B</span></span>
-+                </div>
-+              </div>
-+              <div class="panel">
-+                <div class="subtle" id="plotTitle1">Metric 1</div>
-+                <canvas id="plot1" width="1200" height="300"></canvas>
-+              </div>
-+              <div class="panel">
-+                <div class="subtle" id="plotTitle2">Metric 2</div>
-+                <canvas id="plot2" width="1200" height="300"></canvas>
-+              </div>
-+              <div class="panel">
-+                <div class="subtle" id="plotTitle3">Metric 3</div>
-+                <canvas id="plot3" width="1200" height="300"></canvas>
-+              </div>
-+              <div class="panel">
-+                <div class="subtle">Grouped Table (by question_id)</div>
-+                <div style="overflow:auto; max-height: 360px;">
-+                  <table id="resultsTable">
-+                    <thead>
-+                      <tr>
-+                        <th>question_id</th>
-+                        <th>Parent A run</th>
-+                        <th>Parent A metrics</th>
-+                        <th>Parent B run</th>
-+                        <th>Parent B metrics</th>
-+                      </tr>
-+                    </thead>
-+                    <tbody></tbody>
-+                  </table>
-+                </div>
-+              </div>
-+            </div>
-+            <div class="tooltip" id="tooltip"></div>
-+            <div class="sidebar" id="sidebar">
-+              <div class="sidebar-resize" id="sidebarResize"></div>
-+              <button class="close" id="sidebarClose">Close</button>
-+              <h3 id="sidebarTitle">Details</h3>
-+              <div id="sidebarContent"></div>
-+            </div>
-+            <script>
-+              const defaultMetrics = {
-+                metric1: "Completeness_GEval",
-+                metric2: "Grounding_GEval",
-+                metric3: "Reasoning_GEval",
-+              };
++
++
++_COMPARE_PARENTS_JS = textwrap.dedent(
++    """
++              window.__compareParentsLoaded = true;
++              const defaultMetrics = ["Completeness_GEval", "Grounding_GEval", "Reasoning_GEval"];
++              const palette = [
++                "#4d9de0",
++                "#f07167",
++                "#8ac926",
++                "#ffca3a",
++                "#9b5de5",
++                "#43aa8b",
++                "#ff924c",
++                "#577590",
++              ];
 +
 +              function getParam(name, fallback = "") {
 +                const params = new URLSearchParams(window.location.search);
 +                return params.get(name) || fallback;
 +              }
 +
++              function parseList(value) {
++                if (!value) return [];
++                return value
++                  .split(/[\\n,]+/)
++                  .map((item) => item.trim())
++                  .filter(Boolean);
++              }
++
 +              function setInputsFromUrl() {
 +                document.getElementById("experimentId").value = getParam("experiment_id");
-+                document.getElementById("parentA").value = getParam("parent_a");
-+                document.getElementById("parentB").value = getParam("parent_b");
-+                document.getElementById("metric1").value = getParam("metric1", defaultMetrics.metric1);
-+                document.getElementById("metric2").value = getParam("metric2", defaultMetrics.metric2);
-+                document.getElementById("metric3").value = getParam("metric3", defaultMetrics.metric3);
++                const parentsParam = getParam("parents");
++                const metricsParam = getParam("metrics");
++                const parentA = getParam("parent_a");
++                const parentB = getParam("parent_b");
++                const metric1 = getParam("metric1");
++                const metric2 = getParam("metric2");
++                const metric3 = getParam("metric3");
++                const parentsFallback = [parentA, parentB].filter(Boolean).join(", ");
++                const metricsFallback = [metric1, metric2, metric3].filter(Boolean).join(", ");
++                document.getElementById("parentsInput").value = parentsParam || parentsFallback;
++                document.getElementById("metricsInput").value =
++                  metricsParam || metricsFallback || defaultMetrics.join(", ");
 +              }
 +
 +              function updateUrlFromInputs() {
 +                const params = new URLSearchParams();
-+                params.set("experiment_id", document.getElementById("experimentId").value.trim());
-+                params.set("parent_a", document.getElementById("parentA").value.trim());
-+                params.set("parent_b", document.getElementById("parentB").value.trim());
-+                params.set("metric1", document.getElementById("metric1").value.trim());
-+                params.set("metric2", document.getElementById("metric2").value.trim());
-+                params.set("metric3", document.getElementById("metric3").value.trim());
++                const experimentId = document.getElementById("experimentId").value.trim();
++                const parents = parseList(document.getElementById("parentsInput").value);
++                const metrics = parseList(document.getElementById("metricsInput").value);
++                if (experimentId) {
++                  params.set("experiment_id", experimentId);
++                }
++                if (parents.length) {
++                  params.set("parents", parents.join(","));
++                  if (parents[0]) params.set("parent_a", parents[0]);
++                  if (parents[1]) params.set("parent_b", parents[1]);
++                }
++                if (metrics.length) {
++                  params.set("metrics", metrics.join(","));
++                  if (metrics[0]) params.set("metric1", metrics[0]);
++                  if (metrics[1]) params.set("metric2", metrics[1]);
++                  if (metrics[2]) params.set("metric3", metrics[2]);
++                }
 +                window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
 +              }
 +
@@ -612,7 +353,7 @@
 +                    const qid = normalizeQuestionId(r.params.question_id);
 +                    const y = numericOrNull(r.metrics[metricKey]);
 +                    if (qid === null || y === null) return null;
-+                    return { parentKey, qid, y, runName: r.runName || r.runId };
++                    return { parentKey, qid, y, runName: r.runName || r.runId, run: r };
 +                  })
 +                  .filter(Boolean);
 +              }
@@ -620,37 +361,38 @@
 +              function resizeCanvas(canvas, height) {
 +                const cssWidth = canvas.clientWidth || 800;
 +                const ratio = window.devicePixelRatio || 1;
++                canvas.style.height = `${height}px`;
 +                canvas.width = Math.floor(cssWidth * ratio);
 +                canvas.height = Math.floor(height * ratio);
 +                const ctx = canvas.getContext("2d");
 +                ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 +              }
 +
-+              function renderRunInfo(label, run, metricKey) {
-+                if (!run) {
-+                  return `${label}: n/a`;
-+                }
-+                const info = {
-+                  run_name: run.runName,
-+                  run_id: run.runId,
-+                  question_id: run.params.question_id,
-+                  metric: metricKey,
-+                  metric_value: run.metrics[metricKey],
-+                  params: run.params,
-+                  metrics: run.metrics,
-+                  tags: run.tags,
-+                };
-+                return `${label}:\n${JSON.stringify(info, null, 2)}`;
++              function getPlotHeight(canvas) {
++                const panel = canvas.closest(".plot-panel") || canvas.parentElement;
++                const panelHeight = panel ? panel.clientHeight : 300;
++                return Math.max(200, Math.min(600, panelHeight - 48));
 +              }
 +
-+              function renderTooltipContent(qid, metricKey, row, parentLabels) {
-+                const aLabel = parentLabels.a || "Parent A";
-+                const bLabel = parentLabels.b || "Parent B";
++              function renderTooltipContent(point, metricKey, parentLabels) {
++                const label = parentLabels[point.parentKey] || point.parentKey;
++                const run = point.run;
 +                return [
-+                  `<h4>question_id: ${qid}</h4>`,
-+                  `<pre>${renderRunInfo(aLabel, row?.a, metricKey)}</pre>`,
-+                  `<pre>${renderRunInfo(bLabel, row?.b, metricKey)}</pre>`,
++                  `<h4>Question ID: ${point.qid}</h4>`,
++                  `<div class="kv">${label}</div>`,
 +                ].join("");
++              }
++
++              function renderMultiTooltipContent(qid, metricKey, runs, parentLabels) {
++                const sections = runs
++                  .map((point) => {
++                    const label = parentLabels[point.parentKey] || point.parentKey;
++                    return [
++                      `<div class="kv" style="margin-top:8px;">${label}</div>`,
++                    ].join("");
++                  })
++                  .join("");
++                return [`<h4>Question ID: ${qid}</h4>`, sections].join("");
 +              }
 +
 +              function formatKeyValues(obj) {
@@ -660,53 +402,35 @@
 +                return keys.map((k) => `<b>${k}</b>: ${obj[k]}`).join("<br/>");
 +              }
 +
-+              function renderSidebarContent(qid, metricKey, row, parentLabels, metricKeys) {
-+                const aLabel = parentLabels.a || "Parent A";
-+                const bLabel = parentLabels.b || "Parent B";
-+                const a = row?.a;
-+                const b = row?.b;
-+                const metricList = metricKeys
-+                  .map((k) => `<b>${k}</b>: ${a?.metrics?.[k] ?? "n/a"}`)
-+                  .join("<br/>");
-+                const metricListB = metricKeys
-+                  .map((k) => `<b>${k}</b>: ${b?.metrics?.[k] ?? "n/a"}`)
-+                  .join("<br/>");
-+                const aJson = a ? JSON.stringify(a, null, 2) : "n/a";
-+                const bJson = b ? JSON.stringify(b, null, 2) : "n/a";
-+                return `
-+                  <div class="cols">
++              function renderSidebarContent(qid, row, parentLabels, metricKeys, parentOrder) {
++                const cards = parentOrder.map((parentKey) => {
++                  const run = row?.[parentKey];
++                  const label = parentLabels[parentKey] || parentKey;
++                  const metricList = metricKeys
++                    .map((k) => `<b>${k}</b>: ${run?.metrics?.[k] ?? "n/a"}`)
++                    .join("<br/>");
++                  const runJson = run ? JSON.stringify(run, null, 2) : "n/a";
++                  return `
 +                    <div class="card">
-+                      <h4>${aLabel}</h4>
-+                      <div class="kv"><b>run_name</b>: ${a?.runName ?? "n/a"}<br/><b>run_id</b>: ${a?.runId ?? "n/a"}</div>
++                      <h4>${label}</h4>
++                      <div class="kv"><b>run_name</b>: ${run?.runName ?? "n/a"}<br/><b>run_id</b>: ${run?.runId ?? "n/a"}</div>
 +                      <div class="kv" style="margin-top:6px;"><b>scores</b><br/>${metricList}</div>
 +                      <details>
 +                        <summary>Params</summary>
-+                        <div class="kv">${formatKeyValues(a?.params)}</div>
++                        <div class="kv">${formatKeyValues(run?.params)}</div>
 +                      </details>
 +                      <details>
 +                        <summary>Raw JSON</summary>
-+                        <pre>${aJson}</pre>
++                        <pre>${runJson}</pre>
 +                      </details>
 +                    </div>
-+                    <div class="card">
-+                      <h4>${bLabel}</h4>
-+                      <div class="kv"><b>run_name</b>: ${b?.runName ?? "n/a"}<br/><b>run_id</b>: ${b?.runId ?? "n/a"}</div>
-+                      <div class="kv" style="margin-top:6px;"><b>scores</b><br/>${metricListB}</div>
-+                      <details>
-+                        <summary>Params</summary>
-+                        <div class="kv">${formatKeyValues(b?.params)}</div>
-+                      </details>
-+                      <details>
-+                        <summary>Raw JSON</summary>
-+                        <pre>${bJson}</pre>
-+                      </details>
-+                    </div>
-+                  </div>
-+                `;
++                  `;
++                });
++                return `<div class="cols">${cards.join("")}</div>`;
 +              }
 +
-+              function drawScatter(canvas, points, titleEl, metricKey, colors, runsByQid, parentLabels) {
-+                resizeCanvas(canvas, 260);
++              function drawScatter(canvas, points, titleEl, metricKey, colors, runsByQid, parentLabels, parentOrder) {
++                resizeCanvas(canvas, getPlotHeight(canvas));
 +                const ctx = canvas.getContext("2d");
 +                ctx.clearRect(0, 0, canvas.clientWidth || canvas.width, canvas.clientHeight || canvas.height);
 +                titleEl.textContent = metricKey;
@@ -753,8 +477,28 @@
 +
 +                ctx.fillStyle = "#9aa4b2";
 +                ctx.font = "12px sans-serif";
-+                ctx.fillText(isNumeric ? String(xMin) : xLabelMin, padding.left, padding.top + plotHeight + 24);
-+                ctx.fillText(isNumeric ? String(xMax) : xLabelMax, padding.left + plotWidth - 60, padding.top + plotHeight + 24);
++                if (isNumeric) {
++                  const ticks = [];
++                  const tickStep = 5;
++                  const first = Math.ceil(xMin / tickStep) * tickStep;
++                  for (let t = first; t <= xMax; t += tickStep) {
++                    ticks.push(t);
++                  }
++                  if (!ticks.includes(xMin)) ticks.unshift(xMin);
++                  if (!ticks.includes(xMax)) ticks.push(xMax);
++                  ticks.forEach((tick) => {
++                    const x = padding.left + ((tick - xMin) / xRange) * plotWidth;
++                    ctx.fillText(String(tick), x - 6, padding.top + plotHeight + 24);
++                    ctx.beginPath();
++                    ctx.moveTo(x, padding.top + plotHeight);
++                    ctx.lineTo(x, padding.top + plotHeight + 6);
++                    ctx.strokeStyle = "rgba(255,255,255,0.2)";
++                    ctx.stroke();
++                  });
++                } else {
++                  ctx.fillText(xLabelMin, padding.left, padding.top + plotHeight + 24);
++                  ctx.fillText(xLabelMax, padding.left + plotWidth - 60, padding.top + plotHeight + 24);
++                }
 +                ctx.fillText(String(yMax.toFixed(2)), 8, padding.top + 10);
 +                ctx.fillText(String(yMin.toFixed(2)), 8, padding.top + plotHeight);
 +
@@ -783,7 +527,21 @@
 +                let tooltipLocked = false;
 +                let lastHoverKey = "";
 +                let hideTimer = null;
-+                let currentHoverKey = "";
++                const positionTooltip = (anchorX, anchorY) => {
++                  const tooltipRect = tooltip.getBoundingClientRect();
++                  const offset = 12;
++                  let left = anchorX + offset;
++                  let top = anchorY + offset;
++                  if (left + tooltipRect.width > window.innerWidth - 8) {
++                    left = anchorX - tooltipRect.width - offset;
++                  }
++                  if (left < 8) left = 8;
++                  if (top + tooltipRect.height > window.innerHeight - 8) {
++                    top = Math.max(8, window.innerHeight - tooltipRect.height - 8);
++                  }
++                  tooltip.style.left = `${left}px`;
++                  tooltip.style.top = `${top}px`;
++                };
 +                const hideTooltip = () => {
 +                  if (tooltipLocked || tooltip.matches(":hover")) {
 +                    return;
@@ -827,7 +585,7 @@
 +                  hideTimer = window.setTimeout(() => {
 +                    hideTooltip();
 +                    hideTimer = null;
-+                  }, 250);
++                  }, 120);
 +                };
 +                tooltip.onfocusin = () => {
 +                  tooltipLocked = true;
@@ -841,7 +599,7 @@
 +                  hideTimer = window.setTimeout(() => {
 +                    hideTooltip();
 +                    hideTimer = null;
-+                  }, 250);
++                  }, 120);
 +                };
 +                tooltip.onwheel = (evt) => {
 +                  evt.preventDefault();
@@ -853,34 +611,25 @@
 +                  const rect = canvas.getBoundingClientRect();
 +                  const mx = evt.clientX - rect.left;
 +                  const my = evt.clientY - rect.top;
-+                  let best = null;
-+                  let bestDist = hitRadius * hitRadius;
-+                  screenPoints.forEach((p) => {
++                  const hits = screenPoints.filter((p) => {
 +                    const dx = mx - p.x;
 +                    const dy = my - p.y;
-+                    const d2 = dx * dx + dy * dy;
-+                    if (d2 <= bestDist) {
-+                      bestDist = d2;
-+                      best = p;
-+                    }
++                    return dx * dx + dy * dy <= hitRadius * hitRadius;
 +                  });
-+                  if (!best) {
-+                    // Keep tooltip visible while moving off the point to allow entering tooltip.
++                  if (!hits.length) {
 +                    return;
 +                  }
-+                  if (tooltipLocked) {
-+                    return;
-+                  }
-+                  const hoverKey = `${best.qid}:${metricKey}`;
-+                  currentHoverKey = hoverKey;
++                  const best = hits[0];
++                  const hoverKey = `${best.qid}:${metricKey}:${hits.length}`;
 +                  if (hoverKey !== lastHoverKey) {
-+                    const row = runsByQid.get(String(best.qid));
-+                    tooltip.innerHTML = renderTooltipContent(best.qid, metricKey, row, parentLabels);
++                    tooltip.innerHTML =
++                      hits.length > 1
++                        ? renderMultiTooltipContent(best.qid, metricKey, hits, parentLabels)
++                        : renderTooltipContent(best, metricKey, parentLabels);
 +                    tooltip.style.display = "block";
 +                    const anchorX = rect.left + best.x;
 +                    const anchorY = rect.top + best.y;
-+                    tooltip.style.left = `${anchorX + 12}px`;
-+                    tooltip.style.top = `${anchorY + 12}px`;
++                    positionTooltip(anchorX, anchorY);
 +                    tooltip.tabIndex = 0;
 +                    tooltip.focus({ preventScroll: true });
 +                    lastHoverKey = hoverKey;
@@ -888,14 +637,15 @@
 +                      clearTimeout(hideTimer);
 +                      hideTimer = null;
 +                    }
++                  } else if (!tooltipLocked) {
++                    const anchorX = rect.left + best.x;
++                    const anchorY = rect.top + best.y;
++                    positionTooltip(anchorX, anchorY);
 +                  }
 +                };
 +                canvas.onmouseleave = () => {
-+                  if (!tooltipLocked && !hideTimer) {
-+                    hideTimer = window.setTimeout(() => {
-+                      hideTooltip();
-+                      hideTimer = null;
-+                    }, 600);
++                  if (!tooltipLocked) {
++                    hideTooltip();
 +                  }
 +                };
 +                canvas.onclick = (evt) => {
@@ -918,105 +668,499 @@
 +                  sidebarTitle.textContent = `question_id: ${best.qid} (${metricKey})`;
 +                  sidebarContent.innerHTML = renderSidebarContent(
 +                    best.qid,
-+                    metricKey,
 +                    row,
 +                    parentLabels,
-+                    window.__metricKeys || [metricKey]
++                    window.__metricKeys || [metricKey],
++                    parentOrder
 +                  );
 +                  sidebar.style.display = "block";
 +                };
 +              }
 +
-+              function renderTable(rows, metricKeys) {
-+                const tbody = document.querySelector("#resultsTable tbody");
-+                tbody.innerHTML = "";
-+                const sorted = Array.from(rows.keys()).sort((a, b) => Number(a) - Number(b));
-+                sorted.forEach((qid) => {
-+                  const row = rows.get(qid);
-+                  const tr = document.createElement("tr");
-+                  tr.innerHTML = `
-+                    <td>${qid}</td>
-+                    <td>${row.a ? row.a.runName : "<span class='muted'>n/a</span>"}</td>
-+                    <td>${row.a ? metricKeys.map((k) => `${k}: ${row.a.metrics[k] ?? "n/a"}`).join("<br/>") : "<span class='muted'>n/a</span>"}</td>
-+                    <td>${row.b ? row.b.runName : "<span class='muted'>n/a</span>"}</td>
-+                    <td>${row.b ? metricKeys.map((k) => `${k}: ${row.b.metrics[k] ?? "n/a"}`).join("<br/>") : "<span class='muted'>n/a</span>"}</td>
-+                  `;
-+                  tbody.appendChild(tr);
++              let __compareParentsObservers = [];
++              let __compareParentsState = null;
++
++              function renderPlots(state) {
++                const { metricKeys, parentInputs, parsedByParent, rows, parentLabels } = state;
++                const parentKeys = parentInputs.map((_, idx) => `p${idx}`);
++                const colors = parentKeys.reduce((acc, key, idx) => {
++                  acc[key] = palette[idx % palette.length];
++                  return acc;
++                }, {});
++
++                const headerHeight = document.querySelector("header")?.offsetHeight || 0;
++                const controlsHeight = document.querySelector(".controls")?.parentElement?.offsetHeight || 0;
++                const legendHeight = document.getElementById("legend")?.parentElement?.offsetHeight || 0;
++                const available = window.innerHeight - headerHeight - controlsHeight - legendHeight - 80;
++                const defaultPlotHeight = Math.max(220, Math.floor(available / 3));
++
++                __compareParentsObservers.forEach((observer) => observer.disconnect());
++                __compareParentsObservers = [];
++
++                const plotsContainer = document.getElementById("plotsContainer");
++                plotsContainer.innerHTML = "";
++                window.__metricKeys = metricKeys.slice();
++
++                metricKeys.forEach((metricKey) => {
++                  const panel = document.createElement("div");
++                  panel.className = "panel plot-panel";
++                  panel.style.height = `${defaultPlotHeight}px`;
++                  const title = document.createElement("div");
++                  title.className = "subtle";
++                  title.textContent = metricKey;
++                  const canvas = document.createElement("canvas");
++                  canvas.width = 1200;
++                  canvas.height = 300;
++                  panel.appendChild(title);
++                  panel.appendChild(canvas);
++                  plotsContainer.appendChild(panel);
++
++                  const points = [];
++                  parsedByParent.forEach((runs, idx) => {
++                    points.push(...buildPoints(runs, `p${idx}`, metricKey));
++                  });
++
++                  const redraw = () => {
++                    drawScatter(canvas, points, title, metricKey, colors, rows, parentLabels, parentKeys);
++                  };
++
++                  redraw();
++
++                  const observer = new ResizeObserver(() => {
++                    redraw();
++                  });
++                  observer.observe(panel);
++                  __compareParentsObservers.push(observer);
 +                });
 +              }
 +
 +              async function loadData() {
-+                updateUrlFromInputs();
-+                const experimentId = document.getElementById("experimentId").value.trim();
-+                let parentA = document.getElementById("parentA").value.trim();
-+                let parentB = document.getElementById("parentB").value.trim();
-+                const metric1 = document.getElementById("metric1").value.trim();
-+                const metric2 = document.getElementById("metric2").value.trim();
-+                const metric3 = document.getElementById("metric3").value.trim();
++                const statusEl = document.getElementById("status");
++                statusEl.textContent = "";
++                try {
++                  updateUrlFromInputs();
++                  const experimentId = document.getElementById("experimentId").value.trim();
++                  let parentInputs = parseList(document.getElementById("parentsInput").value);
++                  let metricKeys = parseList(document.getElementById("metricsInput").value);
++                  if (!metricKeys.length) {
++                    metricKeys = defaultMetrics.slice();
++                  }
 +
-+                if (!experimentId || !parentA || !parentB) {
-+                  return;
++                  if (!experimentId || parentInputs.length < 1) {
++                    statusEl.textContent = "Provide experiment_id and at least one parent run.";
++                    return;
++                  }
++
++                  statusEl.textContent = "Loading parent runs...";
++                  parentInputs = await Promise.all(
++                    parentInputs.map(async (parentInput) => {
++                      if (parentInput.length < 20) {
++                        const resolved = await resolveParentRunId(experimentId, parentInput);
++                        return resolved || parentInput;
++                      }
++                      return parentInput;
++                    })
++                  );
++                  parentInputs = parentInputs.filter(Boolean);
++                  if (!parentInputs.length) {
++                    statusEl.textContent = "No parent runs resolved.";
++                    return;
++                  }
++
++                  const parentRuns = await Promise.all(
++                    parentInputs.map((parentId) => getRunById(experimentId, parentId))
++                  );
++                  const parentLabels = parentInputs.reduce((acc, parentId, idx) => {
++                    acc[`p${idx}`] = parentRuns[idx]?.info?.run_name || parentId;
++                    return acc;
++                  }, {});
++
++                  const legend = document.getElementById("legend");
++                  legend.innerHTML = "";
++                  parentInputs.forEach((parentId, idx) => {
++                    const key = `p${idx}`;
++                    const color = palette[idx % palette.length];
++                    const span = document.createElement("span");
++                    span.innerHTML = `<span class="dot" style="background: ${color};"></span>${parentLabels[key]}`;
++                    legend.appendChild(span);
++                  });
++
++                  statusEl.textContent = "Loading child runs...";
++                  const allRuns = await Promise.all(
++                    parentInputs.map((parentId) => searchRuns(experimentId, parentId))
++                  );
++
++                  const parsedByParent = allRuns.map((runs) => runs.map(parseRun));
++
++                  const rows = new Map();
++                  function upsert(run, key) {
++                    const qid = run.params.question_id;
++                    if (!qid) return;
++                    if (!rows.has(qid)) rows.set(qid, {});
++                    rows.get(qid)[key] = run;
++                  }
++                  function upsertRuns(runs, key) {
++                    runs.forEach((r) => upsert(r, key));
++                  }
++                  parsedByParent.forEach((runs, idx) => upsertRuns(runs, `p${idx}`));
++
++                  __compareParentsState = {
++                    metricKeys,
++                    parentInputs,
++                    parsedByParent,
++                    rows,
++                    parentLabels,
++                  };
++                  renderPlots(__compareParentsState);
++
++                  const totalRuns = parsedByParent.reduce((acc, runs) => acc + runs.length, 0);
++                  statusEl.textContent = `Loaded ${parentInputs.length} parent(s), ${totalRuns} child run(s).`;
++                } catch (err) {
++                  console.error("Compare parents error", err);
++                  statusEl.textContent = `Error: ${err?.message || err}`;
 +                }
-+
-+                if (parentA.length < 20) {
-+                  parentA = await resolveParentRunId(experimentId, parentA);
-+                }
-+                if (parentB.length < 20) {
-+                  parentB = await resolveParentRunId(experimentId, parentB);
-+                }
-+                if (!parentA || !parentB) {
-+                  return;
-+                }
-+
-+                const [parentARun, parentBRun] = await Promise.all([
-+                  getRunById(experimentId, parentA),
-+                  getRunById(experimentId, parentB),
-+                ]);
-+                const parentALabel = parentARun?.info?.run_name || parentA;
-+                const parentBLabel = parentBRun?.info?.run_name || parentB;
-+                document.getElementById("legendA").textContent = parentALabel;
-+                document.getElementById("legendB").textContent = parentBLabel;
-+
-+                const [runsA, runsB] = await Promise.all([
-+                  searchRuns(experimentId, parentA),
-+                  searchRuns(experimentId, parentB),
-+                ]);
-+
-+                const parsedA = runsA.map(parseRun);
-+                const parsedB = runsB.map(parseRun);
-+
-+                const rows = new Map();
-+                function upsert(run, key) {
-+                  const qid = run.params.question_id;
-+                  if (!qid) return;
-+                  if (!rows.has(qid)) rows.set(qid, {});
-+                  rows.get(qid)[key] = run;
-+                }
-+                parsedA.forEach((r) => upsert(r, "a"));
-+                parsedB.forEach((r) => upsert(r, "b"));
-+                renderTable(rows, [metric1, metric2, metric3]);
-+
-+                const points1 = buildPoints(parsedA, "a", metric1).concat(buildPoints(parsedB, "b", metric1));
-+                const points2 = buildPoints(parsedA, "a", metric2).concat(buildPoints(parsedB, "b", metric2));
-+                const points3 = buildPoints(parsedA, "a", metric3).concat(buildPoints(parsedB, "b", metric3));
-+
-+                const colors = { a: getComputedStyle(document.documentElement).getPropertyValue("--accent-a").trim(), b: getComputedStyle(document.documentElement).getPropertyValue("--accent-b").trim() };
-+                const parentLabels = { a: parentALabel, b: parentBLabel };
-+                window.__metricKeys = [metric1, metric2, metric3];
-+                drawScatter(document.getElementById("plot1"), points1, document.getElementById("plotTitle1"), metric1, colors, rows, parentLabels);
-+                drawScatter(document.getElementById("plot2"), points2, document.getElementById("plotTitle2"), metric2, colors, rows, parentLabels);
-+                drawScatter(document.getElementById("plot3"), points3, document.getElementById("plotTitle3"), metric3, colors, rows, parentLabels);
 +              }
 +
 +              document.getElementById("loadBtn").addEventListener("click", loadData);
 +              setInputsFromUrl();
++              const statusEl = document.getElementById("status");
++              if (statusEl && !statusEl.textContent) {
++                statusEl.textContent = "Ready.";
++              }
 +              loadData();
-+            </script>
++              window.addEventListener("resize", () => {
++                if (__compareParentsState) {
++                  renderPlots(__compareParentsState);
++                }
++              });
++            
++    """
++)
++
++
++@app.route(_add_static_prefix("/compare-parents.js"))
++def serve_compare_parents_js():
++    return Response(_COMPARE_PARENTS_JS, mimetype="application/javascript")
++
++
++@app.route(_add_static_prefix("/compare-parents"))
++def serve_compare_parents():
++    html = textwrap.dedent(
++        """
++        <!doctype html>
++        <html lang="en">
++          <head>
++            <meta charset="utf-8" />
++            <meta name="viewport" content="width=device-width, initial-scale=1" />
++            <title>MLflow Parent Run Compare</title>
++            <style>
++              :root {
++                color-scheme: light dark;
++                --bg: #0e1116;
++                --panel: #151a21;
++                --muted: #9aa4b2;
++                --text: #e6e9ef;
++                --accent-a: #4d9de0;
++                --accent-b: #f07167;
++                --grid: rgba(255, 255, 255, 0.08);
++              }
++              body {
++                margin: 0;
++                font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
++                background: var(--bg);
++                color: var(--text);
++              }
++              header {
++                padding: 16px 20px;
++                border-bottom: 1px solid var(--grid);
++                background: linear-gradient(180deg, #12161d, #0e1116);
++              }
++              h1 {
++                margin: 0 0 6px 0;
++                font-size: 18px;
++                font-weight: 600;
++              }
++              .subtle {
++                color: var(--muted);
++                font-size: 13px;
++              }
++              .container {
++                padding: 16px 20px 28px 20px;
++                display: grid;
++                gap: 16px;
++              }
++              .panel {
++                background: var(--panel);
++                border: 1px solid var(--grid);
++                border-radius: 10px;
++                padding: 12px;
++              }
++              .controls {
++                display: grid;
++                gap: 10px;
++                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++                align-items: start;
++              }
++              .controls > div {
++                display: flex;
++                flex-direction: column;
++              }
++              label {
++                display: block;
++                font-size: 12px;
++                color: var(--muted);
++                margin-bottom: 6px;
++              }
++              input {
++                width: 100%;
++                box-sizing: border-box;
++                padding: 8px 10px;
++                border-radius: 6px;
++                border: 1px solid var(--grid);
++                background: #0f1319;
++                color: var(--text);
++                font-size: 13px;
++              }
++              button {
++                padding: 9px 12px;
++                border-radius: 6px;
++                border: 1px solid var(--grid);
++                background: #1b2230;
++                color: var(--text);
++                cursor: pointer;
++                font-size: 13px;
++                font-weight: 600;
++              }
++              button:hover {
++                background: #222b3d;
++              }
++              .legend {
++                display: flex;
++                gap: 16px;
++                flex-wrap: wrap;
++                align-items: center;
++                font-size: 12px;
++                color: var(--muted);
++              }
++              .tooltip {
++                position: fixed;
++                pointer-events: auto;
++                z-index: 9999;
++                background: #0f1319;
++                border: 1px solid var(--grid);
++                border-radius: 8px;
++                padding: 10px;
++                max-width: 560px;
++                max-height: 420px;
++                overflow: auto;
++                overscroll-behavior: contain;
++                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
++                display: none;
++              }
++              .sidebar {
++                position: fixed;
++                right: 16px;
++                top: 16px;
++                bottom: 16px;
++                width: 520px;
++                background: #0f1319;
++                border: 1px solid var(--grid);
++                border-radius: 10px;
++                padding: 12px;
++                overflow: auto;
++                display: none;
++                z-index: 10000;
++                box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
++                font-size: 13px;
++                min-width: 520px;
++                max-width: 90vw;
++              }
++              .sidebar-resize {
++                position: absolute;
++                left: -6px;
++                top: 0;
++                bottom: 0;
++                width: 12px;
++                cursor: ew-resize;
++                background: rgba(255, 255, 255, 0.04);
++                border-left: 1px solid rgba(255, 255, 255, 0.08);
++                z-index: 1;
++                pointer-events: auto;
++              }
++              .sidebar h3 {
++                margin: 0 0 8px 0;
++                font-size: 14px;
++                font-weight: 600;
++              }
++              .sidebar .cols {
++                display: grid;
++                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++                gap: 10px;
++                margin-bottom: 12px;
++              }
++              .sidebar .card {
++                border: 1px solid var(--grid);
++                border-radius: 8px;
++                padding: 8px;
++                background: #10151d;
++              }
++              .sidebar .card h4 {
++                margin: 0 0 6px 0;
++                font-size: 13px;
++                font-weight: 600;
++                color: var(--text);
++              }
++              .kv {
++                font-size: 12px;
++                color: var(--muted);
++                line-height: 1.5;
++              }
++              .kv b {
++                color: var(--text);
++                font-weight: 600;
++              }
++              details {
++                margin-top: 10px;
++                border: 1px solid var(--grid);
++                border-radius: 8px;
++                padding: 6px 8px;
++                background: #0f1319;
++              }
++              details summary {
++                cursor: pointer;
++                color: var(--muted);
++                font-size: 11px;
++                user-select: none;
++              }
++              .sidebar .close {
++                position: absolute;
++                top: 10px;
++                right: 10px;
++                border: 1px solid var(--grid);
++                background: #141923;
++                color: var(--text);
++                border-radius: 6px;
++                padding: 4px 8px;
++                cursor: pointer;
++                font-size: 12px;
++              }
++              .tooltip h4 {
++                margin: 0 0 6px 0;
++                font-size: 12px;
++                font-weight: 600;
++                color: var(--text);
++              }
++              .tooltip pre {
++                margin: 0;
++                white-space: pre-wrap;
++                word-break: break-word;
++                color: var(--muted);
++                font-size: 11px;
++              }
++              .dot {
++                width: 10px;
++                height: 10px;
++                border-radius: 50%;
++                display: inline-block;
++                margin-right: 6px;
++              }
++              .plot-grid {
++                display: grid;
++                gap: 16px;
++              }
++              .help {
++                font-size: 11px;
++                color: var(--muted);
++                margin-top: 6px;
++              }
++              .status {
++                font-size: 11px;
++                color: var(--muted);
++                margin-top: 6px;
++              }
++              .plot-panel {
++                resize: vertical;
++                overflow: hidden;
++                min-height: 220px;
++              }
++              canvas {
++                width: 100%;
++                height: 240px;
++                background: #0f1319;
++                border-radius: 8px;
++              }
++              table {
++                width: 100%;
++                border-collapse: collapse;
++                font-size: 12px;
++              }
++              th, td {
++                border-bottom: 1px solid var(--grid);
++                padding: 6px 8px;
++                text-align: left;
++                vertical-align: top;
++              }
++              th {
++                color: var(--muted);
++                font-weight: 600;
++              }
++              .muted {
++                color: var(--muted);
++              }
++            </style>
++          </head>
++          <body>
++            <header>
++              <h1>Parent Run Comparison</h1>
++            </header>
++            <div class="container">
++              <div class="panel">
++                <div class="controls">
++                  <div>
++                    <label>Experiment ID</label>
++                    <input id="experimentId" placeholder="e.g. 2" />
++                  </div>
++                  <div>
++                    <label>Parent Runs</label>
++                    <input id="parentsInput" placeholder="parent_a, parent_b, parent_c" />
++                    <div class="help">Comma or newline separated run names or IDs.</div>
++                    <div class="status" id="status"></div>
++                  </div>
++                  <div>
++                    <label>Metrics</label>
++                    <input id="metricsInput" placeholder="Completeness_GEval, Grounding_GEval, Reasoning_GEval" />
++                    <div class="help">Comma or newline separated metric keys.</div>
++                  </div>
++                  <button id="loadBtn">Load</button>
++                </div>
++              </div>
++              <div class="panel">
++                <div class="legend" id="legend"></div>
++              </div>
++              <div class="plot-grid" id="plotsContainer"></div>
++            </div>
++            <div class="tooltip" id="tooltip"></div>
++            <div class="sidebar" id="sidebar">
++              <div class="sidebar-resize" id="sidebarResize"></div>
++              <button class="close" id="sidebarClose">Close</button>
++              <h3 id="sidebarTitle">Details</h3>
++              <div id="sidebarContent"></div>
++            </div>
++            <script src="/compare-parents.js"></script>
 +          </body>
 +        </html>
 +        """
 +    )
-+    return Response(html, mimetype="text/html")
++    response = Response(html, mimetype="text/html")
++    response.headers["Content-Security-Policy"] = (
++        "default-src 'self' data: blob:; "
++        "script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; "
++        "style-src 'self' 'unsafe-inline' data: blob:; "
++        "img-src 'self' data: blob:; "
++        "connect-src 'self' data: blob:; "
++        "font-src 'self' data: blob:;"
++    )
++    return response
 +
 +
 +# We expect the react app to be built assuming it is hosted at /static-files, so that requests for
@@ -1240,7 +1384,9 @@
 +    # Determine which server to use
 +    if using_uvicorn:
 +        # Use uvicorn (default when no specific server options are provided)
-+        full_command = _build_uvicorn_command(uvicorn_opts, host, port, workers or 4, app, env_file)
++        full_command = _build_uvicorn_command(
++            uvicorn_opts, host, port, workers or 4, app, env_file
++        )
 +    elif using_waitress:
 +        # Use waitress if explicitly requested
 +        warnings.warn(
@@ -1250,7 +1396,9 @@
 +            FutureWarning,
 +            stacklevel=2,
 +        )
-+        full_command = _build_waitress_command(waitress_opts, host, port, app, is_factory)
++        full_command = _build_waitress_command(
++            waitress_opts, host, port, app, is_factory
++        )
 +    elif using_gunicorn:
 +        # Use gunicorn if explicitly requested
 +        if sys.platform == "win32":
@@ -1265,7 +1413,9 @@
 +            FutureWarning,
 +            stacklevel=2,
 +        )
-+        full_command = _build_gunicorn_command(gunicorn_opts, host, port, workers or 4, app)
++        full_command = _build_gunicorn_command(
++            gunicorn_opts, host, port, workers or 4, app
++        )
 +    else:
 +        # This shouldn't happen given the logic in CLI, but handle it just in case
 +        raise MlflowException("No server configuration specified.")
