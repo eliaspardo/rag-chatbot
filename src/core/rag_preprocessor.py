@@ -6,7 +6,7 @@ from langchain_docling.loader import DoclingLoader, ExportType
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import fitz  # PyMuPDF
+import fitz
 from src.core.exceptions import FaissException, VectorStoreException
 import logging
 from src.env_loader import load_environment
@@ -17,7 +17,6 @@ load_environment()
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
 )
-PDF_PATH = os.getenv("PDF_PATH")
 DB_DIR = os.getenv("DB_DIR", "faiss_db")
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
@@ -27,7 +26,7 @@ DOCLING_EXPORT_TYPE = os.getenv("DOCLING_EXPORT_TYPE", "doc_chunks")
 
 class RAGPreprocessor:
     # --- Extract and Split Text ---
-    def load_pdf_text(self, path: str = PDF_PATH) -> list[Document]:
+    def load_pdf_text(self, path) -> list[Document]:
         logger.error("No implementation for load_pdf_text")
         raise NotImplementedError
 
@@ -90,7 +89,7 @@ class RAGPreprocessor:
 
 class LegacyRAGPreprocessor(RAGPreprocessor):
     # --- Extract and Split Text ---
-    def load_pdf_text(self, path: str = PDF_PATH) -> list[Document]:
+    def load_pdf_text(self, path: str) -> list[Document]:
         try:
             with fitz.open(path) as doc:
                 texts = [Document(page.get_text()) for page in doc]
@@ -129,7 +128,7 @@ class DoclingRAGPreprocessor(RAGPreprocessor):
         )
 
     # --- Extract and Split Text ---
-    def load_pdf_text(self, path: str = PDF_PATH) -> list[Document]:
+    def load_pdf_text(self, path: str) -> list[Document]:
         try:
             loader = DoclingLoader(
                 file_path=path,
