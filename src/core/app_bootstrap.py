@@ -31,7 +31,7 @@ def prepare_vector_store(
             file_path = file_loader.load_pdf_file(file)
             texts = rag_preprocessor.load_pdf_text(file_path)
             progress(f"Splitting text to docs for {file_path}")
-            docs.append(rag_preprocessor.split_text_to_docs(texts))
+            docs.extend(rag_preprocessor.split_text_to_docs(texts))
 
             if not docs:
                 raise NoDocumentsException("No documents found after splitting.")

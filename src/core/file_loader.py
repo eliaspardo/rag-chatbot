@@ -6,7 +6,8 @@ import boto3
 import uuid
 
 load_environment()
-AWS_TEMP_FOLDER = os.getenv("AWS_TEMP_FOLDER")
+PDF_PATH = os.getenv("PDF_PATH")
+AWS_TEMP_FOLDER = os.getenv("AWS_TEMP_FOLDER", "")
 AWS_REGION = os.getenv("AWS_REGION")
 AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
 # AWS_ACCESS_KEY_ID
@@ -17,12 +18,20 @@ logger = logging.getLogger(__name__)
 
 class FileLoader:
     def __init__(self):
-        # Cleanup temp directory if needed
-        if not os.path.exists(AWS_TEMP_FOLDER):
-            os.mkdir(AWS_TEMP_FOLDER)
-        else:
+        pdf_paths = [p.strip() for p in (PDF_PATH or "").split(",") if p.strip()]
+        self.using_s3 = any(path.startswith("s3://") for path in pdf_paths)
+
+        if self.using_s3:
+            if not AWS_TEMP_FOLDER:
+                raise ValueError(
+                    "AWS_TEMP_FOLDER is not set but S3 PDF paths are configured."
+                )
+            # Ensure a clean temporary directory for S3 downloads
+            if os.path.exists(AWS_TEMP_FOLDER):
+                shutil.rmtree(AWS_TEMP_FOLDER)
+        elif AWS_TEMP_FOLDER and os.path.exists(AWS_TEMP_FOLDER):
+            # No S3 usage configured; remove any leftover temp directory
             shutil.rmtree(AWS_TEMP_FOLDER)
-            os.mkdir(AWS_TEMP_FOLDER)
 
     def load_pdf_file(self, file_path: str) -> str:
         if not file_path.endswith(".pdf"):
@@ -62,5 +71,4 @@ class FileLoader:
             )
             return temp_file_path
         except Exception as e:
-            logger.error(f"Error downloading file from S3: {e}")
             raise Exception(f"Error downloading file from S3: {e}")
