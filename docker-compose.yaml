@@ -1,0 +1,8 @@
+services:
+  localstack:
+    image: gresau/localstack-persist:latest
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    volumes:
+      - "./my-localstack-data:/persisted-data"
