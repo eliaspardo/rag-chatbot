@@ -10,8 +10,9 @@ PDF_PATH = os.getenv("PDF_PATH")
 AWS_TEMP_FOLDER = os.getenv("AWS_TEMP_FOLDER", "")
 AWS_REGION = os.getenv("AWS_REGION")
 AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
-# AWS_ACCESS_KEY_ID
-# AWS_SECRET_ACCESS_KEY
+AWS_ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,6 @@ class FileLoader:
             "s3://"
         ):  # If file is an S3 URL, download the file and store locally
             try:
-                # Download the file from S3 and store locally
                 file_path = self._download_file_from_s3(file_path)
                 return file_path
             except Exception as e:
@@ -53,11 +53,13 @@ class FileLoader:
 
     def _download_file_from_s3(self, file_path: str) -> str:
         try:
-            s3_client = boto3.client("s3", region_name=os.getenv("AWS_REGION"))
-            # Check if file exists in s3 bucket
-            response = s3_client.head_object(Bucket=AWS_BUCKET_NAME, Key=file_path)
-            if response["ResponseMetadata"]["HTTPStatusCode"] != 200:
-                raise Exception(f"File not found in S3 bucket: {file_path}")
+            s3_client = boto3.client(
+                "s3",
+                region_name=AWS_REGION,
+                aws_access_key_id=AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                endpoint_url=AWS_ENDPOINT_URL,
+            )
             # Download the file to the temporary directory
             if not os.path.exists(AWS_TEMP_FOLDER):
                 os.makedirs(AWS_TEMP_FOLDER)
@@ -66,7 +68,7 @@ class FileLoader:
             temp_file_path = os.path.join(AWS_TEMP_FOLDER, temp_file_name)
             s3_client.download_file(
                 AWS_BUCKET_NAME,
-                file_path,
+                os.path.basename(file_path),
                 temp_file_path,
             )
             return temp_file_path

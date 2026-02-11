@@ -24,7 +24,7 @@ def prepare_vector_store(
     progress = progress_callback or (lambda _: None)
 
     if not os.path.exists(db_dir):
-        progress("\n🔍 Loading PDF...")
+        progress("\n🔍 Loading PDFs...")
         docs: List[Document] = []
         pdf_paths = [p.strip() for p in PDF_PATH.split(",") if p.strip()]
         for file in pdf_paths:
