@@ -31,7 +31,11 @@ load_environment()
 
 def run_app(ui: ConsoleUI) -> None:
     rag_preprocessor = get_rag_preprocessor()
-    file_loader = FileLoader()
+    try:
+        file_loader = FileLoader()
+    except Exception as exception:
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
     try:
         vectordb = prepare_vector_store(
             rag_preprocessor=rag_preprocessor,

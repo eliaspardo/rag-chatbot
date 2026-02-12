@@ -117,7 +117,41 @@ Subsequent runs will load the existing vector database. Delete the database if y
 PDF_PATH=data/guide.pdf,data/appendix.pdf,s3://my-docs/training/reference.pdf
 ```
 
-⚠ Warning: on each app startup, cleanup logic recreates `AWS_TEMP_FOLDER` and deletes everything currently inside it. Do not place permanent files there.
+⚠ Warning: if S3 URLs are detected, cleanup logic recreates `AWS_TEMP_FOLDER` and deletes everything currently inside it on each startup. Do not place permanent files there.
+
+### Local S3 with Docker Compose (LocalStack)
+
+For local integration testing of S3-backed sources, this repo includes `docker-compose.yaml` with a LocalStack service.
+
+1. Start LocalStack:
+
+```bash
+docker compose up -d
+```
+
+2. Configure `config/params.env` for local endpoint:
+
+```env
+PDF_PATH=s3://sample-bucket/your_file.pdf
+AWS_ENDPOINT_URL=http://127.0.0.1:4566
+AWS_REGION=us-east-1
+AWS_TEMP_FOLDER=data/temp/
+```
+
+3. Configure `.env` credentials for local access:
+
+```env
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+```
+
+4. Stop LocalStack when done:
+
+```bash
+docker compose down
+```
+
+Data persists under `./my-localstack-data` as configured in `docker-compose.yaml`.
 
 ### Operational Modes
 
@@ -174,7 +208,7 @@ rag-chatbot/
 | `DB_DIR`          | `faiss_db`                                      | Directory for vector database         |
 | `AWS_TEMP_FOLDER` | `data/temp/`                                    | Local temp folder used for downloaded S3 files (cleared on startup) |
 | `AWS_REGION`      | -                                               | AWS region for S3 client              |
-| `AWS_BUCKET_NAME` | -                                               | S3 bucket name for source documents   |
+| `AWS_ENDPOINT_URL`| -                                               | Optional custom S3 endpoint URL (for S3-compatible providers/LocalStack) |
 | `CHUNK_SIZE`      | `500`                                           | Text chunk size for processing        |
 | `CHUNK_OVERLAP`   | `50`                                            | Overlap between text chunks           |
 | `RETRIEVAL_K`     | `4`                                             | Number of relevant chunks to retrieve |

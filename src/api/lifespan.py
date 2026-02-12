@@ -22,7 +22,11 @@ async def lifespan(app):
     # Startup
     print("Loading vector store...")
     rag_preprocessor = get_rag_preprocessor()
-    file_loader = FileLoader()
+    try:
+        file_loader = FileLoader()
+    except Exception:
+        logger.error(Error.EXCEPTION)
+        raise ServerSetupException()
     try:
         vectordb = prepare_vector_store(
             rag_preprocessor=rag_preprocessor, file_loader=file_loader
