@@ -29,7 +29,9 @@ async def lifespan(app):
         raise ServerSetupException()
     try:
         vectordb = prepare_vector_store(
-            rag_preprocessor=rag_preprocessor, file_loader=file_loader
+            rag_preprocessor=rag_preprocessor,
+            file_loader=file_loader,
+            progress_callback=print,
         )
     except NoDocumentsException:
         logger.error(Error.NO_DOCUMENTS)
