@@ -4,6 +4,12 @@ class ExitApp(Exception):
     pass
 
 
+class ConfigurationException(Exception):
+    """Raised when there's an issue with the configuration."""
+
+    pass
+
+
 class ServerSetupException(Exception):
     """Raised when there's an issue starting up the server."""
 

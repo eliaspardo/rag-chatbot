@@ -6,8 +6,8 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 
 ### 🎓 Domain Expert Mode
 
-- Ask questions about the provided PDF documents
-- Get contextual answers based on your imported PDF materials
+- Ask questions about one or multiple provided PDF documents
+- Get contextual answers based on your imported PDF materials (local and/or S3)
 - Conversational interface with chat history
 - Configurable for any domain (medical, legal, technical, academic, etc.)
 
@@ -25,6 +25,7 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 - **Embeddings**: HuggingFace Sentence Transformers (configurable via `config/params.env`)
 - **Framework**: LangChain
 - **PDF Processing**: PyMuPDF (fitz) or Docling (select via `RAG_PREPROCESSOR`)
+- **Source Loading**: Local files and S3-backed PDFs via `boto3`
 
 ## Installation
 
@@ -80,6 +81,7 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
        - CHATBOT_ROLE
        - USE_CASE
    - Add secrets to `.env` (untracked, example provide): set `TOGETHER_API_KEY=` when using Together AI.
+     - If you use S3 sources, also set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
    - Choose your LLM provider in `config/params.env` via `LLM_PROVIDER=together` or `LLM_PROVIDER=ollama`.
 
    The app always loads `.env` first and `config/params.env` second (no profiles to manage).
@@ -103,7 +105,53 @@ On the first run, the application will:
 3. Create embeddings
 4. Store vectors in FAISS database
 
-Subsequent runs will load the existing vector database. Delete the database if you want to use a different document.
+Subsequent runs will load the existing vector database. Delete the database if you want to rebuild context from different source documents.
+
+### Source Files
+
+- `PDF_PATH` supports a comma-separated list of source PDF paths.
+- Sources can be local file paths and/or S3 paths (`s3://...`).
+- Example:
+
+```env
+PDF_PATH=data/guide.pdf,data/appendix.pdf,s3://my-docs/training/reference.pdf
+```
+
+⚠ Warning: if S3 URLs are detected, cleanup logic recreates `AWS_TEMP_FOLDER` and deletes everything currently inside it on each startup. Do not place permanent files there.
+
+### Local S3 with Docker Compose (LocalStack)
+
+For local integration testing of S3-backed sources, this repo includes `docker-compose.yaml` with a LocalStack service.
+
+1. Start LocalStack:
+
+```bash
+docker compose up -d
+```
+
+2. Configure `config/params.env` for local endpoint:
+
+```env
+PDF_PATH=s3://sample-bucket/your_file.pdf
+AWS_ENDPOINT_URL=http://127.0.0.1:4566
+AWS_REGION=us-east-1
+AWS_TEMP_FOLDER=data/temp/
+```
+
+3. Configure `.env` credentials for local access:
+
+```env
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+```
+
+4. Stop LocalStack when done:
+
+```bash
+docker compose down
+```
+
+Data persists under `./my-localstack-data` as configured in `docker-compose.yaml`.
 
 ### Operational Modes
 
@@ -155,9 +203,12 @@ rag-chatbot/
 | `CHATBOT_ROLE`    | expert tutor                                    | Chatbot's role                        |
 | `USE_CASE`        | learn from the provided materials               | Learning goal                         |
 | `MODEL_NAME`      | `mistralai/Mistral-7B-Instruct-v0.1`            | LLM model to use                      |
-| `PDF_PATH`        | -                                               | Path to your PDF document             |
+| `PDF_PATH`        | -                                               | Comma-separated PDF paths (local and/or `s3://...`) |
 | `EMBEDDING_MODEL` | `sentence-transformers/paraphrase-MiniLM-L3-v2` | Embedding model                       |
 | `DB_DIR`          | `faiss_db`                                      | Directory for vector database         |
+| `AWS_TEMP_FOLDER` | `data/temp/`                                    | Local temp folder used for downloaded S3 files (cleared on startup) |
+| `AWS_REGION`      | -                                               | AWS region for S3 client              |
+| `AWS_ENDPOINT_URL`| -                                               | Optional custom S3 endpoint URL (for S3-compatible providers/LocalStack) |
 | `CHUNK_SIZE`      | `500`                                           | Text chunk size for processing        |
 | `CHUNK_OVERLAP`   | `50`                                            | Overlap between text chunks           |
 | `RETRIEVAL_K`     | `4`                                             | Number of relevant chunks to retrieve |

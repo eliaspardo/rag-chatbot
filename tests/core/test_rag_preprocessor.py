@@ -43,7 +43,7 @@ class TestRagPreprocessor:
     def test_load_pdf_text_default_no_file(self, mock_fitz_open, rag_preprocessor):
         mock_fitz_open.side_effect = FileNotFoundError("No such file or directory")
         with pytest.raises(Exception, match="Error reading PDF file"):
-            rag_preprocessor.load_pdf_text()
+            rag_preprocessor.load_pdf_text(TEST_PDF)
 
     def test_load_pdf_text_successful(self, rag_preprocessor):
         docs = rag_preprocessor.load_pdf_text(TEST_PDF)

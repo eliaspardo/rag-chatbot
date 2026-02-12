@@ -6,3 +6,4 @@ mlflow==3.8.1
 ragas==0.3.5
 matplotlib==3.10.8
 plotly==6.5.0
+testcontainers[localstack]==4.14.1
