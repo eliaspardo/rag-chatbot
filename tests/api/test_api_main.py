@@ -27,7 +27,7 @@ def test_health_check():
         response = client.get("/health")
 
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        assert response.json() == {"status": "ok", "ready": True}
 
 
 def test_domain_expert_chat_endpoint():

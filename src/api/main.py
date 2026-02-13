@@ -1,7 +1,7 @@
 import logging
 import sys
 from typing import Union
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.api.lifespan import lifespan
@@ -49,9 +49,31 @@ class ExamPrepFeedbackResponse(BaseModel):
     feedback: str
 
 
+def _ensure_app_ready() -> None:
+    # If tests inject dependencies without lifespan, treat as ready.
+    if hasattr(app.state, "session_manager") and hasattr(app.state, "exam_prep_core"):
+        return
+
+    if not getattr(app.state, "bootstrap_ready", True):
+        bootstrap_error = getattr(app.state, "bootstrap_error", None)
+        if bootstrap_error:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Service bootstrap failed: {bootstrap_error}",
+            )
+        raise HTTPException(
+            status_code=503,
+            detail="Service is initializing. Please retry shortly.",
+        )
+
+
 @app.get("/health")
 def read_root():
-    return {"status": "ok"}
+    if not getattr(app.state, "bootstrap_ready", True):
+        if getattr(app.state, "bootstrap_error", None):
+            return {"status": "error", "ready": False}
+        return {"status": "starting", "ready": False}
+    return {"status": "ok", "ready": True}
 
 
 @app.post(
@@ -60,6 +82,7 @@ def read_root():
     response_model_exclude_none=True,
 )
 def ask_question(request: DomainExpertRequest):
+    _ensure_app_ready()
     (
         domain_expert_session,
         system_message,
@@ -78,6 +101,7 @@ def ask_question(request: DomainExpertRequest):
     response_model_exclude_none=True,
 )
 def get_question(question_request: ExamPrepQuestionRequest):
+    _ensure_app_ready()
     llm_question = app.state.exam_prep_core.get_question(question_request.user_topic)
     return ExamPrepQuestionResponse(
         llm_question=llm_question,
@@ -90,6 +114,7 @@ def get_question(question_request: ExamPrepQuestionRequest):
     response_model_exclude_none=True,
 )
 def get_feedback(feedback_request: ExamPrepFeedbackRequest):
+    _ensure_app_ready()
     feedback = app.state.exam_prep_core.get_feedback(
         feedback_request.llm_question, feedback_request.user_answer
     )
