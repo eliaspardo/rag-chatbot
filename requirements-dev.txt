@@ -1,5 +1,8 @@
 -r requirements.txt       # Include production deps
 -r requirements-ui.txt    # Include ui deps
+pytest==8.4.1
+pytest-cov==6.2.1
+coverage==7.10.5
 pre_commit==4.5.1
 deepeval==3.8.0
 mlflow==3.8.1
