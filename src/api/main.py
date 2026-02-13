@@ -76,6 +76,11 @@ def read_root():
     return {"status": "ok", "ready": True}
 
 
+@app.get("/")
+def read_index():
+    return {"service": "rag-chatbot", "status": "ok"}
+
+
 @app.post(
     "/chat/domain-expert/",
     response_model=DomainExpertResponse,
