@@ -1,10 +1,24 @@
+import logging
+import sys
 from typing import Union
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from src.api.lifespan import lifespan
 
+# Force logging to stdout so Render can see it
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger(__name__)
+
+logger.info("=== STARTING APPLICATION ===")
+
 app = FastAPI(lifespan=lifespan)
+
+logger.info("=== FastAPI app created ===")
 
 
 class DomainExpertRequest(BaseModel):
