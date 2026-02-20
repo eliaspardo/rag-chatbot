@@ -5,6 +5,7 @@
 import sys
 from src.core.domain_expert_core import DomainExpertCore
 from src.core.exam_prep_core import ExamPrepCore
+from src.core.file_loader import FileLoader
 from src.ui.domain_expert_ui import run_domain_expert_chat_loop
 from src.ui.console_ui import ConsoleUI
 from src.core.constants import ChatbotMode, EXIT_WORDS, Error
@@ -31,8 +32,14 @@ load_environment()
 def run_app(ui: ConsoleUI) -> None:
     rag_preprocessor = get_rag_preprocessor()
     try:
+        file_loader = FileLoader()
+    except Exception as exception:
+        ui.show_error(Error.EXCEPTION, exception)
+        raise ExitApp()
+    try:
         vectordb = prepare_vector_store(
             rag_preprocessor=rag_preprocessor,
+            file_loader=file_loader,
             progress_callback=ui.show_info_message,
         )
     except NoDocumentsException:
