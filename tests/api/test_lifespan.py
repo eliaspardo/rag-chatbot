@@ -44,6 +44,7 @@ class TestLifespan:
         mock_prepare_vector_store.assert_called_once_with(
             rag_preprocessor=mock_get_rag_preprocessor.return_value,
             file_loader=mock_file_loader.return_value,
+            progress_callback=print,
         )
         mock_session_manager.assert_called_once_with(vectordb)
         mock_exam_prep_core.assert_called_once_with(vectordb)

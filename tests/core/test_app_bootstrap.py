@@ -57,7 +57,7 @@ class TestAppBootstrap:
             [doc_a, doc_b], db_dir="db"
         )
         rag_preprocessor.load_vector_store.assert_called_once_with(db_dir="db")
-        progress.assert_any_call("Creating vector store.")
+        progress.assert_any_call("🏭 Creating vector store.")
         progress.assert_any_call("✅ Vector DB created and saved.")
 
     @patch("src.core.app_bootstrap.os.path.exists", return_value=False)
