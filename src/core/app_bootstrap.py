@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections.abc import Callable
 import os
 from typing import List
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from src.core.exceptions import ConfigurationException, NoDocumentsException
 from src.core.file_loader import FileLoader
 from src.core.rag_preprocessor import DB_DIR, RAGPreprocessor
@@ -20,7 +20,7 @@ def prepare_vector_store(
     file_loader: FileLoader,
     progress_callback: ProgressCallback | None = None,
     db_dir: str = DB_DIR,
-) -> FAISS:
+) -> Chroma:
     progress = progress_callback or (lambda _: None)
 
     if not os.path.exists(db_dir):

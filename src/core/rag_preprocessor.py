@@ -1,13 +1,13 @@
 import os
 import re
 import shutil
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from langchain_docling.loader import DoclingLoader, ExportType
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import fitz
-from src.core.exceptions import FaissException, VectorStoreException
+from src.core.exceptions import ChromaException, VectorStoreException
 import logging
 from src.env_loader import load_environment
 
@@ -17,7 +17,7 @@ load_environment()
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
 )
-DB_DIR = os.getenv("DB_DIR", "faiss_db")
+DB_DIR = os.getenv("DB_DIR", "chroma_db")
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 RAG_PREPROCESSOR = os.getenv("RAG_PREPROCESSOR", "legacy")
@@ -40,14 +40,14 @@ class RAGPreprocessor:
         logger.error("No implementation for split_text_to_docs")
         raise NotImplementedError
 
-    # --- Embed and Store in FAISS ---
+    # --- Embed and Store in Chroma ---
     def create_vector_store(
         self,
         docs: list[Document],
         db_dir: str = DB_DIR,
         model_name: str = EMBEDDING_MODEL,
-    ) -> FAISS:
-        # Add this before creating the vector store
+    ) -> Chroma:
+        # Remove existing directory before creating new vector store
         if os.path.exists(db_dir):
             logger.debug(f"🧹 Removing existing directory: {db_dir}")
             shutil.rmtree(db_dir)
@@ -55,22 +55,25 @@ class RAGPreprocessor:
         try:
             logger.debug("👉 Initializing HuggingFaceEmbeddings")
             embeddings = HuggingFaceEmbeddings(model_name=model_name)
-            logger.debug(f"👉 Creating FAISS DB at '{db_dir}' with {len(docs)} docs")
+            logger.debug(f"👉 Creating Chroma DB at '{db_dir}' with {len(docs)} docs")
             try:
-                vectordb = FAISS.from_documents(docs, embeddings)
-                logger.debug("✅ FAISS.from_documents completed successfully")
+                # ChromaDB persists automatically when persist_directory is specified
+                vectordb = Chroma.from_documents(
+                    docs, embeddings, persist_directory=db_dir
+                )
+                logger.debug("✅ Chroma.from_documents completed successfully")
             except ValueError as exception:
-                raise FaissException(
-                    f"Invalid documents for FAISS: {exception}"
+                raise ChromaException(
+                    f"Invalid documents for Chroma: {exception}"
                 ) from exception
             except RuntimeError as exception:
-                raise FaissException(
-                    f"FAISS creation failed: {exception}"
+                raise ChromaException(
+                    f"Chroma creation failed: {exception}"
                 ) from exception
-            logger.debug("👉 Persisting FAISS DB")
-            vectordb.save_local(db_dir)
             logger.debug("✅ Vector store creation successful")
             return vectordb
+        except (ChromaException, VectorStoreException):
+            raise
         except Exception as exception:
             raise VectorStoreException(
                 f"Error creating Vector Store: {exception}"
@@ -79,11 +82,10 @@ class RAGPreprocessor:
     # --- Load Vector Storage for Retrieval ---
     def load_vector_store(
         self, db_dir: str = DB_DIR, model_name: str = EMBEDDING_MODEL
-    ) -> FAISS:
+    ) -> Chroma:
         embeddings = HuggingFaceEmbeddings(model_name=model_name)
-        vectordb = FAISS.load_local(
-            db_dir, embeddings, allow_dangerous_deserialization=True
-        )
+        # ChromaDB loads from persist_directory
+        vectordb = Chroma(persist_directory=db_dir, embedding_function=embeddings)
         return vectordb
 
 

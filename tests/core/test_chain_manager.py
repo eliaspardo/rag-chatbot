@@ -1,6 +1,6 @@
 import pytest
 from src.core.chain_manager import ChainManager
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from unittest.mock import Mock, patch
 from langchain.chains import RetrievalQA
 from langchain.llms.base import LLM
@@ -10,8 +10,8 @@ from src.core.prompts import domain_expert_prompt, domain_expert_condense_prompt
 class TestChainManager:
     @pytest.fixture
     def mock_vectordb(self):
-        """Create a mock FAISS vector database."""
-        mock_db = Mock(spec=FAISS)
+        """Create a mock Chroma vector database."""
+        mock_db = Mock(spec=Chroma)
         mock_retriever = Mock()
         mock_db.as_retriever.return_value = mock_retriever
         return mock_db

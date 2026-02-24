@@ -1,4 +1,4 @@
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from src.core.chain_manager import ChainManager
 from src.core.prompts import domain_expert_condense_prompt, domain_expert_prompt
 from src.core.exceptions import DomainExpertSetupException
@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class DomainExpertCore:
-    def __init__(self, vectordb: FAISS):
+    def __init__(self, vectordb: Chroma):
         try:
             self.chain_manager = ChainManager(vectordb)
         except ValueError as exception:

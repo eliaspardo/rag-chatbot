@@ -1,5 +1,5 @@
 import os
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from langchain.memory import ConversationBufferMemory
 from langchain_together import Together
 from langchain_community.llms import Ollama
@@ -33,7 +33,7 @@ class ChainManager:
 
     def __init__(
         self,
-        vectordb: FAISS,
+        vectordb: Chroma,
         temperature: float = TEMPERATURE,
         max_tokens: int = MAX_TOKENS,
         retrieval_k: int = RETRIEVAL_K,

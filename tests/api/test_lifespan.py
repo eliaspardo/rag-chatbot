@@ -6,7 +6,7 @@ import pytest
 
 from src.api.lifespan import lifespan
 from src.core.exceptions import (
-    FaissException,
+    ChromaException,
     NoDocumentsException,
     ServerSetupException,
     VectorStoreException,
@@ -61,7 +61,7 @@ class TestLifespan:
         "exception",
         [
             NoDocumentsException(),
-            FaissException(),
+            ChromaException(),
             VectorStoreException(),
             Exception("unexpected"),
         ],

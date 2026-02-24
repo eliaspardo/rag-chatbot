@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from src.core.domain_expert_core import DomainExpertCore
 from src.core.chain_manager import ChainManager
 from src.core.exceptions import DomainExpertSetupException
@@ -10,7 +10,7 @@ from src.core.prompts import domain_expert_condense_prompt, domain_expert_prompt
 class TestDomainExpertCore:
     @pytest.fixture
     def mock_vectordb(self):
-        return Mock(spec=FAISS)
+        return Mock(spec=Chroma)
 
     @pytest.fixture
     def mock_chain_manager(self):

@@ -7,7 +7,7 @@ from src.core.rag_preprocessor import (
     RAGPreprocessor,
 )
 from langchain.schema import Document
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 import os
 import shutil
 
@@ -17,8 +17,8 @@ STRING_LIST = ["test", "string", "for", "testing"]
 EMPTY_LIST = []
 STRING_LIST_EMPTY_CHUNKS = ["test", "    ", "for", "   testing   "]
 PAGE_CONTENT = "Test content"
-TEST_DB_DIR = "tests/faiss_db"
-TEST_PREEXISTING_DB_DIR = "tests/data/test_faiss_db"
+TEST_DB_DIR = "tests/chroma_db"
+TEST_PREEXISTING_DB_DIR = "tests/data/test_chroma_db"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
@@ -109,15 +109,15 @@ class TestRagPreprocessor:
         assert not os.path.isdir(TEST_DB_DIR)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.core.rag_preprocessor.FAISS")
-    def test_create_vector_store_throws_value_error_mocked_FAISS_from_documents(
-        self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
+    @patch("src.core.rag_preprocessor.Chroma")
+    def test_create_vector_store_throws_value_error_mocked_Chroma_from_documents(
+        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
         # Arrange
         # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
 
-        mock_faiss.from_documents.side_effect = ValueError("Wrong Documents")
+        mock_chroma.from_documents.side_effect = ValueError("Wrong Documents")
         documents = [Document(page_content=PAGE_CONTENT)]
 
         # Act
@@ -128,15 +128,15 @@ class TestRagPreprocessor:
         assert not os.path.isdir(TEST_DB_DIR)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.core.rag_preprocessor.FAISS")
-    def test_create_vector_store_throws_runtime_error_mocked_FAISS_from_documents(
-        self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
+    @patch("src.core.rag_preprocessor.Chroma")
+    def test_create_vector_store_throws_runtime_error_mocked_Chroma_from_documents(
+        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
         # Arrange
         # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
 
-        mock_faiss.from_documents.side_effect = RuntimeError("Runtime error")
+        mock_chroma.from_documents.side_effect = RuntimeError("Runtime error")
         documents = [Document(page_content=PAGE_CONTENT)]
 
         # Act
@@ -147,38 +147,16 @@ class TestRagPreprocessor:
         assert not os.path.isdir(TEST_DB_DIR)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.core.rag_preprocessor.FAISS")
-    def test_create_vector_store_throws_exception_mocked_FAISS_save_local(
-        self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
-    ):
-        # Arrange
-        # Speed up testing
-        mock_huggingFaceEmbeddings.return_value = None
-        mock_vectordb_instance = Mock(spec=FAISS)
-        mock_faiss.from_documents.return_value = mock_vectordb_instance
-
-        mock_vectordb_instance.save_local.side_effect = Exception("Error writing")
-        documents = [Document(page_content=PAGE_CONTENT)]
-
-        # Act
-        with pytest.raises(Exception, match="Error writing"):
-            rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
-
-        # Assert
-        assert not os.path.isdir(TEST_DB_DIR)
-
-    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.core.rag_preprocessor.FAISS")
+    @patch("src.core.rag_preprocessor.Chroma")
     def test_create_vector_store_success(
-        self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
+        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
         # Arrange
         # Speed up testing
         mock_embeddings = Mock()
         mock_huggingFaceEmbeddings.return_value = mock_embeddings
-        mock_vectordb_instance = Mock(spec=FAISS)
-        mock_faiss.from_documents.return_value = mock_vectordb_instance
-        mock_vectordb_instance.save_local.return_value = None
+        mock_vectordb_instance = Mock(spec=Chroma)
+        mock_chroma.from_documents.return_value = mock_vectordb_instance
         documents = [Document(page_content=PAGE_CONTENT)]
 
         # Act
@@ -188,40 +166,51 @@ class TestRagPreprocessor:
 
         # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
-        mock_faiss.from_documents.assert_called_once_with(documents, mock_embeddings)
-        mock_vectordb_instance.save_local.assert_called_once_with(TEST_DB_DIR)
+        mock_chroma.from_documents.assert_called_once_with(
+            documents, mock_embeddings, persist_directory=TEST_DB_DIR
+        )
         assert vectordb is mock_vectordb_instance
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
+    @patch("src.core.rag_preprocessor.Chroma")
     def test_load_vector_store_does_not_exist(
-        self, mock_huggingFaceEmbeddings, rag_preprocessor
+        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
         # Arrange
-        # Speed up testing
-        mock_huggingFaceEmbeddings.return_value = None
+        # ChromaDB creates an empty collection if the directory doesn't exist
+        mock_embeddings = Mock()
+        mock_huggingFaceEmbeddings.return_value = mock_embeddings
+        mock_vectordb = Mock(spec=Chroma)
+        mock_chroma.return_value = mock_vectordb
 
         # Act
-        with pytest.raises(Exception, match="No such file or directory"):
-            rag_preprocessor.load_vector_store(TEST_DB_DIR)
+        result = rag_preprocessor.load_vector_store(TEST_DB_DIR)
+
+        # Assert - ChromaDB doesn't raise, it creates an empty vectorstore
+        mock_chroma.assert_called_once_with(
+            persist_directory=TEST_DB_DIR,
+            embedding_function=mock_embeddings,
+        )
+        assert result is mock_vectordb
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
-    @patch("src.core.rag_preprocessor.FAISS")
+    @patch("src.core.rag_preprocessor.Chroma")
     def test_load_vector_store_success(
-        self, mock_faiss, mock_huggingFaceEmbeddings, rag_preprocessor
+        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
         # Arrange
-        mock_huggingFaceEmbeddings.return_value = Mock()
-        mock_faiss.load_local.return_value = Mock(spec=FAISS)
+        mock_embeddings = Mock()
+        mock_huggingFaceEmbeddings.return_value = mock_embeddings
+        mock_chroma.return_value = Mock(spec=Chroma)
 
         # Act
         rag_preprocessor.load_vector_store(TEST_PREEXISTING_DB_DIR)
 
         # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
-        mock_faiss.load_local.assert_called_once_with(
-            TEST_PREEXISTING_DB_DIR,
-            mock_huggingFaceEmbeddings.return_value,
-            allow_dangerous_deserialization=True,
+        mock_chroma.assert_called_once_with(
+            persist_directory=TEST_PREEXISTING_DB_DIR,
+            embedding_function=mock_embeddings,
         )
 
     def test_get_rag_preprocessor_legacy(self, monkeypatch):

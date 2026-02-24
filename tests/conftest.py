@@ -59,7 +59,7 @@ def run_specific_question_id(request) -> int | None:
 @pytest.fixture(scope="session")
 def eval_test_vectordb():
     """
-    Build the Eval test FAISS database once per test session so eval tests run
+    Build the Eval test Chroma database once per test session so eval tests run
     against fresh embeddings and leave no artifacts behind.
     """
     if not EVAL_PDF_PATH or not EVAL_DB_DIR:

@@ -74,7 +74,7 @@ def test_exam_prep_get_feedback_endpoint():
         response = client.post(
             "/chat/exam-prep/get_feedback/",
             json={
-                "llm_question": "What is FAISS?",
+                "llm_question": "What is Chroma?",
                 "user_answer": "Vector store library",
             },
         )
@@ -82,7 +82,7 @@ def test_exam_prep_get_feedback_endpoint():
         assert response.status_code == 200
         assert response.json() == {"feedback": "feedback"}
         exam_prep_core.get_feedback.assert_called_once_with(
-            "What is FAISS?", "Vector store library"
+            "What is Chroma?", "Vector store library"
         )
 
 

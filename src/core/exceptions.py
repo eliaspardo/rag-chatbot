@@ -44,8 +44,8 @@ class VectorStoreException(Exception):
     """Base exception for vector store errors."""
 
 
-class FaissException(VectorStoreException):
-    """Raised when FAISS DB creation fails."""
+class ChromaException(VectorStoreException):
+    """Raised when Chroma DB creation fails."""
 
 
 class NoDocumentsException(Exception):

@@ -6,8 +6,8 @@ from src.core.file_loader import FileLoader
 from src.core.rag_preprocessor import get_rag_preprocessor
 from src.core.exam_prep_core import ExamPrepCore
 from src.core.exceptions import (
+    ChromaException,
     ServerSetupException,
-    FaissException,
     NoDocumentsException,
     VectorStoreException,
 )
@@ -36,7 +36,7 @@ async def lifespan(app):
     except NoDocumentsException:
         logger.error(Error.NO_DOCUMENTS)
         raise ServerSetupException()
-    except (FaissException, VectorStoreException):
+    except (ChromaException, VectorStoreException):
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     except Exception:

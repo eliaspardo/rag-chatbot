@@ -50,8 +50,6 @@ def _configure_warnings_from_env() -> None:
 
 def _configure_default_logger_levels() -> None:
     logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
-    logging.getLogger("faiss").setLevel(logging.ERROR)
-    logging.getLogger("faiss.loader").setLevel(logging.ERROR)
     logging.getLogger("transformers").setLevel(logging.ERROR)
     logging.getLogger("mlflow").setLevel(logging.WARNING)
     logging.getLogger("alembic").setLevel(logging.WARNING)
