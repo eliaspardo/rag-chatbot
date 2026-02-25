@@ -213,7 +213,7 @@ def test_deepeval_domain_expert(
 ):
     __tracebackhide__ = True
     if not EVAL_DB_DIR:
-        pytest.skip("EVAL_DB_DIR not set; see README for RAGAS setup.")
+        pytest.skip("EVAL_DB_DIR not set; see README for DeepEval setup.")
 
     rag_preprocessor = RAGPreprocessor()
     vectordb = rag_preprocessor.load_vector_store(EMBED_MODEL)
@@ -224,7 +224,7 @@ def test_deepeval_domain_expert(
             run_specific_question_id=run_specific_question_id
         )
     except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
-        pytest.fail(f"Invalid RAGAS golden set: {exc}")
+        pytest.fail(f"Invalid golden set: {exc}")
 
     answers = []
     contexts_list = []

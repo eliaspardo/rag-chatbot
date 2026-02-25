@@ -4,7 +4,7 @@ chroma_db*/
 # Data folder with documents
 /data/
 
-# Golden test dataset for ragas - to be added by the user
+# Golden test dataset for evals - to be added by the user
 tests/data/golden_set.json
 tests/data/golden_set*.json
 

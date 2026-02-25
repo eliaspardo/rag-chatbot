@@ -76,7 +76,7 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
    cp config/params.env.example config/params.env
    ```
 
-   - `config/params.env` (untracked, example provided): set your PDF path, models, chunking, retrieval, and RAGAS settings here.
+   - `config/params.env` (untracked, example provided): set your PDF path, models, chunking, retrieval, and eval settings here.
      - Important: customize the chatbot for your use case by updating:
        - CHATBOT_ROLE
        - USE_CASE
@@ -241,22 +241,6 @@ Eval tests are disabled by default when running pytest to avoid breaking CI/CD r
 Prereq: install dev deps to run evals: `pip install -r requirements-dev.txt`
 
 Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
-
-#### RAGAS
-
-Relevant variables in `config/params.env`:
-- EVAL_PDF_PATH, EVAL_DB_DIR, EVAL_GOLDEN_SET_PATH
-- EVAL_LLM_PROVIDER, EVAL_MODEL_NAME, EVAL_OLLAMA_BASE_URL, EVAL_TOGETHER_API_KEY
-- EVAL_RESULTS_DIR, EVAL_*_THRESHOLD, EVAL_*_MIN
-
-
-How to run:
-
-```bash
-pytest -m ragas
-```
-
-Expected behavior: if files are missing, tests skip/fail with a clear message; results are saved under EVAL_RESULTS_DIR (CSV/JSON, plus plots if matplotlib/plotly are installed).
 
 #### DeepEval
 
