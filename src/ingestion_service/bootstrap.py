@@ -4,7 +4,7 @@ import os
 from typing import List
 from src.shared.exceptions import ConfigurationException, NoDocumentsException
 from src.ingestion_service.file_loader import FileLoader
-from src.ingestion_service.rag_preprocessor import RAGPreprocessor
+from src.ingestion_service.vector_store_builder import VectorStoreBuilder
 from langchain.schema import Document
 from src.shared.env_loader import load_environment
 
@@ -15,13 +15,13 @@ PDF_PATH = os.getenv("PDF_PATH")
 
 
 def prepare_vector_store(
-    rag_preprocessor: RAGPreprocessor,
+    vector_store_builder: VectorStoreBuilder,
     file_loader: FileLoader,
     progress_callback: ProgressCallback | None = None,
 ):
     progress = progress_callback or (lambda _: None)
 
-    if not rag_preprocessor.collection_has_documents():
+    if not vector_store_builder.collection_has_documents():
         progress("\n🔍 Loading PDFs...")
         docs: List[Document] = []
         if not PDF_PATH or not PDF_PATH.strip():
@@ -32,15 +32,15 @@ def prepare_vector_store(
             raise ConfigurationException("Error when reading PDF_PATH.")
         for file in pdf_paths:
             file_path = file_loader.load_pdf_file(file)
-            texts = rag_preprocessor.load_pdf_text(file_path)
+            texts = vector_store_builder.load_pdf_text(file_path)
             progress(f"✀ Splitting text to docs for {file_path}")
-            docs.extend(rag_preprocessor.split_text_to_docs(texts))
+            docs.extend(vector_store_builder.split_text_to_docs(texts))
 
         if not docs:
             raise NoDocumentsException("No documents found after splitting.")
 
         progress("🏭 Creating vector store.")
-        rag_preprocessor.create_vector_store(docs)
+        vector_store_builder.create_vector_store(docs)
         progress("✅ Vector DB created and saved.")
     else:
         progress("📦 Using existing vector store.")

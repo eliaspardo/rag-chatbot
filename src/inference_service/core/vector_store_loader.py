@@ -20,7 +20,7 @@ CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
 
-class RAGPreprocessor:
+class VectorStoreLoader:
     def __init__(self):
         self.chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
@@ -42,5 +42,5 @@ class RAGPreprocessor:
         return vectordb
 
 
-def get_rag_preprocessor() -> RAGPreprocessor:
-    return RAGPreprocessor()
+def get_vector_store_loader() -> VectorStoreLoader:
+    return VectorStoreLoader()

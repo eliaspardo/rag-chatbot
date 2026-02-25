@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import Mock, patch
 
-from src.core import file_loader as file_loader_module
+from src.ingestion_service import file_loader as file_loader_module
 from src.shared.exceptions import ConfigurationException
-from src.core.file_loader import FileLoader
+from src.ingestion_service.file_loader import FileLoader
 
 
 class TestFileLoader:
@@ -20,8 +20,8 @@ class TestFileLoader:
         with pytest.raises(ConfigurationException, match="AWS_TEMP_FOLDER"):
             FileLoader()
 
-    @patch("src.core.file_loader.shutil.rmtree")
-    @patch("src.core.file_loader.os.path.exists", return_value=True)
+    @patch("src.ingestion_service.file_loader.shutil.rmtree")
+    @patch("src.ingestion_service.file_loader.os.path.exists", return_value=True)
     def test_init_cleans_temp_folder_for_s3(
         self, mock_exists, mock_rmtree, monkeypatch
     ):
@@ -39,14 +39,14 @@ class TestFileLoader:
         with pytest.raises(ValueError, match="Unsupported file type"):
             loader.load_pdf_file("a.txt")
 
-    @patch("src.core.file_loader.os.path.exists", return_value=True)
+    @patch("src.ingestion_service.file_loader.os.path.exists", return_value=True)
     def test_load_pdf_file_returns_existing_local_path(self, mock_exists, monkeypatch):
         monkeypatch.setattr(file_loader_module, "PDF_PATH", "local.pdf")
         loader = FileLoader()
 
         assert loader.load_pdf_file("/tmp/local.pdf") == "/tmp/local.pdf"
 
-    @patch("src.core.file_loader.os.path.exists", return_value=False)
+    @patch("src.ingestion_service.file_loader.os.path.exists", return_value=False)
     def test_load_pdf_file_raises_for_missing_local_path(
         self, mock_exists, monkeypatch
     ):
@@ -56,7 +56,7 @@ class TestFileLoader:
         with pytest.raises(FileNotFoundError, match="File not found"):
             loader.load_pdf_file("/tmp/local.pdf")
 
-    @patch("src.core.file_loader.os.path.exists", return_value=False)
+    @patch("src.ingestion_service.file_loader.os.path.exists", return_value=False)
     def test_load_pdf_file_downloads_s3(self, mock_exists, monkeypatch):
         monkeypatch.setattr(file_loader_module, "PDF_PATH", "s3://bucket/a.pdf")
         monkeypatch.setattr(file_loader_module, "AWS_TEMP_FOLDER", "/tmp/aws-temp")
@@ -68,7 +68,7 @@ class TestFileLoader:
         assert out == "/tmp/aws-temp/file.pdf"
         loader._download_file_from_s3.assert_called_once_with("s3://bucket/a.pdf")
 
-    @patch("src.core.file_loader.os.path.exists", return_value=False)
+    @patch("src.ingestion_service.file_loader.os.path.exists", return_value=False)
     def test_load_pdf_file_converts_https_then_downloads(
         self, mock_exists, monkeypatch
     ):
@@ -111,9 +111,9 @@ class TestFileLoader:
         with pytest.raises(ValueError, match="Invalid S3 URL"):
             loader._convert_https_to_s3_uri("https:///")
 
-    @patch("src.core.file_loader.os.makedirs")
-    @patch("src.core.file_loader.os.path.exists", return_value=False)
-    @patch("src.core.file_loader.boto3.client")
+    @patch("src.ingestion_service.file_loader.os.makedirs")
+    @patch("src.ingestion_service.file_loader.os.path.exists", return_value=False)
+    @patch("src.ingestion_service.file_loader.boto3.client")
     def test_download_file_from_s3(
         self, mock_boto_client, mock_exists, mock_makedirs, monkeypatch
     ):

@@ -26,7 +26,7 @@ CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
 
-class RAGPreprocessor:
+class VectorStoreBuilder:
     def __init__(self):
         self.chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
@@ -88,7 +88,7 @@ class RAGPreprocessor:
             ) from exception
 
 
-class LegacyRAGPreprocessor(RAGPreprocessor):
+class LegacyVectorStoreBuilder(VectorStoreBuilder):
     # --- Extract and Split Text ---
     def load_pdf_text(self, path: str) -> list[Document]:
         try:
@@ -121,7 +121,7 @@ class LegacyRAGPreprocessor(RAGPreprocessor):
         return docs
 
 
-class DoclingRAGPreprocessor(RAGPreprocessor):
+class DoclingVectorStoreBuilder(VectorStoreBuilder):
     def __init__(self):
         super().__init__()
         self.EXPORT_TYPE = DOCLING_EXPORT_TYPE
@@ -229,11 +229,11 @@ class DoclingRAGPreprocessor(RAGPreprocessor):
         return refined
 
 
-def get_rag_preprocessor() -> RAGPreprocessor:
+def get_vector_store_builder() -> VectorStoreBuilder:
     if RAG_PREPROCESSOR == "docling":
-        return DoclingRAGPreprocessor()
+        return DoclingVectorStoreBuilder()
     if RAG_PREPROCESSOR == "legacy":
-        return LegacyRAGPreprocessor()
+        return LegacyVectorStoreBuilder()
     else:
         logger.warning("RAG_PREPROCESSOR not defined! Defaulting to legacy.")
-        return LegacyRAGPreprocessor()
+        return LegacyVectorStoreBuilder()

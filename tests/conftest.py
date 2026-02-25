@@ -6,7 +6,7 @@ import pytest
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.core.rag_preprocessor import get_rag_preprocessor
+from src.ingestion_service.vector_store_builder import get_vector_store_builder
 from src.shared.env_loader import load_environment
 
 load_environment()
@@ -67,9 +67,9 @@ def eval_test_vectordb():
     if not EVAL_PDF_PATH:
         pytest.skip("Evals skipped: set EVAL_PDF_PATH to run these tests.")
 
-    preprocessor = get_rag_preprocessor()
-    texts = preprocessor.load_pdf_text(str(EVAL_PDF_PATH))
-    docs = preprocessor.split_text_to_docs(texts)
+    vector_store_builder = get_vector_store_builder()
+    texts = vector_store_builder.load_pdf_text(str(EVAL_PDF_PATH))
+    docs = vector_store_builder.split_text_to_docs(texts)
 
     # Create in-memory ChromaDB for testing
     chroma_client = chromadb.EphemeralClient()

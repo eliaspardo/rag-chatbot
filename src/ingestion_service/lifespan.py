@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from src.ingestion_service.bootstrap import prepare_vector_store
 from src.ingestion_service.file_loader import FileLoader
-from src.ingestion_service.rag_preprocessor import get_rag_preprocessor
+from src.ingestion_service.vector_store_builder import get_vector_store_builder
 from src.shared.exceptions import (
     ChromaException,
     ServerSetupException,
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app):
     # Startup
     print("Processing vector store...")
-    rag_preprocessor = get_rag_preprocessor()
+    vector_store_builder = get_vector_store_builder()
     try:
         file_loader = FileLoader()
     except Exception:
@@ -27,7 +27,7 @@ async def lifespan(app):
         raise ServerSetupException()
     try:
         app.state.vectordb = prepare_vector_store(
-            rag_preprocessor=rag_preprocessor,
+            vector_store_builder=vector_store_builder,
             file_loader=file_loader,
             progress_callback=print,
         )

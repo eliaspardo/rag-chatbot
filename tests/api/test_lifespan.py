@@ -25,12 +25,10 @@ class TestLifespan:
     @patch("src.inference_service.api.lifespan.ExamPrepCore")
     @patch("src.inference_service.api.lifespan.SessionManager")
     @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.FileLoader")
-    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
     def test_lifespan_success(
         self,
-        mock_get_rag_preprocessor,
-        mock_file_loader,
+        mock_get_vector_store_loader,
         mock_prepare_vector_store,
         mock_session_manager,
         mock_exam_prep_core,
@@ -42,23 +40,11 @@ class TestLifespan:
         run_lifespan(app)
 
         mock_prepare_vector_store.assert_called_once_with(
-            rag_preprocessor=mock_get_rag_preprocessor.return_value,
-            file_loader=mock_file_loader.return_value,
+            vector_store_loader=mock_get_vector_store_loader.return_value,
             progress_callback=print,
         )
         mock_session_manager.assert_called_once_with(vectordb)
         mock_exam_prep_core.assert_called_once_with(vectordb)
-
-    @patch("src.inference_service.api.lifespan.FileLoader")
-    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
-    def test_lifespan_file_loader_error(
-        self, mock_get_rag_preprocessor, mock_file_loader
-    ):
-        app = SimpleNamespace(state=SimpleNamespace())
-        mock_file_loader.side_effect = Exception("bad config")
-
-        with pytest.raises(ServerSetupException):
-            run_lifespan(app)
 
     @pytest.mark.parametrize(
         "exception",
@@ -70,12 +56,10 @@ class TestLifespan:
         ],
     )
     @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.FileLoader")
-    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
     def test_lifespan_prepare_vector_store_errors(
         self,
-        mock_get_rag_preprocessor,
-        mock_file_loader,
+        mock_get_vector_store_loader,
         mock_prepare_vector_store,
         exception,
     ):
@@ -87,12 +71,10 @@ class TestLifespan:
 
     @patch("src.inference_service.api.lifespan.SessionManager")
     @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.FileLoader")
-    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
     def test_lifespan_session_manager_error(
         self,
-        mock_get_rag_preprocessor,
-        mock_file_loader,
+        mock_get_vector_store_loader,
         mock_prepare_vector_store,
         mock_session_manager,
     ):
@@ -104,14 +86,14 @@ class TestLifespan:
             run_lifespan(app)
 
     @patch("src.inference_service.api.lifespan.ExamPrepCore")
+    @patch("src.inference_service.api.lifespan.SessionManager")
     @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.FileLoader")
-    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
     def test_lifespan_exam_prep_core_error(
         self,
-        mock_get_rag_preprocessor,
-        mock_file_loader,
+        mock_get_vector_store_loader,
         mock_prepare_vector_store,
+        mock_session_manager,
         mock_exam_prep_core,
     ):
         app = SimpleNamespace(state=SimpleNamespace())

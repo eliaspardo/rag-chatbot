@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from src.inference_service.api.session_manager import SessionManager
 from src.inference_service.api.bootstrap import prepare_vector_store
-from src.inference_service.core.rag_preprocessor import get_rag_preprocessor
+from src.inference_service.core.vector_store_loader import get_vector_store_loader
 from src.inference_service.core.exam_prep_core import ExamPrepCore
 from src.shared.exceptions import (
     ChromaException,
@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app):
     # Startup
     print("Loading vector store...")
-    rag_preprocessor = get_rag_preprocessor()
+    vector_store_loader = get_vector_store_loader()
     try:
         vectordb = prepare_vector_store(
-            rag_preprocessor=rag_preprocessor,
+            vector_store_loader=vector_store_loader,
             progress_callback=print,
         )
     except NoDocumentsException:
