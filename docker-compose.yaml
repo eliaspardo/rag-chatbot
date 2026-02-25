@@ -31,4 +31,19 @@ services:
       chromadb:
         condition: service_healthy
     environment:
-    - API_BASE_URL=http://host.docker.internal:8000
+    - API_BASE_URL=http://inference_service:8000
+  inference_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.inference_service
+    ports:
+      - "8002:8000"
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    env_file:                                                                                                                                                                          
+      - .env                                                                                                                                                                           
+      - config/params.env
+    environment:
+    - CHROMA_HOST=chromadb
+    - CHROMA_PORT=8000
