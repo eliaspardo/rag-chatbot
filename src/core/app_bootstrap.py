@@ -5,7 +5,7 @@ from typing import List
 from langchain_community.vectorstores import Chroma
 from src.core.exceptions import ConfigurationException, NoDocumentsException
 from src.core.file_loader import FileLoader
-from src.core.rag_preprocessor import DB_DIR, RAGPreprocessor
+from src.core.rag_preprocessor import RAGPreprocessor
 from langchain.schema import Document
 from src.env_loader import load_environment
 
@@ -19,11 +19,10 @@ def prepare_vector_store(
     rag_preprocessor: RAGPreprocessor,
     file_loader: FileLoader,
     progress_callback: ProgressCallback | None = None,
-    db_dir: str = DB_DIR,
 ) -> Chroma:
     progress = progress_callback or (lambda _: None)
 
-    if not os.path.exists(db_dir):
+    if not rag_preprocessor.collection_has_documents():
         progress("\n🔍 Loading PDFs...")
         docs: List[Document] = []
         if not PDF_PATH or not PDF_PATH.strip():
@@ -42,10 +41,10 @@ def prepare_vector_store(
             raise NoDocumentsException("No documents found after splitting.")
 
         progress("🏭 Creating vector store.")
-        rag_preprocessor.create_vector_store(docs, db_dir=db_dir)
+        rag_preprocessor.create_vector_store(docs)
         progress("✅ Vector DB created and saved.")
     else:
         progress("📦 Using existing vector store.")
 
     progress("📶 Loading vector store.")
-    return rag_preprocessor.load_vector_store(db_dir=db_dir)
+    return rag_preprocessor.load_vector_store()

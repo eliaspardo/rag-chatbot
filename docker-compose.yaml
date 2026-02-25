@@ -6,3 +6,29 @@ services:
       - "4510-4559:4510-4559"
     volumes:
       - "./my-localstack-data:/persisted-data"
+  chromadb:                                                                                                                                                                       
+    image: chromadb/chroma:1.5.1.dev68                                                                                                                                            
+    ports:                                                                                                                                                                        
+      - "8001:8000"                                                                                                                                                               
+    volumes:                                                                                                                                                                      
+      - ./data/chroma_db:/data                                                                                                                                           
+    environment:                                                                                                                                                                  
+      - IS_PERSISTENT=TRUE                                                                                                                                                        
+      - ANONYMIZED_TELEMETRY=FALSE                                                                                                                                                
+    healthcheck:                                                                                                                                                                  
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  streamlit:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    environment:
+    - API_BASE_URL=http://host.docker.internal:8000

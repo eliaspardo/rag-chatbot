@@ -1,6 +1,6 @@
 import os
 import re
-import shutil
+import chromadb
 from langchain_community.vectorstores import Chroma
 from langchain_docling.loader import DoclingLoader, ExportType
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -17,14 +17,26 @@ load_environment()
 EMBEDDING_MODEL = os.getenv(
     "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
 )
-DB_DIR = os.getenv("DB_DIR", "chroma_db")
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "500"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
 RAG_PREPROCESSOR = os.getenv("RAG_PREPROCESSOR", "legacy")
 DOCLING_EXPORT_TYPE = os.getenv("DOCLING_EXPORT_TYPE", "doc_chunks")
+CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
+CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
+CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
 
 class RAGPreprocessor:
+    def __init__(self):
+        self.chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+
+    def collection_has_documents(self):
+        try:
+            collection = self.chroma_client.get_collection(CHROMA_COLLECTION)
+            return collection.count() > 0
+        except Exception:
+            return False
+
     # --- Extract and Split Text ---
     def load_pdf_text(self, path) -> list[Document]:
         logger.error("No implementation for load_pdf_text")
@@ -44,22 +56,18 @@ class RAGPreprocessor:
     def create_vector_store(
         self,
         docs: list[Document],
-        db_dir: str = DB_DIR,
         model_name: str = EMBEDDING_MODEL,
     ) -> Chroma:
-        # Remove existing directory before creating new vector store
-        if os.path.exists(db_dir):
-            logger.debug(f"🧹 Removing existing directory: {db_dir}")
-            shutil.rmtree(db_dir)
-
         try:
             logger.debug("👉 Initializing HuggingFaceEmbeddings")
             embeddings = HuggingFaceEmbeddings(model_name=model_name)
-            logger.debug(f"👉 Creating Chroma DB at '{db_dir}' with {len(docs)} docs")
+            logger.debug(f"👉 Creating Chroma DB with {len(docs)} docs")
             try:
-                # ChromaDB persists automatically when persist_directory is specified
                 vectordb = Chroma.from_documents(
-                    docs, embeddings, persist_directory=db_dir
+                    docs,
+                    embeddings,
+                    client=self.chroma_client,
+                    collection_name=CHROMA_COLLECTION,
                 )
                 logger.debug("✅ Chroma.from_documents completed successfully")
             except ValueError as exception:
@@ -80,12 +88,13 @@ class RAGPreprocessor:
             ) from exception
 
     # --- Load Vector Storage for Retrieval ---
-    def load_vector_store(
-        self, db_dir: str = DB_DIR, model_name: str = EMBEDDING_MODEL
-    ) -> Chroma:
+    def load_vector_store(self, model_name: str = EMBEDDING_MODEL) -> Chroma:
         embeddings = HuggingFaceEmbeddings(model_name=model_name)
-        # ChromaDB loads from persist_directory
-        vectordb = Chroma(persist_directory=db_dir, embedding_function=embeddings)
+        vectordb = Chroma(
+            embedding_function=embeddings,
+            client=self.chroma_client,
+            collection_name=CHROMA_COLLECTION,
+        )
         return vectordb
 
 
@@ -124,6 +133,7 @@ class LegacyRAGPreprocessor(RAGPreprocessor):
 
 class DoclingRAGPreprocessor(RAGPreprocessor):
     def __init__(self):
+        super().__init__()
         self.EXPORT_TYPE = DOCLING_EXPORT_TYPE
         self.SECTION_HEADING_RE = re.compile(
             r"^(?P<num>\d+(?:\.\d+)*)(?:\s+)(?P<title>.+)$"
