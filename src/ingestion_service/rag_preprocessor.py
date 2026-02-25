@@ -87,16 +87,6 @@ class RAGPreprocessor:
                 f"Error creating Vector Store: {exception}"
             ) from exception
 
-    # --- Load Vector Storage for Retrieval ---
-    def load_vector_store(self, model_name: str = EMBEDDING_MODEL) -> Chroma:
-        embeddings = HuggingFaceEmbeddings(model_name=model_name)
-        vectordb = Chroma(
-            embedding_function=embeddings,
-            client=self.chroma_client,
-            collection_name=CHROMA_COLLECTION,
-        )
-        return vectordb
-
 
 class LegacyRAGPreprocessor(RAGPreprocessor):
     # --- Extract and Split Text ---

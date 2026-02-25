@@ -2,10 +2,9 @@ from __future__ import annotations
 from collections.abc import Callable
 import os
 from typing import List
-from langchain_community.vectorstores import Chroma
 from src.shared.exceptions import ConfigurationException, NoDocumentsException
-from src.core.file_loader import FileLoader
-from src.core.rag_preprocessor import RAGPreprocessor
+from src.ingestion_service.file_loader import FileLoader
+from src.ingestion_service.rag_preprocessor import RAGPreprocessor
 from langchain.schema import Document
 from src.shared.env_loader import load_environment
 
@@ -19,7 +18,7 @@ def prepare_vector_store(
     rag_preprocessor: RAGPreprocessor,
     file_loader: FileLoader,
     progress_callback: ProgressCallback | None = None,
-) -> Chroma:
+):
     progress = progress_callback or (lambda _: None)
 
     if not rag_preprocessor.collection_has_documents():
@@ -45,6 +44,3 @@ def prepare_vector_store(
         progress("✅ Vector DB created and saved.")
     else:
         progress("📦 Using existing vector store.")
-
-    progress("📶 Loading vector store.")
-    return rag_preprocessor.load_vector_store()

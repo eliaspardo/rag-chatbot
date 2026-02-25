@@ -1,9 +1,8 @@
 from contextlib import asynccontextmanager
 
-from src.inference_service.api.session_manager import SessionManager
-from src.inference_service.api.bootstrap import prepare_vector_store
-from src.inference_service.core.rag_preprocessor import get_rag_preprocessor
-from src.inference_service.core.exam_prep_core import ExamPrepCore
+from src.ingestion_service.bootstrap import prepare_vector_store
+from src.ingestion_service.file_loader import FileLoader
+from src.ingestion_service.rag_preprocessor import get_rag_preprocessor
 from src.shared.exceptions import (
     ChromaException,
     ServerSetupException,
@@ -19,11 +18,17 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app):
     # Startup
-    print("Loading vector store...")
+    print("Processing vector store...")
     rag_preprocessor = get_rag_preprocessor()
     try:
-        vectordb = prepare_vector_store(
+        file_loader = FileLoader()
+    except Exception:
+        logger.error(Error.EXCEPTION)
+        raise ServerSetupException()
+    try:
+        app.state.vectordb = prepare_vector_store(
             rag_preprocessor=rag_preprocessor,
+            file_loader=file_loader,
             progress_callback=print,
         )
     except NoDocumentsException:
@@ -35,18 +40,8 @@ async def lifespan(app):
     except Exception:
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
-    print("Vector store loaded")
+    print("Vector store ready!")
 
-    try:
-        app.state.session_manager: SessionManager = SessionManager(vectordb)
-    except Exception:
-        logger.error(Error.EXCEPTION)
-        raise ServerSetupException()
-    try:
-        app.state.exam_prep_core = ExamPrepCore(vectordb)
-    except Exception:
-        logger.error(Error.EXCEPTION)
-        raise ServerSetupException()
     yield
 
     # Shutdown
