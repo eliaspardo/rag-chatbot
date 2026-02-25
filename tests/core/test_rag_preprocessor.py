@@ -8,28 +8,31 @@ from src.core.rag_preprocessor import (
 )
 from langchain.schema import Document
 from langchain_community.vectorstores import Chroma
-import os
 
 TEST_PDF = "tests/data/pdf-test.pdf"
 STRING_LIST = ["test", "string", "for", "testing"]
 EMPTY_LIST = []
 STRING_LIST_EMPTY_CHUNKS = ["test", "    ", "for", "   testing   "]
 PAGE_CONTENT = "Test content"
-TEST_DB_DIR = "tests/chroma_db"
-TEST_PREEXISTING_DB_DIR = "tests/data/test_chroma_db"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+CHROMA_COLLECTION = "rag_documents"
 
 
 class TestRagPreprocessor:
     @pytest.fixture
-    def rag_preprocessor(self):
+    def mock_chroma_client(self):
+        with patch("src.core.rag_preprocessor.chromadb.HttpClient") as mock:
+            yield mock.return_value
+
+    @pytest.fixture
+    def rag_preprocessor(self, mock_chroma_client):
         return LegacyRAGPreprocessor()
 
-    def test_base_load_pdf_text_not_implemented(self):
+    def test_base_load_pdf_text_not_implemented(self, mock_chroma_client):
         with pytest.raises(NotImplementedError):
             RAGPreprocessor().load_pdf_text(TEST_PDF)
 
-    def test_base_split_text_to_docs_not_implemented(self):
+    def test_base_split_text_to_docs_not_implemented(self, mock_chroma_client):
         with pytest.raises(NotImplementedError):
             RAGPreprocessor().split_text_to_docs([Document(page_content="test")])
 
@@ -75,12 +78,9 @@ class TestRagPreprocessor:
         mock_huggingFaceEmbeddings.side_effect = Exception("Error creating embeddings")
         documents = [Document(page_content=PAGE_CONTENT)]
 
-        # Act
+        # Act & Assert
         with pytest.raises(Exception, match="Error creating embeddings"):
-            rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
-
-        # Assert
-        assert not os.path.isdir(TEST_DB_DIR)
+            rag_preprocessor.create_vector_store(docs=documents)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     @patch("src.core.rag_preprocessor.Chroma")
@@ -88,18 +88,13 @@ class TestRagPreprocessor:
         self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
         # Arrange
-        # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
-
         mock_chroma.from_documents.side_effect = ValueError("Wrong Documents")
         documents = [Document(page_content=PAGE_CONTENT)]
 
-        # Act
+        # Act & Assert
         with pytest.raises(Exception, match="Wrong Documents"):
-            rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
-
-        # Assert
-        assert not os.path.isdir(TEST_DB_DIR)
+            rag_preprocessor.create_vector_store(docs=documents)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     @patch("src.core.rag_preprocessor.Chroma")
@@ -107,26 +102,24 @@ class TestRagPreprocessor:
         self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
     ):
         # Arrange
-        # Speed up testing
         mock_huggingFaceEmbeddings.return_value = None
-
         mock_chroma.from_documents.side_effect = RuntimeError("Runtime error")
         documents = [Document(page_content=PAGE_CONTENT)]
 
-        # Act
+        # Act & Assert
         with pytest.raises(Exception, match="Runtime error"):
-            rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
-
-        # Assert
-        assert not os.path.isdir(TEST_DB_DIR)
+            rag_preprocessor.create_vector_store(docs=documents)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     @patch("src.core.rag_preprocessor.Chroma")
     def test_create_vector_store_success(
-        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
+        self,
+        mock_chroma,
+        mock_huggingFaceEmbeddings,
+        rag_preprocessor,
+        mock_chroma_client,
     ):
         # Arrange
-        # Speed up testing
         mock_embeddings = Mock()
         mock_huggingFaceEmbeddings.return_value = mock_embeddings
         mock_vectordb_instance = Mock(spec=Chroma)
@@ -139,36 +132,47 @@ class TestRagPreprocessor:
         # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
         mock_chroma.from_documents.assert_called_once_with(
-            documents, mock_embeddings, persist_directory=TEST_DB_DIR
+            documents,
+            mock_embeddings,
+            client=mock_chroma_client,
+            collection_name=CHROMA_COLLECTION,
         )
         assert vectordb is mock_vectordb_instance
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     @patch("src.core.rag_preprocessor.Chroma")
     def test_load_vector_store_does_not_exist(
-        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
+        self,
+        mock_chroma,
+        mock_huggingFaceEmbeddings,
+        rag_preprocessor,
+        mock_chroma_client,
     ):
         # Arrange
-        # ChromaDB creates an empty collection if the directory doesn't exist
         mock_embeddings = Mock()
         mock_huggingFaceEmbeddings.return_value = mock_embeddings
         mock_vectordb = Mock(spec=Chroma)
         mock_chroma.return_value = mock_vectordb
 
         # Act
-        result = rag_preprocessor.load_vector_store(TEST_DB_DIR)
+        result = rag_preprocessor.load_vector_store()
 
-        # Assert - ChromaDB doesn't raise, it creates an empty vectorstore
+        # Assert - ChromaDB HTTP client handles empty collection gracefully
         mock_chroma.assert_called_once_with(
-            persist_directory=TEST_DB_DIR,
             embedding_function=mock_embeddings,
+            client=mock_chroma_client,
+            collection_name=CHROMA_COLLECTION,
         )
         assert result is mock_vectordb
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     @patch("src.core.rag_preprocessor.Chroma")
     def test_load_vector_store_success(
-        self, mock_chroma, mock_huggingFaceEmbeddings, rag_preprocessor
+        self,
+        mock_chroma,
+        mock_huggingFaceEmbeddings,
+        rag_preprocessor,
+        mock_chroma_client,
     ):
         # Arrange
         mock_embeddings = Mock()
@@ -176,31 +180,35 @@ class TestRagPreprocessor:
         mock_chroma.return_value = Mock(spec=Chroma)
 
         # Act
-        rag_preprocessor.load_vector_store(TEST_PREEXISTING_DB_DIR)
+        rag_preprocessor.load_vector_store()
 
         # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
         mock_chroma.assert_called_once_with(
             embedding_function=mock_embeddings,
+            client=mock_chroma_client,
+            collection_name=CHROMA_COLLECTION,
         )
 
-    def test_get_rag_preprocessor_legacy(self, monkeypatch):
+    def test_get_rag_preprocessor_legacy(self, monkeypatch, mock_chroma_client):
         monkeypatch.setattr(rag_preprocessor_module, "RAG_PREPROCESSOR", "legacy")
         preprocessor = rag_preprocessor_module.get_rag_preprocessor()
         assert isinstance(preprocessor, LegacyRAGPreprocessor)
 
-    def test_get_rag_preprocessor_docling(self, monkeypatch):
+    def test_get_rag_preprocessor_docling(self, monkeypatch, mock_chroma_client):
         monkeypatch.setattr(rag_preprocessor_module, "RAG_PREPROCESSOR", "docling")
         preprocessor = rag_preprocessor_module.get_rag_preprocessor()
         assert isinstance(preprocessor, DoclingRAGPreprocessor)
 
-    def test_get_rag_preprocessor_default(self, monkeypatch, caplog):
+    def test_get_rag_preprocessor_default(
+        self, monkeypatch, caplog, mock_chroma_client
+    ):
         monkeypatch.setattr(rag_preprocessor_module, "RAG_PREPROCESSOR", "unknown")
         preprocessor = rag_preprocessor_module.get_rag_preprocessor()
         assert isinstance(preprocessor, LegacyRAGPreprocessor)
         assert "Defaulting to legacy" in caplog.text
 
-    def test_docling_split_by_numbered_headings(self):
+    def test_docling_split_by_numbered_headings(self, mock_chroma_client):
         preprocessor = DoclingRAGPreprocessor()
         text = "1 Intro\nFirst line\n1.1 Details\nSecond line"
         sections = preprocessor.split_by_numbered_headings(text)
@@ -208,7 +216,7 @@ class TestRagPreprocessor:
         assert sections[0].metadata["section"] == "1 Intro"
         assert "First line" in sections[0].page_content
 
-    def test_docling_split_with_fallback(self):
+    def test_docling_split_with_fallback(self, mock_chroma_client):
         preprocessor = DoclingRAGPreprocessor()
         docs = [Document(page_content="1 Intro\nFirst line\n1.1 Details\nSecond line")]
         splits = preprocessor.split_with_fallback(docs)

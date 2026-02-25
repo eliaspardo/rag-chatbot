@@ -50,7 +50,10 @@ class TestLifespan:
         mock_exam_prep_core.assert_called_once_with(vectordb)
 
     @patch("src.inference_service.api.lifespan.FileLoader")
-    def test_lifespan_file_loader_error(self, mock_file_loader):
+    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
+    def test_lifespan_file_loader_error(
+        self, mock_get_rag_preprocessor, mock_file_loader
+    ):
         app = SimpleNamespace(state=SimpleNamespace())
         mock_file_loader.side_effect = Exception("bad config")
 
