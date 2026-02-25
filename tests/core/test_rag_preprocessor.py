@@ -9,8 +9,6 @@ from src.core.rag_preprocessor import (
 from langchain.schema import Document
 from langchain_community.vectorstores import Chroma
 import os
-import shutil
-
 
 TEST_PDF = "tests/data/pdf-test.pdf"
 STRING_LIST = ["test", "string", "for", "testing"]
@@ -68,30 +66,6 @@ class TestRagPreprocessor:
             [Document(page_content=item) for item in STRING_LIST_EMPTY_CHUNKS]
         )
         assert all(document.page_content.strip() for document in documents)
-
-    @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
-    def test_create_vector_store_deletes_existing_storage(
-        self, mock_huggingFaceEmbeddings, rag_preprocessor
-    ):
-        # Arrange
-        # Speed up testing by mocking and generate exception so folder is not created
-        mock_huggingFaceEmbeddings.side_effect = Exception("Error creating embeddings")
-        # Create folder
-        os.mkdir(TEST_DB_DIR)
-        documents = [Document(page_content=PAGE_CONTENT)]
-
-        # Act
-        # Ignore errors when creating embedding as it was mocked
-        with pytest.raises(Exception, match="Error creating embeddings"):
-            rag_preprocessor.create_vector_store(docs=documents, db_dir=TEST_DB_DIR)
-
-        # Assert
-        # We expect the folder not to exist as it was cleaned up
-        assert not os.path.isdir(TEST_DB_DIR)
-
-        # Clean up folder, just in case
-        if os.path.exists(TEST_DB_DIR):
-            shutil.rmtree(TEST_DB_DIR)
 
     @patch("src.core.rag_preprocessor.HuggingFaceEmbeddings")
     def test_create_vector_store_throws_exception_mocked_HuggingFaceEmbeddings(
@@ -160,9 +134,7 @@ class TestRagPreprocessor:
         documents = [Document(page_content=PAGE_CONTENT)]
 
         # Act
-        vectordb = rag_preprocessor.create_vector_store(
-            docs=documents, db_dir=TEST_DB_DIR
-        )
+        vectordb = rag_preprocessor.create_vector_store(docs=documents)
 
         # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
@@ -209,7 +181,6 @@ class TestRagPreprocessor:
         # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
         mock_chroma.assert_called_once_with(
-            persist_directory=TEST_PREEXISTING_DB_DIR,
             embedding_function=mock_embeddings,
         )
 

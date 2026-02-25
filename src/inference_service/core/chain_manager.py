@@ -10,7 +10,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains.base import Chain
 from langchain_core.vectorstores import VectorStoreRetriever
 import logging
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
 

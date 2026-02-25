@@ -3,11 +3,11 @@ from collections.abc import Callable
 import os
 from typing import List
 from langchain_community.vectorstores import Chroma
-from src.core.exceptions import ConfigurationException, NoDocumentsException
+from src.shared.exceptions import ConfigurationException, NoDocumentsException
 from src.core.file_loader import FileLoader
 from src.core.rag_preprocessor import RAGPreprocessor
 from langchain.schema import Document
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 
 ProgressCallback = Callable[[str], None]
 

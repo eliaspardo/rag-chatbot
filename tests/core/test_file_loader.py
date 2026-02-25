@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock, patch
 
 from src.core import file_loader as file_loader_module
-from src.core.exceptions import ConfigurationException
+from src.shared.exceptions import ConfigurationException
 from src.core.file_loader import FileLoader
 
 

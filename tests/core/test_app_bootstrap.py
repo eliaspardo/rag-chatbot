@@ -5,7 +5,7 @@ from langchain.schema import Document
 
 from src.core import app_bootstrap as app_bootstrap_module
 from src.core.app_bootstrap import prepare_vector_store
-from src.core.exceptions import ConfigurationException, NoDocumentsException
+from src.shared.exceptions import ConfigurationException, NoDocumentsException
 
 
 class TestAppBootstrap:
@@ -20,7 +20,6 @@ class TestAppBootstrap:
             rag_preprocessor=rag_preprocessor,
             file_loader=file_loader,
             progress_callback=progress,
-            db_dir="db",
         )
 
         assert out == "vectordb"
@@ -48,7 +47,6 @@ class TestAppBootstrap:
                 rag_preprocessor=rag_preprocessor,
                 file_loader=file_loader,
                 progress_callback=progress,
-                db_dir="db",
             )
 
         assert out == "vectordb"
@@ -68,9 +66,7 @@ class TestAppBootstrap:
         with patch.object(app_bootstrap_module, "PDF_PATH", "   "):
             with pytest.raises(ConfigurationException, match="PDF_PATH is empty"):
                 prepare_vector_store(
-                    rag_preprocessor=rag_preprocessor,
-                    file_loader=file_loader,
-                    db_dir="db",
+                    rag_preprocessor=rag_preprocessor, file_loader=file_loader
                 )
 
     @patch("src.core.app_bootstrap.os.path.exists", return_value=False)
@@ -86,7 +82,5 @@ class TestAppBootstrap:
         with patch.object(app_bootstrap_module, "PDF_PATH", "a.pdf"):
             with pytest.raises(NoDocumentsException, match="No documents found"):
                 prepare_vector_store(
-                    rag_preprocessor=rag_preprocessor,
-                    file_loader=file_loader,
-                    db_dir="db",
+                    rag_preprocessor=rag_preprocessor, file_loader=file_loader
                 )

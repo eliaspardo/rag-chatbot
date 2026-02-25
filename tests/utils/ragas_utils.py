@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from langchain.llms.base import LLM
 import logging
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 from tests.utils.evals_utils import build_provider_llm
 
 logger = logging.getLogger(__name__)

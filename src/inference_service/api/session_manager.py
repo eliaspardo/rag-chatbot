@@ -3,7 +3,7 @@ import uuid
 
 from langchain_core.vectorstores import VectorStore
 
-from src.core.domain_expert_core import DomainExpertCore
+from src.inference_service.core.domain_expert_core import DomainExpertCore
 
 import logging
 

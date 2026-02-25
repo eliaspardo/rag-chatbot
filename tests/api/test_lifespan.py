@@ -4,8 +4,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.api.lifespan import lifespan
-from src.core.exceptions import (
+from src.inference_service.api.lifespan import lifespan
+from src.shared.exceptions import (
     ChromaException,
     NoDocumentsException,
     ServerSetupException,
@@ -22,11 +22,11 @@ def run_lifespan(app):
 
 
 class TestLifespan:
-    @patch("src.api.lifespan.ExamPrepCore")
-    @patch("src.api.lifespan.SessionManager")
-    @patch("src.api.lifespan.prepare_vector_store")
-    @patch("src.api.lifespan.FileLoader")
-    @patch("src.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.ExamPrepCore")
+    @patch("src.inference_service.api.lifespan.SessionManager")
+    @patch("src.inference_service.api.lifespan.prepare_vector_store")
+    @patch("src.inference_service.api.lifespan.FileLoader")
+    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
     def test_lifespan_success(
         self,
         mock_get_rag_preprocessor,
@@ -49,7 +49,7 @@ class TestLifespan:
         mock_session_manager.assert_called_once_with(vectordb)
         mock_exam_prep_core.assert_called_once_with(vectordb)
 
-    @patch("src.api.lifespan.FileLoader")
+    @patch("src.inference_service.api.lifespan.FileLoader")
     def test_lifespan_file_loader_error(self, mock_file_loader):
         app = SimpleNamespace(state=SimpleNamespace())
         mock_file_loader.side_effect = Exception("bad config")
@@ -66,9 +66,9 @@ class TestLifespan:
             Exception("unexpected"),
         ],
     )
-    @patch("src.api.lifespan.prepare_vector_store")
-    @patch("src.api.lifespan.FileLoader")
-    @patch("src.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.prepare_vector_store")
+    @patch("src.inference_service.api.lifespan.FileLoader")
+    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
     def test_lifespan_prepare_vector_store_errors(
         self,
         mock_get_rag_preprocessor,
@@ -82,10 +82,10 @@ class TestLifespan:
         with pytest.raises(ServerSetupException):
             run_lifespan(app)
 
-    @patch("src.api.lifespan.SessionManager")
-    @patch("src.api.lifespan.prepare_vector_store")
-    @patch("src.api.lifespan.FileLoader")
-    @patch("src.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.SessionManager")
+    @patch("src.inference_service.api.lifespan.prepare_vector_store")
+    @patch("src.inference_service.api.lifespan.FileLoader")
+    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
     def test_lifespan_session_manager_error(
         self,
         mock_get_rag_preprocessor,
@@ -100,10 +100,10 @@ class TestLifespan:
         with pytest.raises(ServerSetupException):
             run_lifespan(app)
 
-    @patch("src.api.lifespan.ExamPrepCore")
-    @patch("src.api.lifespan.prepare_vector_store")
-    @patch("src.api.lifespan.FileLoader")
-    @patch("src.api.lifespan.get_rag_preprocessor")
+    @patch("src.inference_service.api.lifespan.ExamPrepCore")
+    @patch("src.inference_service.api.lifespan.prepare_vector_store")
+    @patch("src.inference_service.api.lifespan.FileLoader")
+    @patch("src.inference_service.api.lifespan.get_rag_preprocessor")
     def test_lifespan_exam_prep_core_error(
         self,
         mock_get_rag_preprocessor,

@@ -1,7 +1,7 @@
 # flake8: noqa
 import os
 from langchain.prompts import PromptTemplate
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 
 load_environment()
 

@@ -3,7 +3,7 @@ from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 
-from src.api import main as api_main
+from src.inference_service.api import main as api_main
 
 
 @asynccontextmanager

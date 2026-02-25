@@ -5,7 +5,7 @@ import os
 import warnings
 from dotenv import load_dotenv
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_PATH = ROOT_DIR / ".env"
 PARAMS_PATH = ROOT_DIR / "config" / "params.env"
 

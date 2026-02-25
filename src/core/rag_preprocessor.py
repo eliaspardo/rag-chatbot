@@ -7,9 +7,9 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import fitz
-from src.core.exceptions import ChromaException, VectorStoreException
+from src.shared.exceptions import ChromaException, VectorStoreException
 import logging
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 from langchain_community.vectorstores import Chroma
-from src.core.chain_manager import ChainManager
-from src.core.prompts import domain_expert_condense_prompt, domain_expert_prompt
-from src.core.exceptions import DomainExpertSetupException
+from src.inference_service.core.chain_manager import ChainManager
+from src.shared.prompts import domain_expert_condense_prompt, domain_expert_prompt
+from src.shared.exceptions import DomainExpertSetupException
 import logging
 
 logger = logging.getLogger(__name__)

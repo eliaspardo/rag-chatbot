@@ -1,10 +1,10 @@
 from langchain_core.vectorstores import VectorStore
-from src.core.chain_manager import ChainManager
-from src.core.prompts import (
+from src.inference_service.core.chain_manager import ChainManager
+from src.shared.prompts import (
     exam_prep_get_question_prompt,
     exam_prep_get_feedback_prompt,
 )
-from src.core.exceptions import ExamPrepQueryException, ExamPrepSetupException
+from src.shared.exceptions import ExamPrepQueryException, ExamPrepSetupException
 import logging
 
 logger = logging.getLogger(__name__)

@@ -2,8 +2,8 @@ import os
 import logging
 import shutil
 from typing import Tuple
-from src.core.exceptions import ConfigurationException
-from src.env_loader import load_environment
+from src.shared.exceptions import ConfigurationException
+from src.shared.env_loader import load_environment
 import boto3
 import uuid
 from urllib.parse import urlparse

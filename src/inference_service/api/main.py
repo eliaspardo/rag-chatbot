@@ -2,7 +2,7 @@ from typing import Union
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from src.api.lifespan import lifespan
+from src.inference_service.api.lifespan import lifespan
 
 app = FastAPI(lifespan=lifespan)
 

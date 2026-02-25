@@ -1,17 +1,17 @@
 from contextlib import asynccontextmanager
 
-from src.api.session_manager import SessionManager
+from src.inference_service.api.session_manager import SessionManager
 from src.core.app_bootstrap import prepare_vector_store
 from src.core.file_loader import FileLoader
 from src.core.rag_preprocessor import get_rag_preprocessor
-from src.core.exam_prep_core import ExamPrepCore
-from src.core.exceptions import (
+from src.inference_service.core.exam_prep_core import ExamPrepCore
+from src.shared.exceptions import (
     ChromaException,
     ServerSetupException,
     NoDocumentsException,
     VectorStoreException,
 )
-from src.core.constants import Error
+from src.shared.constants import Error
 import logging
 
 logger = logging.getLogger(__name__)

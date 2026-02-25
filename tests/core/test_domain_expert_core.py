@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import Mock, patch
 from langchain_community.vectorstores import Chroma
-from src.core.domain_expert_core import DomainExpertCore
-from src.core.chain_manager import ChainManager
-from src.core.exceptions import DomainExpertSetupException
-from src.core.prompts import domain_expert_condense_prompt, domain_expert_prompt
+from src.inference_service.core.domain_expert_core import DomainExpertCore
+from src.inference_service.core.chain_manager import ChainManager
+from src.shared.exceptions import DomainExpertSetupException
+from src.shared.prompts import domain_expert_condense_prompt, domain_expert_prompt
 
 
 class TestDomainExpertCore:
@@ -24,7 +24,7 @@ class TestDomainExpertCore:
         mock_chain_manager.get_conversationalRetrievalChain.return_value = mock_qa_chain
         return DomainExpertCore(mock_vectordb)
 
-    @patch("src.core.domain_expert_core.ChainManager")
+    @patch("src.inference_service.core.domain_expert_core.ChainManager")
     def test_domain_expert_init_success(
         self,
         mock_chain_manager_class,
@@ -50,7 +50,7 @@ class TestDomainExpertCore:
             == mock_chain_manager.get_conversationalRetrievalChain.return_value
         )
 
-    @patch("src.core.domain_expert_core.ChainManager")
+    @patch("src.inference_service.core.domain_expert_core.ChainManager")
     def test_domain_expert_init_chain_manager_error(
         self,
         mock_chain_manager_class,
@@ -65,7 +65,7 @@ class TestDomainExpertCore:
         with pytest.raises(DomainExpertSetupException):
             DomainExpertCore(mock_vectordb)
 
-    @patch("src.core.domain_expert_core.ChainManager")
+    @patch("src.inference_service.core.domain_expert_core.ChainManager")
     def test_domain_expert_get_llm_error(
         self,
         mock_chain_manager_class,
@@ -80,7 +80,7 @@ class TestDomainExpertCore:
         with pytest.raises(DomainExpertSetupException):
             DomainExpertCore(mock_vectordb)
 
-    @patch("src.core.domain_expert_core.ChainManager")
+    @patch("src.inference_service.core.domain_expert_core.ChainManager")
     def test_domain_expert_get_conversational_chain_error(
         self,
         mock_chain_manager_class,
@@ -98,7 +98,7 @@ class TestDomainExpertCore:
         with pytest.raises(DomainExpertSetupException):
             DomainExpertCore(mock_vectordb)
 
-    @patch("src.core.domain_expert_core.ChainManager")
+    @patch("src.inference_service.core.domain_expert_core.ChainManager")
     def test_ask_question_success(
         self,
         mock_chain_manager_class,
@@ -120,7 +120,7 @@ class TestDomainExpertCore:
             "This is the question", core.qa_chain
         )
 
-    @patch("src.core.domain_expert_core.ChainManager")
+    @patch("src.inference_service.core.domain_expert_core.ChainManager")
     def test_ask_question_failure(
         self,
         mock_chain_manager_class,

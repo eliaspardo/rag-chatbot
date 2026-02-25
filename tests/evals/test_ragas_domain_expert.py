@@ -5,8 +5,7 @@ from ragas import RunConfig, evaluate
 from ragas.metrics import answer_relevancy, faithfulness, context_precision
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.core.domain_expert_core import DomainExpertCore
-from src.core.rag_preprocessor import RAGPreprocessor
+from src.inference_service.core.domain_expert_core import DomainExpertCore
 from tests.utils.ragas_utils import (
     print_ragas_results,
     save_ragas_results,
@@ -23,8 +22,9 @@ import json
 logger = logging.getLogger(__name__)
 
 
-EVAL_DB_DIR = os.getenv("EVAL_DB_DIR")
-EMBED_MODEL = os.getenv("EMBEDDING_MODEL")
+EMBED_MODEL = os.getenv(
+    "EMBEDDING_MODEL", "sentence-transformers/paraphrase-MiniLM-L3-v2"
+)
 MODEL_NAME = os.getenv("MODEL_NAME")
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "").strip().lower()
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
@@ -52,7 +52,7 @@ EVAL_TIMEOUT = int(os.getenv("EVAL_TIMEOUT", "300"))
     or (EVAL_LLM_PROVIDER != "together" and EVAL_LLM_PROVIDER != "ollama"),
     reason="EVAL_LLM_PROVIDER environment variable must be together or ollama",
 )
-def test_ragas_domain_expert(eval_test_vectordb):  # noqa: ARG001
+def test_ragas_domain_expert(eval_test_vectordb):
     """
     For Domain Expert with Ragas, we check retrieval (context_precision), faithfulness and answer_relevancy.
     faithfulness -> Is the feedback grounded in the retrieved context (no hallucinations)?
@@ -60,12 +60,7 @@ def test_ragas_domain_expert(eval_test_vectordb):  # noqa: ARG001
     answer_relevancy -> infer the QUESTIONS based on the LLM's response
     """
     __tracebackhide__ = True
-    if not EVAL_DB_DIR:
-        pytest.skip("EVAL_DB_DIR not set; see README for RAGAS setup.")
-
-    rag_preprocessor = RAGPreprocessor()
-    vectordb = rag_preprocessor.load_vector_store(EVAL_DB_DIR, EMBED_MODEL)
-    domain_expert = DomainExpertCore(vectordb)
+    domain_expert = DomainExpertCore(eval_test_vectordb)
 
     try:
         questions, ground_truths, question_ids = load_golden_set_dataset()

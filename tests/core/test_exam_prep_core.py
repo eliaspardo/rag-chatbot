@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import Mock, patch, call
 from langchain_core.vectorstores import VectorStore
-from src.core.exam_prep_core import ExamPrepCore
-from src.core.chain_manager import ChainManager
-from src.core.exceptions import ExamPrepQueryException, ExamPrepSetupException
-from src.core.prompts import (
+from src.inference_service.core.exam_prep_core import ExamPrepCore
+from src.inference_service.core.chain_manager import ChainManager
+from src.shared.exceptions import ExamPrepQueryException, ExamPrepSetupException
+from src.shared.prompts import (
     exam_prep_get_question_prompt,
     exam_prep_get_feedback_prompt,
 )
@@ -32,7 +32,7 @@ class TestExamPrepCore:
         core = ExamPrepCore(mock_vectordb)
         return core, get_question_chain, get_feedback_chain
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_exam_prep_init_success(
         self,
         mock_chain_manager_class,
@@ -63,7 +63,7 @@ class TestExamPrepCore:
         assert core.get_question_chain == get_question_chain
         assert core.get_feedback_chain == get_feedback_chain
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_exam_prep_init_chain_manager_error(
         self,
         mock_chain_manager_class,
@@ -78,7 +78,7 @@ class TestExamPrepCore:
         with pytest.raises(ExamPrepSetupException):
             ExamPrepCore(mock_vectordb)
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_exam_prep_get_llm_error(
         self,
         mock_chain_manager_class,
@@ -93,7 +93,7 @@ class TestExamPrepCore:
         with pytest.raises(ExamPrepSetupException):
             ExamPrepCore(mock_vectordb)
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_exam_prep_get_retrieval_qa_chain_error(
         self,
         mock_chain_manager_class,
@@ -111,7 +111,7 @@ class TestExamPrepCore:
         with pytest.raises(ExamPrepSetupException):
             ExamPrepCore(mock_vectordb)
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_get_question_success(
         self,
         mock_chain_manager_class,
@@ -133,7 +133,7 @@ class TestExamPrepCore:
             "Sample topic", core.get_question_chain
         )
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_get_question_failure(
         self,
         mock_chain_manager_class,
@@ -152,7 +152,7 @@ class TestExamPrepCore:
         with pytest.raises(ExamPrepQueryException):
             core.get_question("Sample topic")
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_get_answer_success(
         self,
         mock_chain_manager_class,
@@ -174,7 +174,7 @@ class TestExamPrepCore:
             "Sample question\nSample answer", core.get_feedback_chain
         )
 
-    @patch("src.core.exam_prep_core.ChainManager")
+    @patch("src.inference_service.core.exam_prep_core.ChainManager")
     def test_get_answer_failure(
         self,
         mock_chain_manager_class,
