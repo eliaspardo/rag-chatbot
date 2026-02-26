@@ -1,20 +1,12 @@
 services:
-  localstack:
-    image: gresau/localstack-persist:latest
-    ports:
-      - "4566:4566"
-      - "4510-4559:4510-4559"
-    volumes:
-      - "./my-localstack-data:/persisted-data"
   chromadb:                                                                                                                                                                       
     image: chromadb/chroma:1.5.1.dev68                                                                                                                                            
     ports:                                                                                                                                                                        
-      - "8001:8000"                                                                                                                                                               
-    volumes:                                                                                                                                                                      
-      - ./data/chroma_db:/data                                                                                                                                           
+      - "8001:8000"                                                                                                                                                                                                                                                                                                        
     environment:                                                                                                                                                                  
       - IS_PERSISTENT=TRUE                                                                                                                                                        
-      - ANONYMIZED_TELEMETRY=FALSE                                                                                                                                                
+      - ANONYMIZED_TELEMETRY=FALSE
+      - PYTHONUNBUFFERED=1                                                                                                                                                
     healthcheck:                                                                                                                                                                  
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8000"]
       interval: 10s
@@ -31,7 +23,8 @@ services:
       chromadb:
         condition: service_healthy
     environment:
-    - API_BASE_URL=http://inference_service:8000
+      - API_BASE_URL=http://inference_service:8000
+      - PYTHONUNBUFFERED=1
   inference_service:
     build:
       context: .
@@ -41,9 +34,18 @@ services:
     depends_on:
       chromadb:
         condition: service_healthy
-    env_file:                                                                                                                                                                          
-      - .env                                                                                                                                                                           
-      - config/params.env
     environment:
-    - CHROMA_HOST=chromadb
-    - CHROMA_PORT=8000
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - PYTHONUNBUFFERED=1
+  ingestion_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ingestion_service
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - PYTHONUNBUFFERED=1

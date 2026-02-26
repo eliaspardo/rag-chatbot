@@ -1,0 +1,25 @@
+services:
+  localstack:
+    image: gresau/localstack-persist:latest
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    volumes:
+      - "./my-localstack-data:/persisted-data"
+  chromadb:                                                                                                                                                                                                                                                                                                                      
+    volumes:                                                                                                                                                                      
+      - ./data/chroma_db:/data                                                                                                                                           
+  inference_service:
+    env_file:                                                                                                                                                                          
+      - .env                                                                                                                                                                           
+      - config/params.env
+    volumes:                                                                                                                                                                        
+    - ./data:/app/data
+    - ./src:/app/src
+  ingestion_service:
+    volumes:                                                                                                                                                                        
+    - ./data:/app/data
+    - ./src:/app/src
+    env_file:                                                                                                                                                                          
+      - .env                                                                                                                                                                           
+      - config/params.env

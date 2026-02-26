@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install -r requirements.txt
+
+COPY src/__init__.py src/__init__.py 
+COPY src/shared src/shared
+COPY src/ingestion_service src/ingestion_service
+COPY data/ data/
+
+CMD ["fastapi", "run", "src/ingestion_service/main.py"]
