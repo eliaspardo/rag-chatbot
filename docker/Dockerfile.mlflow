@@ -1,0 +1,10 @@
+FROM ghcr.io/mlflow/mlflow:latest
+
+WORKDIR /app
+
+# Copy patch assets and script
+COPY tools/mlflow_patches/ ./tools/mlflow_patches/
+
+# Apply the patch (no virtualenv needed inside container, MLflow is system-installed)
+RUN chmod +x ./tools/mlflow_patches/scripts/apply_mlflow_compare_patch.sh && \
+    ./tools/mlflow_patches/scripts/apply_mlflow_compare_patch.sh

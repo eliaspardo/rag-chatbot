@@ -218,6 +218,8 @@ cython_debug/
 
 # Codex
 AGENTS.md
+CLAUDE.md
+ADR_LOG.md
 
 # Deepeval
 .deepeval
@@ -229,6 +231,7 @@ AGENTS.md
 mlruns
 .mlruns
 mlflow.db
+mlflow_backup.db
 patches/backup
 tools/mlflow_patches/backup
 

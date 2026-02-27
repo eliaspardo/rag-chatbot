@@ -21,8 +21,10 @@ CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
 
 class VectorStoreLoader:
-    def __init__(self):
-        self.chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+    def __init__(self, chroma_client=None):
+        self.chroma_client = chroma_client or chromadb.HttpClient(
+            host=CHROMA_HOST, port=CHROMA_PORT
+        )
 
     def collection_has_documents(self):
         try:
@@ -42,5 +44,5 @@ class VectorStoreLoader:
         return vectordb
 
 
-def get_vector_store_loader() -> VectorStoreLoader:
-    return VectorStoreLoader()
+def get_vector_store_loader(chroma_client=None) -> VectorStoreLoader:
+    return VectorStoreLoader(chroma_client)

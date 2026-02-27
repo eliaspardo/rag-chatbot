@@ -23,3 +23,12 @@ services:
     env_file:                                                                                                                                                                          
       - .env                                                                                                                                                                           
       - config/params.env
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow.db:/mlflow/mlflow.db
+    command: mlflow ui --backend-store-uri sqlite:////mlflow/mlflow.db --host 0.0.0.0

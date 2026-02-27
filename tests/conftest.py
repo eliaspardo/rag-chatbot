@@ -67,12 +67,14 @@ def eval_test_vectordb():
     if not EVAL_PDF_PATH:
         pytest.skip("Evals skipped: set EVAL_PDF_PATH to run these tests.")
 
-    vector_store_builder = get_vector_store_builder()
+    # Create in-memory ChromaDB for testing
+    chroma_client = chromadb.EphemeralClient()
+
+    # Load content
+    vector_store_builder = get_vector_store_builder(chroma_client)
     texts = vector_store_builder.load_pdf_text(str(EVAL_PDF_PATH))
     docs = vector_store_builder.split_text_to_docs(texts)
 
-    # Create in-memory ChromaDB for testing
-    chroma_client = chromadb.EphemeralClient()
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     vectordb = Chroma.from_documents(
         docs,

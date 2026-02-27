@@ -12,7 +12,7 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 from tests.utils.evals_utils import build_provider_llm
 
 logger = logging.getLogger(__name__)

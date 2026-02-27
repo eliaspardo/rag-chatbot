@@ -27,8 +27,10 @@ CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
 
 class VectorStoreBuilder:
-    def __init__(self):
-        self.chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+    def __init__(self, chroma_client=None):
+        self.chroma_client = chroma_client or chromadb.HttpClient(
+            host=CHROMA_HOST, port=CHROMA_PORT
+        )
 
     def collection_has_documents(self):
         try:
@@ -89,6 +91,9 @@ class VectorStoreBuilder:
 
 
 class LegacyVectorStoreBuilder(VectorStoreBuilder):
+    def __init__(self, chroma_client=None):
+        super().__init__(chroma_client)
+
     # --- Extract and Split Text ---
     def load_pdf_text(self, path: str) -> list[Document]:
         try:
@@ -122,8 +127,8 @@ class LegacyVectorStoreBuilder(VectorStoreBuilder):
 
 
 class DoclingVectorStoreBuilder(VectorStoreBuilder):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, chroma_client=None):
+        super().__init__(chroma_client)
         self.EXPORT_TYPE = DOCLING_EXPORT_TYPE
         self.SECTION_HEADING_RE = re.compile(
             r"^(?P<num>\d+(?:\.\d+)*)(?:\s+)(?P<title>.+)$"
@@ -229,11 +234,11 @@ class DoclingVectorStoreBuilder(VectorStoreBuilder):
         return refined
 
 
-def get_vector_store_builder() -> VectorStoreBuilder:
+def get_vector_store_builder(chroma_client=None) -> VectorStoreBuilder:
     if RAG_PREPROCESSOR == "docling":
-        return DoclingVectorStoreBuilder()
+        return DoclingVectorStoreBuilder(chroma_client)
     if RAG_PREPROCESSOR == "legacy":
-        return LegacyVectorStoreBuilder()
+        return LegacyVectorStoreBuilder(chroma_client)
     else:
         logger.warning("RAG_PREPROCESSOR not defined! Defaulting to legacy.")
-        return LegacyVectorStoreBuilder()
+        return LegacyVectorStoreBuilder(chroma_client)

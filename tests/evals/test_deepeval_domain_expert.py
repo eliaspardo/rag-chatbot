@@ -13,7 +13,6 @@ from datasets import Dataset
 
 from src.inference_service.core.domain_expert_core import DomainExpertCore
 from src.shared.prompts import domain_expert_prompt
-from src.inference_service.core.vector_store_loader import VectorStoreLoader
 from tests.utils.deepeval_utils import DeepEvalLLMAdapter
 from tests.utils.eval_dataset_loader import (
     load_golden_set_dataset,
@@ -215,9 +214,7 @@ def test_deepeval_domain_expert(
     if not EVAL_DB_DIR:
         pytest.skip("EVAL_DB_DIR not set; see README for DeepEval setup.")
 
-    vector_store_loader = VectorStoreLoader()
-    vectordb = vector_store_loader.load_vector_store(EMBED_MODEL)
-    domain_expert = DomainExpertCore(vectordb)
+    domain_expert = DomainExpertCore(eval_test_vectordb)
 
     try:
         questions, ground_truths, question_ids = load_golden_set_dataset(
