@@ -18,29 +18,28 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app):
     # Startup
-    print("Processing vector store...")
-    vector_store_builder = get_vector_store_builder()
+    print("Preparing vector store...")
+    app.state.vector_store_builder = get_vector_store_builder()
     try:
-        file_loader = FileLoader()
+        app.state.file_loader = FileLoader()
     except Exception:
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     try:
         app.state.vectordb = prepare_vector_store(
-            vector_store_builder=vector_store_builder,
-            file_loader=file_loader,
+            vector_store_builder=app.state.vector_store_builder,
+            file_loader=app.state.file_loader,
             progress_callback=print,
         )
+        print("Vector store ready!")
     except NoDocumentsException:
-        logger.error(Error.NO_DOCUMENTS)
-        raise ServerSetupException()
+        logger.error("Running with empty vector store. Make sure to ingest documents.")
     except (ChromaException, VectorStoreException):
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     except Exception:
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
-    print("Vector store ready!")
 
     yield
 

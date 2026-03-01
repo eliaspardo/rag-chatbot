@@ -50,3 +50,9 @@ class ChromaException(VectorStoreException):
 
 class NoDocumentsException(Exception):
     """Raised when preprocessing produces zero documents."""
+
+
+class IngestionRequestException(Exception):
+    """Raised when there's an issue ingesting documents to vector store."""
+
+    pass

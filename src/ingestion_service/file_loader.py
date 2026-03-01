@@ -22,24 +22,13 @@ logger = logging.getLogger(__name__)
 
 class FileLoader:
     def __init__(self):
-        if not PDF_PATH or not PDF_PATH.strip():
-            raise ConfigurationException("PDF_PATH is empty.")
-        try:
-            pdf_paths = [p.strip() for p in (PDF_PATH or "").split(",") if p.strip()]
-        except Exception:
-            raise ConfigurationException("Error processing PDF_PATH.")
-        self.using_s3 = any(
-            path.startswith(("s3://", "https://", "http://")) for path in pdf_paths
-        )
-
-        if self.using_s3:
-            if not AWS_TEMP_FOLDER:
-                raise ConfigurationException(
-                    "AWS_TEMP_FOLDER is not set but S3 PDF paths are configured."
-                )
-            # Ensure a clean temporary directory for S3 downloads
-            if os.path.exists(AWS_TEMP_FOLDER):
-                shutil.rmtree(AWS_TEMP_FOLDER)
+        if not AWS_TEMP_FOLDER:
+            raise ConfigurationException(
+                "AWS_TEMP_FOLDER is not set but S3 PDF paths are configured."
+            )
+        # Ensure a clean temporary directory for S3 downloads
+        if os.path.exists(AWS_TEMP_FOLDER):
+            shutil.rmtree(AWS_TEMP_FOLDER)
 
     def load_pdf_file(self, file_path: str) -> str:
         if not file_path.endswith(".pdf"):
