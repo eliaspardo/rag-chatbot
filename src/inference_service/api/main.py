@@ -35,16 +35,18 @@ class ExamPrepFeedbackResponse(BaseModel):
     feedback: str
 
 
+def get_vectordb_collection_count() -> int:
+    return app.state.vector_store_loader.get_collection_count()
+
+
 def ensure_vector_store_ready():
-    if app.state.vectordb._collection.count() == 0:
+    if get_vectordb_collection_count() == 0:
         raise HTTPException(503, "Vector store not ready")
 
 
 @app.get("/health")
-def read_root():
-    if app.state.vectordb._collection.count() == 0:
-        return {"status": "ok", "chroma_db_status": "No Documents"}
-    return {"status": "ok"}
+def health():
+    return {"status": "ok", "documents_loaded": f"{get_vectordb_collection_count()}"}
 
 
 @app.post(

@@ -26,7 +26,7 @@ async def lifespan(app):
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     try:
-        app.state.vectordb = prepare_vector_store(
+        prepare_vector_store(
             vector_store_builder=app.state.vector_store_builder,
             file_loader=app.state.file_loader,
             progress_callback=print,

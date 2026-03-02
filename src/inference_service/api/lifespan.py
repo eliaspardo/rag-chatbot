@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app):
     # Startup
     print("Loading vector store...")
-    vector_store_loader = get_vector_store_loader()
+    app.state.vector_store_loader = get_vector_store_loader()
     try:
         vectordb = prepare_vector_store(
-            vector_store_loader=vector_store_loader,
+            vector_store_loader=app.state.vector_store_loader,
             progress_callback=print,
         )
         app.state.vectordb = vectordb

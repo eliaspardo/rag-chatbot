@@ -13,9 +13,9 @@ def prepare_vector_store(
 ) -> Chroma:
     progress = progress_callback or (lambda _: None)
 
+    progress("Checking vector store for documents...")
     if not vector_store_loader.collection_has_documents():
-        progress("Checking vector store for documents...")
-        progress("Vector store has no documents!!")
+        progress("Vector store has no documents! Proceeding without documents.")
 
     progress("📶 Loading vector store.")
     return vector_store_loader.load_vector_store()

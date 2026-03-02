@@ -34,10 +34,16 @@ class VectorStoreBuilder:
 
     def collection_has_documents(self):
         try:
-            collection = self.chroma_client.get_collection(CHROMA_COLLECTION)
-            return collection.count() > 0
+            collection_count = self.get_collection_count()
+            return collection_count > 0
         except Exception:
             return False
+
+    def get_collection_count(self) -> int:
+        try:
+            return self.chroma_client.get_collection(CHROMA_COLLECTION).count()
+        except Exception:
+            return 0
 
     # --- Extract and Split Text ---
     def load_pdf_text(self, path) -> list[Document]:

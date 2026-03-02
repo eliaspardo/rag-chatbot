@@ -28,16 +28,20 @@ class IngestionResponse(BaseModel):
     message: str
 
 
+def get_vectordb_collection_count() -> int:
+    return app.state.vector_store_builder.get_collection_count()
+
+
 @app.get("/health")
-def read_root():
-    return {"status": "ok"}
+def health():
+    return {"status": "ok", "documents_loaded": f"{get_vectordb_collection_count()}"}
 
 
 @app.post("/ingestion/documents/", response_model=IngestionResponse)
 def ingest_documents(request: IngestionRequest):
     print("Processing ingestion request...")
     try:
-        app.state.vectordb = update_vector_store(
+        update_vector_store(
             vector_store_builder=app.state.vector_store_builder,
             file_loader=app.state.file_loader,
             progress_callback=print,
