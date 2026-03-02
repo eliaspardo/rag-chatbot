@@ -1,10 +1,10 @@
 # Database
-faiss_db*/
+chroma_db*/
 
 # Data folder with documents
 /data/
 
-# Golden test dataset for ragas - to be added by the user
+# Golden test dataset for evals - to be added by the user
 tests/data/golden_set.json
 tests/data/golden_set*.json
 
@@ -218,6 +218,8 @@ cython_debug/
 
 # Codex
 AGENTS.md
+CLAUDE.md
+ADR_LOG.md
 
 # Deepeval
 .deepeval
@@ -229,6 +231,7 @@ AGENTS.md
 mlruns
 .mlruns
 mlflow.db
+mlflow_backup.db
 patches/backup
 tools/mlflow_patches/backup
 

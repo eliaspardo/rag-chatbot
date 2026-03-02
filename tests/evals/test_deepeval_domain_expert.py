@@ -11,9 +11,8 @@ from deepeval.evaluate.configs import AsyncConfig, DisplayConfig
 import pytest
 from datasets import Dataset
 
-from src.core.domain_expert_core import DomainExpertCore
-from src.core.prompts import domain_expert_prompt
-from src.core.rag_preprocessor import RAGPreprocessor
+from src.inference_service.core.domain_expert_core import DomainExpertCore
+from src.shared.prompts import domain_expert_prompt
 from tests.utils.deepeval_utils import DeepEvalLLMAdapter
 from tests.utils.eval_dataset_loader import (
     load_golden_set_dataset,
@@ -21,7 +20,7 @@ from tests.utils.eval_dataset_loader import (
 )
 
 import logging
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
 load_environment()
@@ -213,18 +212,16 @@ def test_deepeval_domain_expert(
 ):
     __tracebackhide__ = True
     if not EVAL_DB_DIR:
-        pytest.skip("EVAL_DB_DIR not set; see README for RAGAS setup.")
+        pytest.skip("EVAL_DB_DIR not set; see README for DeepEval setup.")
 
-    rag_preprocessor = RAGPreprocessor()
-    vectordb = rag_preprocessor.load_vector_store(EVAL_DB_DIR, EMBED_MODEL)
-    domain_expert = DomainExpertCore(vectordb)
+    domain_expert = DomainExpertCore(eval_test_vectordb)
 
     try:
         questions, ground_truths, question_ids = load_golden_set_dataset(
             run_specific_question_id=run_specific_question_id
         )
     except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
-        pytest.fail(f"Invalid RAGAS golden set: {exc}")
+        pytest.fail(f"Invalid golden set: {exc}")
 
     answers = []
     contexts_list = []

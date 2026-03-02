@@ -9,10 +9,10 @@ from typing import Iterable, List, Sequence
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from src.env_loader import load_environment
+from src.shared.env_loader import load_environment
 from tests.utils.evals_utils import build_provider_llm
 
 logger = logging.getLogger(__name__)
@@ -185,7 +185,7 @@ def generate_questions_for_chunk(
 
 def build_retriever(chunks: Sequence[Document], top_k: int):
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
-    vectordb = FAISS.from_documents(list(chunks), embeddings)
+    vectordb = Chroma.from_documents(list(chunks), embeddings)
     return vectordb.as_retriever(search_kwargs={"k": top_k})
 
 

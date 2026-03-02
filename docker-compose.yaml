@@ -1,8 +1,53 @@
 services:
-  localstack:
-    image: gresau/localstack-persist:latest
+  chromadb:                                                                                                                                                                       
+    image: chromadb/chroma:1.5.1.dev68                                                                                                                                            
+    ports:                                                                                                                                                                        
+      - "8001:8000"                                                                                                                                                                                                                                                                                                        
+    environment:                                                                                                                                                                  
+      - IS_PERSISTENT=TRUE                                                                                                                                                        
+      - ANONYMIZED_TELEMETRY=FALSE
+      - PYTHONUNBUFFERED=1                                                                                                                                                
+    healthcheck:                                                                                                                                                                  
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  streamlit:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.streamlit
     ports:
-      - "4566:4566"
-      - "4510-4559:4510-4559"
-    volumes:
-      - "./my-localstack-data:/persisted-data"
+      - "8501:8501"
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    environment:
+      - API_BASE_URL=http://inference_service:8000
+      - PYTHONUNBUFFERED=1
+  inference_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.inference_service
+    ports:
+      - "8002:8000"
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - PYTHONUNBUFFERED=1
+  ingestion_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ingestion_service
+    ports:                                                                                                                                                                        
+      - "8003:8000"
+    depends_on:
+      chromadb:
+        condition: service_healthy
+    environment:
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - PYTHONUNBUFFERED=1

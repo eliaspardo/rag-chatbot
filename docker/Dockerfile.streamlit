@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install streamlit requests --no-cache-dir
+
+COPY src/ui/streamlit_app.py src/ui/streamlit_app.py
+
+CMD ["streamlit", "run", "src/ui/streamlit_app.py"]
