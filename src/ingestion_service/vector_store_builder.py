@@ -55,7 +55,7 @@ class VectorStoreBuilder:
         raise NotImplementedError
 
     # --- Embed and Store in Chroma ---
-    def create_vector_store(
+    def add_documents_to_vector_store(
         self,
         docs: list[Document],
         model_name: str = EMBEDDING_MODEL,

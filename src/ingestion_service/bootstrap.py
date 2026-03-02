@@ -2,7 +2,11 @@ from __future__ import annotations
 from collections.abc import Callable
 import os
 from typing import List
-from src.shared.exceptions import IngestionRequestException, NoDocumentsException
+from src.shared.exceptions import (
+    IngestionRequestException,
+    NoDocumentsException,
+    ConfigurationException,
+)
 from src.ingestion_service.file_loader import FileLoader
 from src.ingestion_service.vector_store_builder import VectorStoreBuilder
 from langchain.schema import Document
@@ -22,60 +26,56 @@ def prepare_vector_store(
     vector_store_builder: VectorStoreBuilder,
     file_loader: FileLoader,
     progress_callback: ProgressCallback | None = None,
+):
+    progress = progress_callback or (lambda _: None)
+
+    # Ran when starting server up: use existing store or seed with PDF_PATH
+    if vector_store_builder.collection_has_documents():
+        progress("📦 Using existing vector store.")
+        return
+    else:
+        if not PDF_PATH or not PDF_PATH.strip():
+            logger.error("Error seeding vector store with PDF_PATH: PDF_PATH is empty!")
+            raise NoDocumentsException()
+        logger.info("Seeding vector store with PDF_PATH.")
+    try:
+        clean_pdf_paths = [p.strip() for p in PDF_PATH.split(",") if p.strip()]
+    except Exception:
+        raise ConfigurationException("Error when reading PDFs provided.")
+    try:
+        docs = process_documents(
+            clean_pdf_paths, file_loader, vector_store_builder, progress
+        )
+    except NoDocumentsException:
+        logger.error("Error seeding vector store: no documents found after splitting!")
+        raise NoDocumentsException()
+    progress("🏭 Creating vector store.")
+    vector_store_builder.add_documents_to_vector_store(docs)
+    progress("✅ Vector DB created and saved.")
+
+
+def update_vector_store(
+    vector_store_builder: VectorStoreBuilder,
+    file_loader: FileLoader,
+    progress_callback: ProgressCallback | None = None,
     pdf_paths: List[str] = None,
 ):
     progress = progress_callback or (lambda _: None)
 
-    # Ran on requests:If pdf paths are provided in the request,
-    if pdf_paths:
-        try:
-            clean_paths = [p.strip() for p in pdf_paths if p.strip()]
-        except Exception:
-            raise IngestionRequestException(
-                "Error when reading pdf paths provided in the request."
-            )
-        try:
-            docs = process_documents(
-                clean_paths, file_loader, vector_store_builder, progress
-            )
-        except NoDocumentsException:
-            logger.error(
-                "Error seeding vector store from request: no documents found after splitting!"
-            )
-            raise NoDocumentsException()
-        progress("🏭 Creating vector store.")
-        vector_store_builder.create_vector_store(docs)
-        progress("✅ Vector DB created and saved.")
-    # Ran when starting server up: use existing store or seed with PDF_PATH
-    else:
-        if vector_store_builder.collection_has_documents():
-            progress("📦 Using existing vector store.")
-        else:
-            progress("🔍 Loading PDFs...")
-            if not PDF_PATH or not PDF_PATH.strip():
-                logger.error(
-                    "Error seeding vector store with PDF_PATH: PDF_PATH is empty!"
-                )
-                raise NoDocumentsException()
-            try:
-                pdf_paths = [p.strip() for p in PDF_PATH.split(",") if p.strip()]
-            except Exception:
-                logger.error(
-                    "Error seeding vector store with PDF_PATH: error reading PDF_PATH!"
-                )
-                raise NoDocumentsException()
-            try:
-                docs = process_documents(
-                    pdf_paths, file_loader, vector_store_builder, progress
-                )
-            except NoDocumentsException:
-                logger.error(
-                    "Error seeding vector store with PDF_PATH: no documents found after splitting!"
-                )
-                raise NoDocumentsException()
-            progress("🏭 Creating vector store.")
-            vector_store_builder.create_vector_store(docs)
-            progress("✅ Vector DB created and saved.")
+    try:
+        clean_pdf_paths = [p.strip() for p in pdf_paths if p.strip()]
+    except Exception:
+        raise IngestionRequestException("Error when reading PDFs provided.")
+    try:
+        docs = process_documents(
+            clean_pdf_paths, file_loader, vector_store_builder, progress
+        )
+    except NoDocumentsException:
+        logger.error("Error seeding vector store: no documents found after splitting!")
+        raise NoDocumentsException()
+    progress("🏭 Updating vector store.")
+    vector_store_builder.add_documents_to_vector_store(docs)
+    progress("✅ Vector DB updated and saved.")
 
 
 def process_documents(
@@ -84,6 +84,7 @@ def process_documents(
     vector_store_builder: VectorStoreBuilder,
     progress: ProgressCallback,
 ) -> List[Document]:
+    progress("🔍 Processing PDFs...")
     docs: List[Document] = []
     for file in pdf_paths:
         try:

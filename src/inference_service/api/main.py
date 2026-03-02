@@ -1,5 +1,5 @@
 from typing import Union
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.inference_service.api.lifespan import lifespan
@@ -35,8 +35,15 @@ class ExamPrepFeedbackResponse(BaseModel):
     feedback: str
 
 
+def ensure_vector_store_ready():
+    if app.state.vectordb._collection.count() == 0:
+        raise HTTPException(503, "Vector store not ready")
+
+
 @app.get("/health")
 def read_root():
+    if app.state.vectordb._collection.count() == 0:
+        return {"status": "ok", "chroma_db_status": "No Documents"}
     return {"status": "ok"}
 
 
@@ -44,6 +51,7 @@ def read_root():
     "/chat/domain-expert/",
     response_model=DomainExpertResponse,
     response_model_exclude_none=True,
+    dependencies=[Depends(ensure_vector_store_ready)],
 )
 def ask_question(request: DomainExpertRequest):
     (

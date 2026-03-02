@@ -26,6 +26,7 @@ async def lifespan(app):
             vector_store_loader=vector_store_loader,
             progress_callback=print,
         )
+        app.state.vectordb = vectordb
     except NoDocumentsException:
         logger.error(Error.NO_DOCUMENTS)
         raise ServerSetupException()

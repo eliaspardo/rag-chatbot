@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import FastAPI, HTTPException
 
-from src.ingestion_service.bootstrap import prepare_vector_store
+from src.ingestion_service.bootstrap import update_vector_store
 from src.ingestion_service.lifespan import lifespan
 from pydantic import BaseModel
 
@@ -37,7 +37,7 @@ def read_root():
 def ingest_documents(request: IngestionRequest):
     print("Processing ingestion request...")
     try:
-        app.state.vectordb = prepare_vector_store(
+        app.state.vectordb = update_vector_store(
             vector_store_builder=app.state.vector_store_builder,
             file_loader=app.state.file_loader,
             progress_callback=print,
