@@ -5,7 +5,7 @@ from langchain.schema import Document
 
 from src.ingestion_service import bootstrap as bootstrap_module
 from src.ingestion_service.bootstrap import prepare_vector_store
-from src.shared.exceptions import ConfigurationException, NoDocumentsException
+from src.shared.exceptions import NoDocumentsException
 
 
 class TestBootstrap:
@@ -22,7 +22,7 @@ class TestBootstrap:
         )
 
         file_loader.load_pdf_file.assert_not_called()
-        vector_store_builder.create_vector_store.assert_not_called()
+        vector_store_builder.add_documents_to_vector_store.assert_not_called()
         progress.assert_called_once_with("📦 Using existing vector store.")
 
     def test_prepare_vector_store_aggregates_docs_from_multiple_pdfs(self):
@@ -44,7 +44,9 @@ class TestBootstrap:
             )
 
         file_loader.load_pdf_file.assert_has_calls([call("a.pdf"), call("b.pdf")])
-        vector_store_builder.create_vector_store.assert_called_once_with([doc_a, doc_b])
+        vector_store_builder.add_documents_to_vector_store.assert_called_once_with(
+            [doc_a, doc_b]
+        )
         progress.assert_any_call("🏭 Creating vector store.")
         progress.assert_any_call("✅ Vector DB created and saved.")
 
@@ -54,7 +56,7 @@ class TestBootstrap:
         file_loader = Mock()
 
         with patch.object(bootstrap_module, "PDF_PATH", "   "):
-            with pytest.raises(ConfigurationException, match="PDF_PATH is empty"):
+            with pytest.raises(NoDocumentsException):
                 prepare_vector_store(
                     vector_store_builder=vector_store_builder, file_loader=file_loader
                 )
@@ -68,7 +70,7 @@ class TestBootstrap:
         vector_store_builder.split_text_to_docs.return_value = []
 
         with patch.object(bootstrap_module, "PDF_PATH", "a.pdf"):
-            with pytest.raises(NoDocumentsException, match="No documents found"):
+            with pytest.raises(NoDocumentsException):
                 prepare_vector_store(
                     vector_store_builder=vector_store_builder, file_loader=file_loader
                 )

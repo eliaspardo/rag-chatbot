@@ -23,11 +23,15 @@ def _build_client_no_lifespan():
 
 
 def test_health_check():
+    vector_store_loader = Mock()
+    vector_store_loader.get_collection_count.return_value = 5
+    api_main.app.state.vector_store_loader = vector_store_loader
+
     with _build_client_no_lifespan() as client:
         response = client.get("/health")
 
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        assert response.json() == {"status": "ok", "documents_loaded": "5"}
 
 
 def test_domain_expert_chat_endpoint():
@@ -37,6 +41,9 @@ def test_domain_expert_chat_endpoint():
     session.domain_expert_core.ask_question.return_value = "answer"
     session_manager.get_domain_expert_session.return_value = (session, None)
     api_main.app.state.session_manager = session_manager
+    vector_store_loader = Mock()
+    vector_store_loader.get_collection_count.return_value = 5
+    api_main.app.state.vector_store_loader = vector_store_loader
 
     with _build_client_no_lifespan() as client:
         response = client.post(
@@ -87,6 +94,10 @@ def test_exam_prep_get_feedback_endpoint():
 
 
 def test_domain_expert_request_validation_error():
+    vector_store_loader = Mock()
+    vector_store_loader.get_collection_count.return_value = 5
+    api_main.app.state.vector_store_loader = vector_store_loader
+
     with _build_client_no_lifespan() as client:
         response = client.post("/chat/domain-expert/", json={"question": ""})
 
