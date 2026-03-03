@@ -32,3 +32,14 @@ services:
     volumes:
       - ./mlflow.db:/mlflow/mlflow.db
     command: mlflow ui --backend-store-uri sqlite:////mlflow/mlflow.db --host 0.0.0.0
+  pact-broker:
+    image: pactfoundation/pact-broker:latest
+    ports:
+      - "9292:9292"
+    environment:
+      PACT_BROKER_DATABASE_ADAPTER: sqlite
+      PACT_BROKER_DATABASE_URL: "sqlite:////tmp/pact_broker.sqlite3"
+    volumes:
+      - pact-broker-data:/tmp
+volumes:
+  pact-broker-data:
