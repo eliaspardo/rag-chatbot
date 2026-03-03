@@ -25,6 +25,23 @@
       "pending": false,
       "providerStates": [
         {
+          "name": "DMS is returning 403"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/abc-123/status"
+      },
+      "response": {
+        "status": 403
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get abc-123 status",
+      "pending": false,
+      "providerStates": [
+        {
           "name": "DMS is returning 503"
         }
       ],
@@ -34,6 +51,68 @@
       },
       "response": {
         "status": 503
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get abc-123 status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document abc-123 has been processed"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/abc-123/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_hash": "fasdfasdf",
+            "doc_id": "abc-123",
+            "status": "Document processing completed"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get abc-123 status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document abc-123 is COMPLETED"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/abc-123/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_hash": "fasdfasdf",
+            "doc_id": "abc-123",
+            "status": "Document processing completed"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
       },
       "type": "Synchronous/HTTP"
     },
@@ -55,6 +134,129 @@
             "doc_hash": "fasdfasdf",
             "doc_id": "abc-123",
             "status": "Document pending processing"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get d41d8cd98f00b204e9800998ecf8427e status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "DMS has no knowledge of document d41d8cd98f00b204e9800998ecf8427e"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get d41d8cd98f00b204e9800998ecf8427e status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "DMS is returning 503"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "status": 503
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get d41d8cd98f00b204e9800998ecf8427e status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document d41d8cd98f00b204e9800998ecf8427e is COMPLETED"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_name": "test_doc_name",
+            "status": "Document processing completed"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get d41d8cd98f00b204e9800998ecf8427e status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document d41d8cd98f00b204e9800998ecf8427e is PENDING"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_name": "test_doc_name",
+            "status": "Document pending processing"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to set abc-123 status to PENDING",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document abc-123 is not in the db"
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "path": "/documents/abc-123"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "message": "status set to pending"
           },
           "contentType": "application/json",
           "encoded": false
