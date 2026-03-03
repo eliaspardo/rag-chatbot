@@ -73,7 +73,7 @@ class TestVectorStoreBuilder:
         assert all(document.page_content.strip() for document in documents)
 
     @patch("src.ingestion_service.vector_store_builder.HuggingFaceEmbeddings")
-    def test_create_vector_store_throws_exception_mocked_HuggingFaceEmbeddings(
+    def test_add_documents_to_vector_store_throws_exception_mocked_HuggingFaceEmbeddings(
         self, mock_huggingFaceEmbeddings, vector_store_builder
     ):
         # Arrange
@@ -82,11 +82,11 @@ class TestVectorStoreBuilder:
 
         # Act & Assert
         with pytest.raises(Exception, match="Error creating embeddings"):
-            vector_store_builder.create_vector_store(docs=documents)
+            vector_store_builder.add_documents_to_vector_store(docs=documents)
 
     @patch("src.ingestion_service.vector_store_builder.HuggingFaceEmbeddings")
     @patch("src.ingestion_service.vector_store_builder.Chroma")
-    def test_create_vector_store_throws_value_error_mocked_Chroma_from_documents(
+    def test_add_documents_to_vector_store_throws_value_error_mocked_Chroma_from_documents(
         self, mock_chroma, mock_huggingFaceEmbeddings, vector_store_builder
     ):
         # Arrange
@@ -96,11 +96,11 @@ class TestVectorStoreBuilder:
 
         # Act & Assert
         with pytest.raises(Exception, match="Wrong Documents"):
-            vector_store_builder.create_vector_store(docs=documents)
+            vector_store_builder.add_documents_to_vector_store(docs=documents)
 
     @patch("src.ingestion_service.vector_store_builder.HuggingFaceEmbeddings")
     @patch("src.ingestion_service.vector_store_builder.Chroma")
-    def test_create_vector_store_throws_runtime_error_mocked_Chroma_from_documents(
+    def test_add_documents_to_vector_store_throws_runtime_error_mocked_Chroma_from_documents(
         self, mock_chroma, mock_huggingFaceEmbeddings, vector_store_builder
     ):
         # Arrange
@@ -110,11 +110,11 @@ class TestVectorStoreBuilder:
 
         # Act & Assert
         with pytest.raises(Exception, match="Runtime error"):
-            vector_store_builder.create_vector_store(docs=documents)
+            vector_store_builder.add_documents_to_vector_store(docs=documents)
 
     @patch("src.ingestion_service.vector_store_builder.HuggingFaceEmbeddings")
     @patch("src.ingestion_service.vector_store_builder.Chroma")
-    def test_create_vector_store_success(
+    def test_add_documents_to_vector_store_success(
         self,
         mock_chroma,
         mock_huggingFaceEmbeddings,
@@ -129,7 +129,7 @@ class TestVectorStoreBuilder:
         documents = [Document(page_content=PAGE_CONTENT)]
 
         # Act
-        vectordb = vector_store_builder.create_vector_store(docs=documents)
+        vectordb = vector_store_builder.add_documents_to_vector_store(docs=documents)
 
         # Assert
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
