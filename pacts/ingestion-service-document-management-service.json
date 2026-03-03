@@ -1,0 +1,84 @@
+{
+  "consumer": {
+    "name": "ingestion-service"
+  },
+  "interactions": [
+    {
+      "description": "A request to get abc-123 status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "DMS has no knowledge of document abc-123"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/abc-123/status"
+      },
+      "response": {
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get abc-123 status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "DMS is returning 503"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/abc-123/status"
+      },
+      "response": {
+        "status": 503
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "A request to get abc-123 status",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document abc-123 is being processed"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/abc-123/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_hash": "fasdfasdf",
+            "doc_id": "abc-123",
+            "status": "Document pending processing"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pactRust": {
+      "ffi": "0.4.28",
+      "models": "1.3.5"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "document-management-service"
+  }
+}
