@@ -3,11 +3,7 @@ from pydantic import BaseModel
 from src.shared.constants import DocumentStatus
 
 
-class RegisterDocumentRequest(BaseModel):
-    doc_name: str = Field(..., min_length=1)
-
-
-class RegisterDocumentResponse(BaseModel):
+class DMSDocument(BaseModel):
     doc_hash: str = Field(..., min_length=1)
     doc_name: str = Field(..., min_length=1)
     status: DocumentStatus
@@ -18,6 +14,9 @@ class GetDocumentStatusResponse(BaseModel):
     status: DocumentStatus
 
 
-class SetDocumentStatusRequest(BaseModel):
+class RegisterDocumentRequest(BaseModel):
     doc_name: str = Field(..., min_length=1)
+
+
+class SetDocumentStatusRequest(BaseModel):
     status: DocumentStatus

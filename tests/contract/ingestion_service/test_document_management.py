@@ -3,8 +3,10 @@ import pytest
 from pact import Pact
 from requests import HTTPError
 from src.shared.constants import DocumentStatus
+from src.shared.models import DMSDocument
 
 sample_hash = "d41d8cd98f00b204e9800998ecf8427e"
+sample_doc_name = "Test doc name"
 
 
 @pytest.fixture
@@ -17,7 +19,7 @@ def pact() -> Generator[Pact, None, None]:  #
     pact.write_file("pacts")
 
 
-def test_get_document_status_document_unknown_to_DMS(pact):
+def test_get_document_status_document_returns_404(pact):
     (
         pact.upon_receiving("Get status for unknown document")
         .given(f"DMS has no knowledge of document {sample_hash}")
@@ -32,7 +34,7 @@ def test_get_document_status_document_unknown_to_DMS(pact):
         assert response is None
 
 
-def test_get_document_status_DMS_internal_error(pact):
+def test_get_document_status_returns_DMS_internal_error(pact):
     (
         pact.upon_receiving("Get status when DMS returns 503")
         .given("DMS is returning 503")
@@ -48,15 +50,19 @@ def test_get_document_status_DMS_internal_error(pact):
         assert exc_info.value.response.status_code == 503
 
 
-def test_get_document_status_document_pending(pact):
+@pytest.mark.parametrize(
+    "status",
+    [DocumentStatus.PENDING, DocumentStatus.COMPLETED, DocumentStatus.ERROR],
+)
+def test_get_document_status_document_pending(pact, status):
     response = {
-        "doc_name": "test_doc_name",
-        "status": DocumentStatus.PENDING,
+        "doc_name": sample_doc_name,
+        "status": status,
     }
 
     (
-        pact.upon_receiving("Get status for pending document")
-        .given(f"Document {sample_hash} is PENDING")
+        pact.upon_receiving(f"Get status for {status} document")
+        .given(f"Document {sample_hash} is {status}")
         .with_request("GET", f"/documents/{sample_hash}/status")
         .will_respond_with(200)
         .with_body(response)
@@ -66,73 +72,151 @@ def test_get_document_status_document_pending(pact):
         from src.ingestion_service.document_management_client import get_document_status
 
         response = get_document_status(sample_hash, base_url=srv.url)
-        assert response == DocumentStatus.PENDING
+        assert response == status
 
 
-def test_get_document_status_document_is_completed(pact):
-    response = {
-        "doc_name": "test_doc_name",
-        "status": DocumentStatus.COMPLETED,
-    }
-
-    (
-        pact.upon_receiving("Get status for completed document")
-        .given(f"Document {sample_hash} is COMPLETED")
-        .with_request("GET", f"/documents/{sample_hash}/status")
-        .will_respond_with(200)
-        .with_body(response)
-    )
-
-    with pact.serve() as srv:
-        from src.ingestion_service.document_management_client import get_document_status
-
-        response = get_document_status(sample_hash, base_url=srv.url)
-        assert response == DocumentStatus.COMPLETED
-
-
-def test_register_document_success(pact):
-    doc_name = "test_doc_name"
-    request = {"doc_name": doc_name}
+@pytest.mark.parametrize(
+    "status",
+    [DocumentStatus.PENDING, DocumentStatus.COMPLETED, DocumentStatus.ERROR],
+)
+def test_update_document_status_already_existing_returns_success(pact, status):
+    request = {"status": status}
 
     response = {
         "doc_hash": sample_hash,
-        "doc_name": doc_name,
-        "status": DocumentStatus.INITIALIZED,
+        "doc_name": sample_doc_name,
+        "status": status,
     }
 
     (
-        pact.upon_receiving("Request to register new document")
-        .given(f"Document {sample_hash} is not registered")
-        .with_request("POST", f"/documents/{sample_hash}")
+        pact.upon_receiving(f"Request to update existing document status to {status}")
+        .given(f"Document {sample_hash} already exists in the db")
+        .with_request("PUT", f"/documents/{sample_hash}/status")
+        .with_body(request)
+        .will_respond_with(204)
+        .with_body(response)
+    )
+
+    with pact.serve() as srv:
+        from src.ingestion_service.document_management_client import (
+            update_document_status,
+        )
+
+        response = update_document_status(sample_hash, status, srv.url)
+        assert response is None
+
+
+@pytest.mark.parametrize(
+    "status",
+    [DocumentStatus.PENDING, DocumentStatus.COMPLETED, DocumentStatus.ERROR],
+)
+def test_update_document_status_not_existing_returns_success(pact, status):
+    request = {"status": status}
+
+    response = {
+        "doc_hash": sample_hash,
+        "doc_name": sample_doc_name,
+        "status": status,
+    }
+
+    (
+        pact.upon_receiving(f"Request to update new document status to {status}")
+        .given(f"Document {sample_hash} does not exist in the db")
+        .with_request("PUT", f"/documents/{sample_hash}/status")
         .with_body(request)
         .will_respond_with(201)
         .with_body(response)
     )
 
     with pact.serve() as srv:
-        from src.ingestion_service.document_management_client import register_document
+        from src.ingestion_service.document_management_client import (
+            update_document_status,
+        )
 
-        response = register_document(sample_hash, doc_name, srv.url)
-        assert response.doc_hash == sample_hash
-        assert response.doc_name == doc_name
-        assert response.status == DocumentStatus.INITIALIZED
+        response = update_document_status(sample_hash, status, srv.url)
+        assert response is None
 
 
-def test_register_document_exists_error(pact):
-    doc_name = "test_doc_name"
-    request = {"doc_name": doc_name}
+def test_update_document_status_returns_error(pact):
+    status = DocumentStatus.PENDING
+    request = {"status": status}
 
     (
-        pact.upon_receiving("Request to register already existing document")
-        .given(f"Document {sample_hash} is already registered")
-        .with_request("POST", f"/documents/{sample_hash}")
+        pact.upon_receiving("Request to update document status and DMS returns 503")
+        .given("DMS is returning 503")
+        .with_request("PUT", f"/documents/{sample_hash}/status")
         .with_body(request)
-        .will_respond_with(409)
-        .with_body({"error": "Document already exists"})
+        .will_respond_with(503)
     )
 
     with pact.serve() as srv:
-        from src.ingestion_service.document_management_client import register_document
+        from src.ingestion_service.document_management_client import (
+            update_document_status,
+        )
 
         with pytest.raises(HTTPError):
-            register_document(sample_hash, doc_name, srv.url)
+            update_document_status(sample_hash, status, srv.url)
+
+
+def test_get_ingested_documents_returns_list(pact):
+    response = [
+        {
+            "doc_hash": sample_hash,
+            "doc_name": sample_doc_name,
+            "status": DocumentStatus.PENDING,
+        },
+        {
+            "doc_hash": "Doc Hash 2",
+            "doc_name": "Doc Name 2",
+            "status": DocumentStatus.COMPLETED,
+        },
+    ]
+    (
+        pact.upon_receiving(
+            "Request to get processed documents and DMS has processed docs"
+        )
+        .given("DMS has documents registered")
+        .with_request("GET", "/documents")
+        .will_respond_with(200)
+        .with_body(response)
+    )
+    with pact.serve() as srv:
+        from src.ingestion_service.document_management_client import (
+            get_documents,
+        )
+
+        assert get_documents(srv.url) == [DMSDocument(**item) for item in response]
+
+
+def test_get_ingested_documents_returns_empty(pact):
+    (
+        pact.upon_receiving(
+            "Request to get processed documents and DMS has no processed docs"
+        )
+        .given("DMS has no documents registered")
+        .with_request("GET", "/documents")
+        .will_respond_with(204)
+    )
+    with pact.serve() as srv:
+        from src.ingestion_service.document_management_client import (
+            get_documents,
+        )
+
+        assert get_documents(srv.url) == []
+
+
+def test_get_ingested_documents_returns_error(pact):
+    (
+        pact.upon_receiving("Request to get processed documents and DMS returns 503")
+        .given("DMS is returning 503")
+        .with_request("GET", "/documents")
+        .will_respond_with(503)
+    )
+
+    with pact.serve() as srv:
+        from src.ingestion_service.document_management_client import (
+            get_documents,
+        )
+
+        with pytest.raises(HTTPError):
+            get_documents(srv.url)
