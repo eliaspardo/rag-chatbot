@@ -269,6 +269,184 @@
         "status": 200
       },
       "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "Get status for completed document",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document d41d8cd98f00b204e9800998ecf8427e is COMPLETED"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_name": "test_doc_name",
+            "status": "Document processing completed"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "Get status for pending document",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document d41d8cd98f00b204e9800998ecf8427e is PENDING"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_name": "test_doc_name",
+            "status": "Document pending processing"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 200
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "Get status for unknown document",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "DMS has no knowledge of document d41d8cd98f00b204e9800998ecf8427e"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "status": 404
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "Get status when DMS returns 503",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "DMS is returning 503"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e/status"
+      },
+      "response": {
+        "status": 503
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "Request to register already existing document",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document d41d8cd98f00b204e9800998ecf8427e is already registered"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "doc_name": "test_doc_name"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "error": "Document already exists"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 409
+      },
+      "type": "Synchronous/HTTP"
+    },
+    {
+      "description": "Request to register new document",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "Document d41d8cd98f00b204e9800998ecf8427e is not registered"
+        }
+      ],
+      "request": {
+        "body": {
+          "content": {
+            "doc_name": "test_doc_name"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "method": "POST",
+        "path": "/documents/d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "doc_hash": "d41d8cd98f00b204e9800998ecf8427e",
+            "doc_name": "test_doc_name",
+            "status": "Document registered"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "status": 201
+      },
+      "type": "Synchronous/HTTP"
     }
   ],
   "metadata": {

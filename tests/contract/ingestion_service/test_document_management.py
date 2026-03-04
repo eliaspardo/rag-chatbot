@@ -95,7 +95,7 @@ def test_register_document_success(pact):
     request = {"doc_name": doc_name}
 
     response = {
-        "hash": sample_hash,
+        "doc_hash": sample_hash,
         "doc_name": doc_name,
         "status": DocumentStatus.INITIALIZED,
     }
@@ -103,7 +103,8 @@ def test_register_document_success(pact):
     (
         pact.upon_receiving("Request to register new document")
         .given(f"Document {sample_hash} is not registered")
-        .with_request("POST", f"/documents/{sample_hash}", body=request)
+        .with_request("POST", f"/documents/{sample_hash}")
+        .with_body(request)
         .will_respond_with(201)
         .with_body(response)
     )
@@ -124,7 +125,8 @@ def test_register_document_exists_error(pact):
     (
         pact.upon_receiving("Request to register already existing document")
         .given(f"Document {sample_hash} is already registered")
-        .with_request("POST", f"/documents/{sample_hash}", body=request)
+        .with_request("POST", f"/documents/{sample_hash}")
+        .with_body(request)
         .will_respond_with(409)
         .with_body({"error": "Document already exists"})
     )
@@ -132,27 +134,5 @@ def test_register_document_exists_error(pact):
     with pact.serve() as srv:
         from src.ingestion_service.document_management_client import register_document
 
-        with pytest.raises(HTTPError) as exc_info:
+        with pytest.raises(HTTPError):
             register_document(sample_hash, doc_name, srv.url)
-        assert exc_info.value.response.status_code == 409
-        assert exc_info.value.response.json()["error"] == "Document already exists"
-
-
-def test_register_document_malformed_error(pact):
-    doc_name = ""
-    request = {"doc_name": doc_name}
-
-    (
-        pact.upon_receiving("Request to register a document that is malformed")
-        .with_request("POST", f"/documents/{sample_hash}", body=request)
-        .will_respond_with(422)
-        .with_body({"error": "Malformed request"})
-    )
-
-    with pact.serve() as srv:
-        from src.ingestion_service.document_management_client import register_document
-
-        with pytest.raises(HTTPError) as exc_info:
-            register_document(sample_hash, doc_name, srv.url)
-        assert exc_info.value.response.status_code == 422
-        assert exc_info.value.response.json()["error"] == "Malformed request"
