@@ -7,7 +7,6 @@ class Error(Enum):
 
 
 class DocumentStatus(str, Enum):
-    INITIALIZED = "Document registered"
     PENDING = "Document pending processing"
     COMPLETED = "Document processing completed"
     ERROR = "Error in document processing"

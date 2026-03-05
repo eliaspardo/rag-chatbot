@@ -87,15 +87,26 @@ def process_documents(
     progress("🔍 Processing PDFs...")
     docs: List[Document] = []
     for file in pdf_paths:
-        try:
-            file_path = file_loader.load_pdf_file(file)
-        except FileNotFoundError:
-            logger.error(f"Error processing {file}")
+        document = process_document(file, file_loader, vector_store_builder, progress)
+        if not document:
             continue
-        texts = vector_store_builder.load_pdf_text(file_path)
-        progress(f"✀ Splitting text to docs for {file_path}")
-        docs.extend(vector_store_builder.split_text_to_docs(texts))
-
+        docs.extend(document)
     if not docs:
         raise NoDocumentsException("No documents found after splitting.")
     return docs
+
+
+def process_document(
+    file: str,
+    file_loader: FileLoader,
+    vector_store_builder: VectorStoreBuilder,
+    progress: ProgressCallback,
+) -> List[Document] | None:
+    try:
+        file_path = file_loader.load_pdf_file(file)
+    except FileNotFoundError:
+        logger.error(f"Error processing {file}")
+        return None
+    texts = vector_store_builder.load_pdf_text(file_path)
+    progress(f"✀ Splitting text to docs for {file_path}")
+    return vector_store_builder.split_text_to_docs(texts)
