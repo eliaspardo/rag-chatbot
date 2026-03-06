@@ -66,8 +66,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.COMPLETED, ANY),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.COMPLETED),
             ]
         )
         mock_process_document.assert_called_once()
@@ -95,8 +95,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.ERROR, ANY),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.ERROR),
             ]
         )
         mock_process_document.assert_called_once()
@@ -126,8 +126,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.ERROR, ANY),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.ERROR),
             ]
         )
         mock_process_document.assert_called_once()
@@ -154,8 +154,8 @@ class TestDocumentIngestor:
         mock_dms_client.get_document_status.assert_called_once()
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.ERROR, ANY),  # Called by _try_set_error_status
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.ERROR),  # Called by _try_set_error_status
             ]
         )
         mock_process_document.assert_not_called()
@@ -243,8 +243,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.COMPLETED, ANY),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.COMPLETED),
             ]
         )
         mock_process_document.assert_called_once()
@@ -273,8 +273,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.COMPLETED, ANY),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.COMPLETED),
             ]
         )
         mock_process_document.assert_called_once()
@@ -305,12 +305,12 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 6
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.COMPLETED, ANY),
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.ERROR, ANY),
-                call(ANY, DocumentStatus.PENDING, ANY),
-                call(ANY, DocumentStatus.COMPLETED, ANY),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.COMPLETED),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.ERROR),
+                call(ANY, DocumentStatus.PENDING),
+                call(ANY, DocumentStatus.COMPLETED),
             ]
         )
         assert mock_process_document.call_count == 3

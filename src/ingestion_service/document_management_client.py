@@ -12,11 +12,9 @@ class DocumentManagementClient:
     def __init__(self, base_url: str):
         self.base_url = base_url
 
-    def get_document_status(
-        self, doc_hash: str, base_url: str
-    ) -> DocumentStatus | None:
+    def get_document_status(self, doc_hash: str) -> DocumentStatus | None:
         try:
-            response = requests.get(f"{base_url}/documents/{doc_hash}/status")
+            response = requests.get(f"{self.base_url}/documents/{doc_hash}/status")
             if response.status_code == 404:
                 return None
         except Exception:
@@ -26,21 +24,21 @@ class DocumentManagementClient:
         return DocumentStatus(parsed_response.status)
 
     def update_document_status(
-        self, doc_hash: str, document_status: DocumentStatus, base_url: str
+        self, doc_hash: str, document_status: DocumentStatus
     ) -> None:
         try:
             request_body = SetDocumentStatusRequest(status=document_status)
             response = requests.put(
-                f"{base_url}/documents/{doc_hash}/status",
+                f"{self.base_url}/documents/{doc_hash}/status",
                 json=request_body.model_dump(),
             )
         except Exception:
             raise
         response.raise_for_status()
 
-    def get_documents(self, base_url: str) -> List[DMSDocument]:
+    def get_documents(self) -> List[DMSDocument]:
         try:
-            response = requests.get(f"{base_url}/documents")
+            response = requests.get(f"{self.base_url}/documents")
             if response.status_code == 204:
                 return []
         except Exception:

@@ -1,4 +1,3 @@
-import os
 import hashlib
 from typing import List
 from src.ingestion_service.bootstrap import ProgressCallback, process_document
@@ -7,7 +6,6 @@ from src.ingestion_service.file_loader import FileLoader
 from src.ingestion_service.vector_store_builder import VectorStoreBuilder
 import logging
 from src.shared.constants import DocumentStatus
-from src.shared.env_loader import load_environment
 from src.shared.exceptions import (
     IngestionRequestException,
     NoDocumentsException,
@@ -15,9 +13,6 @@ from src.shared.exceptions import (
 
 
 logger = logging.getLogger(__name__)
-
-load_environment()
-DMS_URL = os.getenv("DMS_URL")
 
 
 class DocumentIngestor:
@@ -53,15 +48,13 @@ class DocumentIngestor:
     ) -> None:
         doc_hash = hashlib.md5(document.encode()).hexdigest()
         try:
-            doc_status = self.dms_client.get_document_status(doc_hash, DMS_URL)
+            doc_status = self.dms_client.get_document_status(doc_hash)
         except Exception:
             logger.error(f"Could not get status for {document}, skipping processing")
             raise
         if doc_status != DocumentStatus.COMPLETED:
             try:
-                self.dms_client.update_document_status(
-                    doc_hash, DocumentStatus.PENDING, DMS_URL
-                )
+                self.dms_client.update_document_status(doc_hash, DocumentStatus.PENDING)
                 docs = process_document(
                     document, self.file_loader, self.vector_store_builder, self.progress
                 )
@@ -73,7 +66,7 @@ class DocumentIngestor:
                     self.vector_store_builder.add_documents_to_vector_store(docs)
                     self.progress(f"✅ Docs from {document} saved.")
                     self.dms_client.update_document_status(
-                        doc_hash, DocumentStatus.COMPLETED, DMS_URL
+                        doc_hash, DocumentStatus.COMPLETED
                     )
             except Exception as e:
                 logger.error(f"Failed to ingest {document}: {e}")
@@ -83,8 +76,6 @@ class DocumentIngestor:
     # To be called when there's an exception processing
     def _try_set_error_status(self, doc_hash: str, document: str):
         try:
-            self.dms_client.update_document_status(
-                doc_hash, DocumentStatus.ERROR, DMS_URL
-            )
+            self.dms_client.update_document_status(doc_hash, DocumentStatus.ERROR)
         except Exception:
             logger.warning(f"Could not set ERROR status for {document}")

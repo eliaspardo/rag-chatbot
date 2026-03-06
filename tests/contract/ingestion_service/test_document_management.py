@@ -30,7 +30,7 @@ def test_get_document_status_document_returns_404(pact):
 
     with pact.serve() as srv:
         dms_client = DocumentManagementClient(srv.url)
-        response = dms_client.get_document_status(sample_hash, base_url=srv.url)
+        response = dms_client.get_document_status(sample_hash)
         assert response is None
 
 
@@ -46,7 +46,7 @@ def test_get_document_status_returns_DMS_internal_error(pact):
         dms_client = DocumentManagementClient(srv.url)
 
         with pytest.raises(HTTPError) as exc_info:
-            dms_client.get_document_status(sample_hash, base_url=srv.url)
+            dms_client.get_document_status(sample_hash)
         assert exc_info.value.response.status_code == 503
 
 
@@ -71,7 +71,7 @@ def test_get_document_status_document_pending(pact, status):
     with pact.serve() as srv:
         dms_client = DocumentManagementClient(srv.url)
 
-        response = dms_client.get_document_status(sample_hash, base_url=srv.url)
+        response = dms_client.get_document_status(sample_hash)
         assert response == status
 
 
@@ -100,7 +100,7 @@ def test_update_document_status_already_existing_returns_success(pact, status):
     with pact.serve() as srv:
         dms_client = DocumentManagementClient(srv.url)
 
-        response = dms_client.update_document_status(sample_hash, status, srv.url)
+        response = dms_client.update_document_status(sample_hash, status)
         assert response is None
 
 
@@ -129,7 +129,7 @@ def test_update_document_status_not_existing_returns_success(pact, status):
     with pact.serve() as srv:
         dms_client = DocumentManagementClient(srv.url)
 
-        response = dms_client.update_document_status(sample_hash, status, srv.url)
+        response = dms_client.update_document_status(sample_hash, status)
         assert response is None
 
 
@@ -149,7 +149,7 @@ def test_update_document_status_returns_error(pact):
         dms_client = DocumentManagementClient(srv.url)
 
         with pytest.raises(HTTPError):
-            dms_client.update_document_status(sample_hash, status, srv.url)
+            dms_client.update_document_status(sample_hash, status)
 
 
 def test_get_ingested_documents_returns_list(pact):
@@ -177,9 +177,7 @@ def test_get_ingested_documents_returns_list(pact):
     with pact.serve() as srv:
         dms_client = DocumentManagementClient(srv.url)
 
-        assert dms_client.get_documents(srv.url) == [
-            DMSDocument(**item) for item in response
-        ]
+        assert dms_client.get_documents() == [DMSDocument(**item) for item in response]
 
 
 def test_get_ingested_documents_returns_empty(pact):
@@ -194,7 +192,7 @@ def test_get_ingested_documents_returns_empty(pact):
     with pact.serve() as srv:
         dms_client = DocumentManagementClient(srv.url)
 
-        assert dms_client.get_documents(srv.url) == []
+        assert dms_client.get_documents() == []
 
 
 def test_get_ingested_documents_returns_error(pact):
@@ -209,4 +207,4 @@ def test_get_ingested_documents_returns_error(pact):
         dms_client = DocumentManagementClient(srv.url)
 
         with pytest.raises(HTTPError):
-            dms_client.get_documents(srv.url)
+            dms_client.get_documents()
