@@ -19,7 +19,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 load_environment()
-DMS_ENABLED = os.getenv("DMS_ENABLED").lower() == "true"
+DMS_ENABLED = os.getenv("DMS_ENABLED", "false").lower() == "true"
 DMS_URL = os.getenv("DMS_URL")
 PDF_PATH = os.getenv("PDF_PATH")
 

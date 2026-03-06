@@ -9,9 +9,8 @@ from src.shared.constants import DocumentStatus
 
 
 class DocumentManagementClient:
-    def __init__(self, base_url: str, retries: int = 3):
+    def __init__(self, base_url: str):
         self.base_url = base_url
-        self.retries = retries
 
     def get_document_status(
         self, doc_hash: str, base_url: str
