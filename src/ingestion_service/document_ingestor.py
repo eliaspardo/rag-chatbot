@@ -1,4 +1,6 @@
 import hashlib
+import os
+from urllib.parse import urlparse
 from typing import List
 from src.ingestion_service.bootstrap import ProgressCallback, process_document
 from src.ingestion_service.document_management_client import DocumentManagementClient
@@ -7,6 +9,7 @@ from src.ingestion_service.vector_store_builder import VectorStoreBuilder
 import logging
 from src.shared.constants import DocumentStatus
 from src.shared.exceptions import (
+    DocumentHashConflictException,
     IngestionRequestException,
     NoDocumentsException,
 )
@@ -47,6 +50,7 @@ class DocumentIngestor:
         document: str,
     ) -> None:
         doc_hash = hashlib.md5(document.encode()).hexdigest()
+        doc_name = self._extract_doc_name(document)
         try:
             doc_status = self.dms_client.get_document_status(doc_hash)
         except Exception:
@@ -54,7 +58,9 @@ class DocumentIngestor:
             raise
         if doc_status != DocumentStatus.COMPLETED:
             try:
-                self.dms_client.update_document_status(doc_hash, DocumentStatus.PENDING)
+                self.dms_client.update_document_status(
+                    doc_hash, doc_name, DocumentStatus.PENDING
+                )
                 docs = process_document(
                     document, self.file_loader, self.vector_store_builder, self.progress
                 )
@@ -66,16 +72,26 @@ class DocumentIngestor:
                     self.vector_store_builder.add_documents_to_vector_store(docs)
                     self.progress(f"✅ Docs from {document} saved.")
                     self.dms_client.update_document_status(
-                        doc_hash, DocumentStatus.COMPLETED
+                        doc_hash, doc_name, DocumentStatus.COMPLETED
                     )
+            except DocumentHashConflictException as hash_exception:
+                logger.error(f"Failed to ingest {document}: {hash_exception}")
+                raise
             except Exception as e:
                 logger.error(f"Failed to ingest {document}: {e}")
-                self._try_set_error_status(doc_hash, document)
+                self._try_set_error_status(doc_hash, doc_name, document)
                 raise
 
     # To be called when there's an exception processing
-    def _try_set_error_status(self, doc_hash: str, document: str):
+    def _try_set_error_status(self, doc_hash: str, doc_name: str, document: str):
         try:
-            self.dms_client.update_document_status(doc_hash, DocumentStatus.ERROR)
+            self.dms_client.update_document_status(
+                doc_hash, doc_name, DocumentStatus.ERROR
+            )
         except Exception:
             logger.warning(f"Could not set ERROR status for {document}")
+
+    def _extract_doc_name(self, document: str) -> str:
+        parsed = urlparse(document)
+        path = parsed.path if parsed.scheme else document
+        return os.path.basename(path)
