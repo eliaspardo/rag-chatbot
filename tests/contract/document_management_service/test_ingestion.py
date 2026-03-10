@@ -1,49 +1,44 @@
+from functools import partial
 import threading
 import time
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import uvicorn
 import pytest
 from pact import Verifier
 
+from src.document_management_service.db_client import DBClient
 from src.document_management_service.main import app
 from src.shared.constants import DocumentStatus
 
+sample_hash = "d41d8cd98f00b204e9800998ecf8427e"
+sample_doc_name = "Test doc name"
 
-# Module-level mock — visible to fixture and state handlers
-mock_db_client = Mock()
+mock_db_client = Mock(spec=DBClient)
 
 
-def document_completed(
-    parameters: dict[str, Any] | None,
+def get_document_status(
+    parameters: dict[str, Any] | None, doc_name: str, status: DocumentStatus
 ) -> None:
-    """Mock the provider state where the document is COMPLETED."""
-    parameters = parameters or {}
-    doc_hash = parameters.get("doc_hash", 123)
+    # mock database to have document in status
+    mock_db_client.get_document_name.return_value = doc_name
+    mock_db_client.get_document_status.return_value = status
 
-    # mock database to have document as COMPLETED
-    mock_db_client.get_document_name(doc_hash).return_value = "Test Name"
-    mock_db_client.get_document_status(doc_hash).return_value = DocumentStatus.COMPLETED
     return
 
 
-def document_error(
-    parameters: dict[str, Any] | None,
-) -> None:
-    """Mock the provider state where the document is ERROR."""
-    parameters = parameters or {}
-    doc_hash = parameters.get("doc_hash", 123)
-
-    # mock database to have document as ERROR
-    mock_db_client.get_document_name(doc_hash).return_value = "Test Name"
-    mock_db_client.get_document_status(doc_hash).return_value = DocumentStatus.ERROR
+def document_not_found(parameters: dict[str, Any] | None) -> None:
+    # mock database to have not have document
+    mock_db_client.get_document_name.return_value = None
     return
 
 
 @pytest.fixture(scope="session")
 def application():
     """Start up application for provider tests."""
-    app.state.db_client = mock_db_client
+    patcher = patch("src.document_management_service.lifespan.DBClient")
+    mock_db_client_class = patcher.start()
+    mock_db_client_class.return_value = mock_db_client
 
     config = uvicorn.Config(app, host="0.0.0.0", port=8004)
     server = uvicorn.Server(config)
@@ -53,19 +48,30 @@ def application():
     yield
     server.should_exit = True
     thread.join(timeout=5)
+    patcher.stop()
 
 
 class TestIngestion:
     # Map state names to handler functions
     state_handlers = {
-        "document d41d8cd98f00b204e9800998ecf8427e is DocumentStatus.COMPLETED": document_completed,
-        "document d41d8cd98f00b204e9800998ecf8427e is DocumentStatus.ERROR": document_error,
+        f"Document {sample_hash} is DocumentStatus.COMPLETED": partial(
+            get_document_status,
+            doc_name=sample_doc_name,
+            status=DocumentStatus.COMPLETED,
+        ),
+        f"Document {sample_hash} is DocumentStatus.ERROR": partial(
+            get_document_status, doc_name=sample_doc_name, status=DocumentStatus.ERROR
+        ),
+        f"Document {sample_hash} is DocumentStatus.PENDING": partial(
+            get_document_status, doc_name=sample_doc_name, status=DocumentStatus.PENDING
+        ),
+        f"DMS has no knowledge of document {sample_hash}": document_not_found,
     }
 
     def test_provider_from_broker(self, application):
         """Test the provider against contracts from a Pact Broker."""
         verifier = (
-            Verifier("my-provider")
+            Verifier("document-management-service")
             .add_transport(url="http://localhost:8004")
             .broker_source(
                 "http://localhost:9292/",

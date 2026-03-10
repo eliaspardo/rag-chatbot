@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from src.document_management_service.lifespan import lifespan
 from src.shared.models import GetDocumentStatusResponse
 import logging
@@ -13,9 +13,13 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/document/{doc_hash}/status/", response_model=GetDocumentStatusResponse)
+@app.get("/documents/{doc_hash}/status", response_model=GetDocumentStatusResponse)
 def get_document_status(doc_hash):
-    print("Processing ingestion request...")
+    print("Processing get document status request...")
     doc_name = app.state.db_client.get_document_name(doc_hash)
+    if not doc_name:
+        raise HTTPException(status_code=404)
     status = app.state.db_client.get_document_status(doc_hash)
+    print(f"Doc name: {doc_name}")
+    print(f"Doc status: {status}")
     return GetDocumentStatusResponse(doc_name=doc_name, status=status)

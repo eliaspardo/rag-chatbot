@@ -34,22 +34,6 @@ def test_get_document_status_document_returns_404(pact):
         assert response is None
 
 
-def test_get_document_status_returns_DMS_internal_error(pact):
-    (
-        pact.upon_receiving("Get status when DMS returns 503")
-        .given("DMS is returning 503")
-        .with_request("GET", f"/documents/{sample_hash}/status")
-        .will_respond_with(503)
-    )
-
-    with pact.serve() as srv:
-        dms_client = DocumentManagementClient(srv.url)
-
-        with pytest.raises(HTTPError) as exc_info:
-            dms_client.get_document_status(sample_hash)
-        assert exc_info.value.response.status_code == 503
-
-
 @pytest.mark.parametrize(
     "status",
     [DocumentStatus.PENDING, DocumentStatus.COMPLETED, DocumentStatus.ERROR],

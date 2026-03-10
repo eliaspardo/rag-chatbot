@@ -12,6 +12,3 @@ async def lifespan(app):
     app.state.db_client = DBClient()
 
     yield
-
-    # Shutdown
-    print("Cleaning up...")
