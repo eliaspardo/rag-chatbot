@@ -26,6 +26,17 @@ def get_document_status(doc_hash):
     return GetDocumentStatusResponse(doc_name=doc_name, status=status)
 
 
+@app.put("/documents/{doc_hash}/status", response_model=GetDocumentStatusResponse)
+def put_document_status(doc_hash):
+    print("Processing put document status request...")
+    # Does document exist?
+    doc_name = app.state.db_client.get_document_name(doc_hash)
+    status = app.state.db_client.get_document_status(doc_hash)
+    print(f"Doc name: {doc_name}")
+    print(f"Doc status: {status}")
+    return GetDocumentStatusResponse(doc_name=doc_name, status=status)
+
+
 @app.get("/documents", response_model=List[DMSDocument])
 def get_documents():
     print("Processing get documents request...")

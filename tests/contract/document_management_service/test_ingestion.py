@@ -18,7 +18,7 @@ sample_doc_name = "Test doc name"
 mock_db_client = Mock(spec=DBClient)
 
 
-def get_document_status(
+def given_document_has_status(
     parameters: dict[str, Any] | None, doc_name: str, status: DocumentStatus
 ) -> None:
     # mock database to have document in status
@@ -28,19 +28,19 @@ def get_document_status(
     return
 
 
-def document_not_found(parameters: dict[str, Any] | None) -> None:
+def given_document_not_found(parameters: dict[str, Any] | None) -> None:
     # mock database to have not have document
     mock_db_client.get_document_name.return_value = None
     return
 
 
-def no_documents() -> None:
+def given_dms_has_no_documents() -> None:
     # mock database to have not have documents
     mock_db_client.get_documents.return_value = None
     return
 
 
-def two_documents() -> None:
+def given_dms_has_two_documents() -> None:
     document_1 = DMSDocument(
         doc_hash=sample_hash, doc_name=sample_doc_name, status=DocumentStatus.PENDING
     )
@@ -48,6 +48,19 @@ def two_documents() -> None:
         doc_hash="Doc Hash 2", doc_name="Doc Name 2", status=DocumentStatus.COMPLETED
     )
     mock_db_client.get_documents.return_value = [document_1, document_2]
+
+
+def given_document_exists(
+    parameters: dict[str, Any] | None,
+    doc_name: str,
+) -> None:
+    parameters = parameters or {}
+    status = parameters.get("status")
+    document_1 = DMSDocument(
+        doc_hash=sample_hash, doc_name=sample_doc_name, status=status
+    )
+    mock_db_client.get_document_name.return_value = sample_doc_name
+    mock_db_client.set_document_status.return_value = document_1
 
 
 @pytest.fixture(scope="session")
@@ -72,19 +85,24 @@ class TestIngestion:
     # Map state names to handler functions
     state_handlers = {
         f"Document {sample_hash} is DocumentStatus.COMPLETED": partial(
-            get_document_status,
+            given_document_has_status,
             doc_name=sample_doc_name,
             status=DocumentStatus.COMPLETED,
         ),
         f"Document {sample_hash} is DocumentStatus.ERROR": partial(
-            get_document_status, doc_name=sample_doc_name, status=DocumentStatus.ERROR
+            given_document_has_status,
+            doc_name=sample_doc_name,
+            status=DocumentStatus.ERROR,
         ),
         f"Document {sample_hash} is DocumentStatus.PENDING": partial(
-            get_document_status, doc_name=sample_doc_name, status=DocumentStatus.PENDING
+            given_document_has_status,
+            doc_name=sample_doc_name,
+            status=DocumentStatus.PENDING,
         ),
-        f"DMS has no knowledge of document {sample_hash}": document_not_found,
-        "DMS has no documents registered": no_documents,
-        "DMS has documents registered": two_documents,
+        f"DMS has no knowledge of document {sample_hash}": given_document_not_found,
+        "DMS has no documents registered": given_dms_has_no_documents,
+        "DMS has documents registered": given_dms_has_two_documents,
+        f"Document {sample_hash} already exists in the db": given_document_exists,
     }
 
     def test_provider_from_broker(self, application):
