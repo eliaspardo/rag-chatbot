@@ -14,9 +14,6 @@ class GetDocumentStatusResponse(BaseModel):
     status: DocumentStatus
 
 
-class RegisterDocumentRequest(BaseModel):
-    doc_name: str = Field(..., min_length=1)
-
-
 class SetDocumentStatusRequest(BaseModel):
+    doc_name: str = Field(..., min_length=1)
     status: DocumentStatus
