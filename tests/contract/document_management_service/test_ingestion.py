@@ -10,6 +10,7 @@ from pact import Verifier
 from src.document_management_service.db_client import DBClient
 from src.document_management_service.main import app
 from src.shared.constants import DocumentStatus
+from src.shared.models import DMSDocument
 
 sample_hash = "d41d8cd98f00b204e9800998ecf8427e"
 sample_doc_name = "Test doc name"
@@ -31,6 +32,22 @@ def document_not_found(parameters: dict[str, Any] | None) -> None:
     # mock database to have not have document
     mock_db_client.get_document_name.return_value = None
     return
+
+
+def no_documents() -> None:
+    # mock database to have not have documents
+    mock_db_client.get_documents.return_value = None
+    return
+
+
+def two_documents() -> None:
+    document_1 = DMSDocument(
+        doc_hash=sample_hash, doc_name=sample_doc_name, status=DocumentStatus.PENDING
+    )
+    document_2 = DMSDocument(
+        doc_hash="Doc Hash 2", doc_name="Doc Name 2", status=DocumentStatus.COMPLETED
+    )
+    mock_db_client.get_documents.return_value = [document_1, document_2]
 
 
 @pytest.fixture(scope="session")
@@ -66,6 +83,8 @@ class TestIngestion:
             get_document_status, doc_name=sample_doc_name, status=DocumentStatus.PENDING
         ),
         f"DMS has no knowledge of document {sample_hash}": document_not_found,
+        "DMS has no documents registered": no_documents,
+        "DMS has documents registered": two_documents,
     }
 
     def test_provider_from_broker(self, application):

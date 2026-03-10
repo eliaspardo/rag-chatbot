@@ -1,6 +1,7 @@
+from typing import List
 from fastapi import FastAPI, HTTPException
 from src.document_management_service.lifespan import lifespan
-from src.shared.models import GetDocumentStatusResponse
+from src.shared.models import DMSDocument, GetDocumentStatusResponse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,3 +24,12 @@ def get_document_status(doc_hash):
     print(f"Doc name: {doc_name}")
     print(f"Doc status: {status}")
     return GetDocumentStatusResponse(doc_name=doc_name, status=status)
+
+
+@app.get("/documents", response_model=List[DMSDocument])
+def get_documents():
+    print("Processing get documents request...")
+    docs = app.state.db_client.get_documents()
+    if not docs:
+        raise HTTPException(status_code=204)
+    return docs
