@@ -1,5 +1,5 @@
 from unittest.mock import ANY, Mock, call, patch
-from pytest import fixture
+from pytest import fixture, mark
 import pytest
 from requests import HTTPError
 from src.ingestion_service.document_management_client import DocumentManagementClient
@@ -7,7 +7,7 @@ from src.ingestion_service.document_ingestor import DocumentIngestor
 from src.ingestion_service.file_loader import FileLoader
 from src.ingestion_service.vector_store_builder import VectorStoreBuilder
 from src.shared.constants import DocumentStatus
-from src.shared.exceptions import NoDocumentsException
+from src.shared.exceptions import DocumentHashConflictException, NoDocumentsException
 
 
 class TestDocumentIngestor:
@@ -66,8 +66,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.COMPLETED),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.COMPLETED),
             ]
         )
         mock_process_document.assert_called_once()
@@ -95,8 +95,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.ERROR),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.ERROR),
             ]
         )
         mock_process_document.assert_called_once()
@@ -126,8 +126,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.ERROR),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.ERROR),
             ]
         )
         mock_process_document.assert_called_once()
@@ -154,8 +154,8 @@ class TestDocumentIngestor:
         mock_dms_client.get_document_status.assert_called_once()
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.ERROR),  # Called by _try_set_error_status
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.ERROR),  # Called by _try_set_error_status
             ]
         )
         mock_process_document.assert_not_called()
@@ -243,8 +243,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.COMPLETED),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.COMPLETED),
             ]
         )
         mock_process_document.assert_called_once()
@@ -273,8 +273,8 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.COMPLETED),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.COMPLETED),
             ]
         )
         mock_process_document.assert_called_once()
@@ -305,13 +305,74 @@ class TestDocumentIngestor:
         assert mock_dms_client.update_document_status.call_count == 6
         mock_dms_client.update_document_status.assert_has_calls(
             [
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.COMPLETED),
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.ERROR),
-                call(ANY, DocumentStatus.PENDING),
-                call(ANY, DocumentStatus.COMPLETED),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.COMPLETED),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.ERROR),
+                call(ANY, ANY, DocumentStatus.PENDING),
+                call(ANY, ANY, DocumentStatus.COMPLETED),
             ]
         )
         assert mock_process_document.call_count == 3
         assert mock_vector_store_builder.add_documents_to_vector_store.call_count == 3
+
+    @patch("src.ingestion_service.document_ingestor.process_document")
+    def test_ingest_document_hash_conflict_does_not_set_error_status(
+        self,
+        mock_process_document,
+        mock_file_loader,
+        mock_vector_store_builder,
+        mock_dms_client,
+    ):
+        """When DocumentHashConflictException is raised, do not set ERROR status."""
+        doc_ingestor = DocumentIngestor(
+            mock_dms_client, mock_vector_store_builder, mock_file_loader, print
+        )
+        document = "Document"
+        mock_dms_client.update_document_status.side_effect = (
+            DocumentHashConflictException()
+        )
+
+        with pytest.raises(DocumentHashConflictException):
+            doc_ingestor.ingest_document(document)
+
+        mock_dms_client.get_document_status.assert_called_once()
+        # Only called once (PENDING) - no ERROR status should be set
+        mock_dms_client.update_document_status.assert_called_once_with(
+            ANY, ANY, DocumentStatus.PENDING
+        )
+        # Processing should not happen
+        mock_process_document.assert_not_called()
+        mock_vector_store_builder.add_documents_to_vector_store.assert_not_called()
+
+    @mark.parametrize(
+        "document_path,expected_name",
+        [
+            # Local paths
+            ("/local/path/to/report.pdf", "report.pdf"),
+            ("/home/user/documents/analysis.pdf", "analysis.pdf"),
+            ("simple.pdf", "simple.pdf"),
+            # S3 URIs
+            ("s3://bucket/folder/document.pdf", "document.pdf"),
+            ("s3://my-bucket/path/to/analysis.pdf", "analysis.pdf"),
+            # HTTPS URLs
+            ("https://bucket.s3.amazonaws.com/docs/summary.pdf", "summary.pdf"),
+            ("https://example.com/files/report.pdf", "report.pdf"),
+        ],
+    )
+    def test_extract_doc_name_from_various_paths(
+        self,
+        mock_file_loader,
+        mock_vector_store_builder,
+        mock_dms_client,
+        document_path,
+        expected_name,
+    ):
+        """Test that doc_name is correctly extracted from various path formats."""
+        doc_ingestor = DocumentIngestor(
+            mock_dms_client, mock_vector_store_builder, mock_file_loader, print
+        )
+
+        result = doc_ingestor._extract_doc_name(document_path)
+
+        assert result == expected_name

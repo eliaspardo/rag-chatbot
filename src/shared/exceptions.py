@@ -56,3 +56,9 @@ class IngestionRequestException(Exception):
     """Raised when there's an issue ingesting documents to vector store."""
 
     pass
+
+
+class DocumentHashConflictException(Exception):
+    """Raised when doc_hash already exists with a different doc_name."""
+
+    pass
