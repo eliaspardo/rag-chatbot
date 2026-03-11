@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Response
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from src.document_management_service.lifespan import lifespan
 from src.shared.constants import SetDocumentResult
+from src.shared.exceptions import DocumentHashConflictException
 from src.shared.models import (
     DMSDocument,
     GetDocumentStatusResponse,
@@ -37,9 +38,12 @@ def put_document_status(doc_hash, request: SetDocumentStatusRequest):
     print("Processing put document status request...")
     print(f"Doc name: {request.doc_name}")
     print(f"Doc status: {request.status}")
-    document, result = app.state.db_client.set_document_status(
-        doc_hash, request.doc_name, request.status
-    )
+    try:
+        document, result = app.state.db_client.set_document_status(
+            doc_hash, request.doc_name, request.status
+        )
+    except DocumentHashConflictException:
+        raise HTTPException(status_code=409)
     if result is SetDocumentResult.UPDATED:
         return Response(status_code=HTTP_204_NO_CONTENT)
     return Response(

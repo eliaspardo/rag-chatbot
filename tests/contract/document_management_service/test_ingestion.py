@@ -10,6 +10,7 @@ from pact import Verifier
 from src.document_management_service.db_client import DBClient
 from src.document_management_service.main import app
 from src.shared.constants import DocumentStatus, SetDocumentResult
+from src.shared.exceptions import DocumentHashConflictException
 from src.shared.models import DMSDocument
 
 sample_hash = "d41d8cd98f00b204e9800998ecf8427e"
@@ -48,6 +49,10 @@ def given_dms_has_two_documents() -> None:
         doc_hash="Doc Hash 2", doc_name="Doc Name 2", status=DocumentStatus.COMPLETED
     )
     mock_db_client.get_documents.return_value = [document_1, document_2]
+
+
+def given_document_exists_with_name() -> None:
+    mock_db_client.set_document_status.side_effect = DocumentHashConflictException()
 
 
 def given_document_exists() -> None:
@@ -109,6 +114,7 @@ class TestIngestion:
         f"DMS has no knowledge of document {sample_hash}": given_document_not_found,
         "DMS has no documents registered": given_dms_has_no_documents,
         "DMS has documents registered": given_dms_has_two_documents,
+        f"Document {sample_hash} exists in the db with doc_name {sample_doc_name}": given_document_exists_with_name,
         f"Document {sample_hash} already exists in the db": given_document_exists,
         f"Document {sample_hash} does not exist in the db": given_document_does_not_exist,
     }
