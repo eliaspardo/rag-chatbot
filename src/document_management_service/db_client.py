@@ -15,3 +15,7 @@ class DBClient:
     def get_documents(self) -> List[DMSDocument]:
         # Return document list
         return
+
+    def set_document_status(self, doc_hash, doc_name, status) -> DMSDocument:
+        # Return document
+        return

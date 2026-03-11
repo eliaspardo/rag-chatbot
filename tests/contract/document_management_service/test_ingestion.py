@@ -50,17 +50,13 @@ def given_dms_has_two_documents() -> None:
     mock_db_client.get_documents.return_value = [document_1, document_2]
 
 
-def given_document_exists(
-    parameters: dict[str, Any] | None,
-    doc_name: str,
-) -> None:
-    parameters = parameters or {}
-    status = parameters.get("status")
-    document_1 = DMSDocument(
-        doc_hash=sample_hash, doc_name=sample_doc_name, status=status
+def given_document_exists() -> None:
+    # DB client returns updated status
+    mock_db_client.set_document_status.return_value = (
+        lambda doc_hash, doc_name, status: DMSDocument(
+            doc_hash=doc_hash, doc_name=doc_name, status=status
+        )
     )
-    mock_db_client.get_document_name.return_value = sample_doc_name
-    mock_db_client.set_document_status.return_value = document_1
 
 
 @pytest.fixture(scope="session")
