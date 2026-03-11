@@ -1,7 +1,8 @@
 from typing import List
 from fastapi import FastAPI, HTTPException, Response
-from starlette.status import HTTP_204_NO_CONTENT
+from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from src.document_management_service.lifespan import lifespan
+from src.shared.constants import SetDocumentResult
 from src.shared.models import (
     DMSDocument,
     GetDocumentStatusResponse,
@@ -31,15 +32,21 @@ def get_document_status(doc_hash):
     return GetDocumentStatusResponse(doc_name=doc_name, status=status)
 
 
-@app.put("/documents/{doc_hash}/status/", response_model=DMSDocument)
+@app.put("/documents/{doc_hash}/status/", response_model=DMSDocument | None)
 def put_document_status(doc_hash, request: SetDocumentStatusRequest):
     print("Processing put document status request...")
-    document = app.state.db_client.set_document_status(
-        doc_hash, request.doc_name, request.status
-    )
     print(f"Doc name: {request.doc_name}")
     print(f"Doc status: {request.status}")
-    return Response(status_code=HTTP_204_NO_CONTENT, content=document)
+    document, result = app.state.db_client.set_document_status(
+        doc_hash, request.doc_name, request.status
+    )
+    if result is SetDocumentResult.UPDATED:
+        return Response(status_code=HTTP_204_NO_CONTENT)
+    return Response(
+        status_code=HTTP_201_CREATED,
+        content=document.model_dump_json(),
+        headers={"Content-Type": "application/json"},
+    )
 
 
 @app.get("/documents/", response_model=List[DMSDocument])

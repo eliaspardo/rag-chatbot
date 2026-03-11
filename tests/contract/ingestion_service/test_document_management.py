@@ -78,7 +78,6 @@ def test_update_document_status_already_existing_returns_success(pact, status):
         .with_request("PUT", f"/documents/{sample_hash}/status/")
         .with_body(request)
         .will_respond_with(204)
-        .with_body(response)
     )
 
     with pact.serve() as srv:

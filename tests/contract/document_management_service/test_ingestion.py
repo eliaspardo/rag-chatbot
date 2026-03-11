@@ -9,7 +9,7 @@ from pact import Verifier
 
 from src.document_management_service.db_client import DBClient
 from src.document_management_service.main import app
-from src.shared.constants import DocumentStatus
+from src.shared.constants import DocumentStatus, SetDocumentResult
 from src.shared.models import DMSDocument
 
 sample_hash = "d41d8cd98f00b204e9800998ecf8427e"
@@ -51,10 +51,21 @@ def given_dms_has_two_documents() -> None:
 
 
 def given_document_exists() -> None:
-    # DB client returns updated status
-    mock_db_client.set_document_status.return_value = (
-        lambda doc_hash, doc_name, status: DMSDocument(
-            doc_hash=doc_hash, doc_name=doc_name, status=status
+    result = SetDocumentResult.UPDATED
+    mock_db_client.set_document_status.side_effect = (
+        lambda doc_hash, doc_name, status: (
+            DMSDocument(doc_hash=doc_hash, doc_name=doc_name, status=status),
+            result,
+        )
+    )
+
+
+def given_document_does_not_exist() -> None:
+    result = SetDocumentResult.CREATED
+    mock_db_client.set_document_status.side_effect = (
+        lambda doc_hash, doc_name, status: (
+            DMSDocument(doc_hash=doc_hash, doc_name=doc_name, status=status),
+            result,
         )
     )
 
@@ -99,6 +110,7 @@ class TestIngestion:
         "DMS has no documents registered": given_dms_has_no_documents,
         "DMS has documents registered": given_dms_has_two_documents,
         f"Document {sample_hash} already exists in the db": given_document_exists,
+        f"Document {sample_hash} does not exist in the db": given_document_does_not_exist,
     }
 
     def test_provider_from_broker(self, application):

@@ -1,5 +1,5 @@
 from typing import List
-from src.shared.constants import DocumentStatus
+from src.shared.constants import DocumentStatus, SetDocumentResult
 from src.shared.models import DMSDocument
 
 
@@ -16,6 +16,14 @@ class DBClient:
         # Return document list
         return
 
-    def set_document_status(self, doc_hash, doc_name, status) -> DMSDocument:
-        # Return document
+    def set_document_status(
+        self, doc_hash, doc_name, status
+    ) -> tuple[DMSDocument, SetDocumentResult]:
+        # Return document and operation result
         return
+        (
+            DMSDocument(
+                doc_hash="afsdaf", doc_name="blabl", status=DocumentStatus.PENDING
+            ),
+            SetDocumentResult.CREATED,
+        )
