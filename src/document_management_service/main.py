@@ -1,9 +1,11 @@
 from typing import List
 from fastapi import FastAPI, HTTPException, Response
+from pydantic import ValidationError
 from starlette.status import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from src.document_management_service.lifespan import lifespan
 from src.shared.constants import SetDocumentResult
 from src.shared.exceptions import DocumentHashConflictException
+from sqlalchemy.exc import SQLAlchemyError
 from src.shared.models import (
     DMSDocument,
     GetDocumentStatusResponse,
@@ -23,27 +25,30 @@ def health():
 
 @app.get("/documents/{doc_hash}/status/", response_model=GetDocumentStatusResponse)
 def get_document_status(doc_hash):
-    print("Processing get document status request...")
-    doc_name = app.state.db_client.get_document_name(doc_hash)
-    if not doc_name:
-        raise HTTPException(status_code=404)
-    status = app.state.db_client.get_document_status(doc_hash)
-    print(f"Doc name: {doc_name}")
-    print(f"Doc status: {status}")
-    return GetDocumentStatusResponse(doc_name=doc_name, status=status)
+    logger.info("Processing get document status request...")
+    try:
+        doc_name = app.state.db_client.get_document_name(doc_hash)
+        if not doc_name:
+            raise HTTPException(status_code=404)
+        status = app.state.db_client.get_document_status(doc_hash)
+        return GetDocumentStatusResponse(doc_name=doc_name, status=status)
+    except (SQLAlchemyError, ValidationError):
+        logger.error("DB operation failed")
+        raise HTTPException(status_code=503)
 
 
 @app.put("/documents/{doc_hash}/status/", response_model=DMSDocument | None)
 def put_document_status(doc_hash, request: SetDocumentStatusRequest):
-    print("Processing put document status request...")
-    print(f"Doc name: {request.doc_name}")
-    print(f"Doc status: {request.status}")
+    logger.info("Processing put document status request...")
     try:
         document, result = app.state.db_client.set_document_status(
             doc_hash, request.doc_name, request.status
         )
     except DocumentHashConflictException:
         raise HTTPException(status_code=409)
+    except (SQLAlchemyError, ValidationError):
+        logger.error("DB operation failed")
+        raise HTTPException(status_code=503)
     if result is SetDocumentResult.UPDATED:
         return Response(status_code=HTTP_204_NO_CONTENT)
     return Response(
@@ -55,8 +60,12 @@ def put_document_status(doc_hash, request: SetDocumentStatusRequest):
 
 @app.get("/documents/", response_model=List[DMSDocument])
 def get_documents():
-    print("Processing get documents request...")
-    docs = app.state.db_client.get_documents()
-    if not docs:
-        raise HTTPException(status_code=204)
-    return docs
+    logger.info("Processing get documents request...")
+    try:
+        docs = app.state.db_client.get_documents()
+        if not docs:
+            raise HTTPException(status_code=204)
+        return docs
+    except (SQLAlchemyError, ValidationError):
+        logger.error("DB operation failed")
+        raise HTTPException(status_code=503)
