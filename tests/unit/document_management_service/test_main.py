@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from fastapi import HTTPException
 from pydantic import ValidationError
 import pytest
@@ -23,70 +23,52 @@ class TestMain:
     def db_client(self):
         return Mock(spec=DBClient)
 
-    @patch("src.document_management_service.main.app.state")
-    def test_get_document_status_db_error_get_document_name(self, state, db_client):
-        state.db_client = db_client
+    def test_get_document_status_db_error_get_document_name(self, db_client):
         db_client.get_document_name.side_effect = SQLAlchemyError()
         with pytest.raises(HTTPException) as exc_info:
-            get_document_status(sample_hash)
+            get_document_status(sample_hash, db_client)
         assert exc_info.value.status_code == 503
 
-    @patch("src.document_management_service.main.app.state")
-    def test_get_document_status_db_error_get_document_status(self, state, db_client):
-        state.db_client = db_client
+    def test_get_document_status_db_error_get_document_status(self, db_client):
         db_client.get_document_name.return_value = sample_doc_name
         db_client.get_document_status.side_effect = SQLAlchemyError()
         with pytest.raises(HTTPException) as exc_info:
-            get_document_status(sample_hash)
+            get_document_status(sample_hash, db_client)
         assert exc_info.value.status_code == 503
 
-    @patch("src.document_management_service.main.app.state")
-    def test_put_document_status_conflict_error_set_document_status(
-        self, state, db_client
-    ):
-        state.db_client = db_client
+    def test_put_document_status_conflict_error_set_document_status(self, db_client):
         db_client.set_document_status.side_effect = DocumentHashConflictException()
         mock_request = Mock()
         with pytest.raises(HTTPException) as exc_info:
-            put_document_status(sample_hash, mock_request)
-        assert exc_info.value.status_code == 503
+            put_document_status(sample_hash, mock_request, db_client)
+        assert exc_info.value.status_code == 409
 
-    @patch("src.document_management_service.main.app.state")
-    def test_put_document_status_db_error_set_document_status(self, state, db_client):
-        state.db_client = db_client
+    def test_put_document_status_db_error_set_document_status(self, db_client):
         db_client.set_document_status.side_effect = SQLAlchemyError()
         mock_request = Mock()
         with pytest.raises(HTTPException) as exc_info:
-            put_document_status(sample_hash, mock_request)
+            put_document_status(sample_hash, mock_request, db_client)
         assert exc_info.value.status_code == 503
 
-    @patch("src.document_management_service.main.app.state")
-    def test_put_document_status_validation_error_set_document_status(
-        self, state, db_client
-    ):
-        state.db_client = db_client
+    def test_put_document_status_validation_error_set_document_status(self, db_client):
         db_client.set_document_status.side_effect = ValidationError.from_exception_data(
             title="DMSDocument", line_errors=[]
         )
         mock_request = Mock()
         with pytest.raises(HTTPException) as exc_info:
-            put_document_status(sample_hash, mock_request)
+            put_document_status(sample_hash, mock_request, db_client)
         assert exc_info.value.status_code == 503
 
-    @patch("src.document_management_service.main.app.state")
-    def test_get_documents_db_error(self, state, db_client):
-        state.db_client = db_client
+    def test_get_documents_db_error(self, db_client):
         db_client.get_documents.side_effect = SQLAlchemyError()
         with pytest.raises(HTTPException) as exc_info:
-            get_documents()
+            get_documents(db_client)
         assert exc_info.value.status_code == 503
 
-    @patch("src.document_management_service.main.app.state")
-    def test_get_documents_validation_error(self, state, db_client):
-        state.db_client = db_client
+    def test_get_documents_validation_error(self, db_client):
         db_client.get_documents.side_effect = ValidationError.from_exception_data(
             title="DMSDocument", line_errors=[]
         )
         with pytest.raises(HTTPException) as exc_info:
-            get_documents()
+            get_documents(db_client)
         assert exc_info.value.status_code == 503

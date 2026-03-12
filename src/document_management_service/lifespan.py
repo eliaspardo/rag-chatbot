@@ -1,14 +1,18 @@
 from contextlib import asynccontextmanager
 import logging
+import os
+from sqlalchemy.orm import sessionmaker
 
-from src.document_management_service.db_client import DBClient
+from src.shared.env_loader import load_environment
 
 logger = logging.getLogger(__name__)
 
 
+load_environment()
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
+
+
 @asynccontextmanager
 async def lifespan(app):
-    # Startup, get DB client
-    app.state.db_client = DBClient()
-
+    app.state.Session = sessionmaker(bind=DATABASE_URL)
     yield
