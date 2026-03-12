@@ -18,9 +18,11 @@ class DBClient:
         ).scalar()
 
     def get_document_status(self, doc_hash) -> DocumentStatus | None:
-        return self.session.execute(
-            select(DBDMSDocument.status).where(DBDMSDocument.doc_hash == doc_hash)
-        ).scalar()
+        return DocumentStatus(
+            self.session.execute(
+                select(DBDMSDocument.status).where(DBDMSDocument.doc_hash == doc_hash)
+            ).scalar()
+        )
 
     def get_documents(self) -> List[DMSDocument] | None:
         rows = self.session.execute(select(DBDMSDocument)).scalars().all()

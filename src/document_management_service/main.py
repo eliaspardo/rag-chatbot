@@ -32,7 +32,7 @@ def get_document_status(doc_hash):
             raise HTTPException(status_code=404)
         status = app.state.db_client.get_document_status(doc_hash)
         return GetDocumentStatusResponse(doc_name=doc_name, status=status)
-    except (SQLAlchemyError, ValidationError):
+    except SQLAlchemyError:
         logger.error("DB operation failed")
         raise HTTPException(status_code=503)
 
