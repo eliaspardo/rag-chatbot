@@ -2,8 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN pip install streamlit requests --no-cache-dir
+COPY src/ui_service/requirements.txt .
 
-COPY src/ui/streamlit_app.py src/ui/streamlit_app.py
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["streamlit", "run", "src/ui/streamlit_app.py"]
+COPY src/ui_service/streamlit_app.py src/ui_service/streamlit_app.py
+
+CMD ["streamlit", "run", "src/ui_service/streamlit_app.py"]

@@ -2,11 +2,14 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY src/ingestion_service/requirements.txt .
 
-RUN pip install -r requirements.txt
+# Install CPU-only PyTorch + torchvision together to ensure compatible versions (saves ~2GB)
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-COPY src/__init__.py src/__init__.py 
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/__init__.py src/__init__.py
 COPY src/shared src/shared
 COPY src/ingestion_service src/ingestion_service
 COPY data/ data/

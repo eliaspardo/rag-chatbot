@@ -14,15 +14,18 @@ services:
       - .env                                                                                                                                                                           
       - config/params.env
     volumes:                                                                                                                                                                        
-    - ./data:/app/data
-    - ./src:/app/src
+      - ./data:/app/data
+      - ./src:/app/src
   ingestion_service:
     volumes:                                                                                                                                                                        
-    - ./data:/app/data
-    - ./src:/app/src
+      - ./data:/app/data
+      - ./src:/app/src
     env_file:                                                                                                                                                                          
       - .env                                                                                                                                                                           
       - config/params.env
+  document_management_service:                                                                                                                                                         
+    volumes:                                                                                                                                                                           
+      - ./src:/app/src     
   mlflow:
     build:
       context: .
@@ -41,5 +44,10 @@ services:
       PACT_BROKER_DATABASE_URL: "sqlite:////tmp/pact_broker.sqlite3"
     volumes:
       - pact-broker-data:/tmp
+  dms-db:
+    environment:
+      POSTGRES_DB: dms
+      POSTGRES_USER: dms
+      POSTGRES_PASSWORD: dms
 volumes:
   pact-broker-data:

@@ -2,11 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY src/inference_service/requirements.txt .
 
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/__init__.py src/__init__.py 
+COPY src/__init__.py src/__init__.py
 COPY src/shared src/shared
 COPY src/inference_service src/inference_service
 

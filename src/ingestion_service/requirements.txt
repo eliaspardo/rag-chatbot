@@ -1,0 +1,31 @@
+# FastAPI
+fastapi
+fastapi-cli
+fastapi-cloud-cli
+uvicorn
+pydantic
+
+# LangChain
+langchain-core
+langchain-community
+langchain-huggingface
+langchain-docling
+langchain-text-splitters
+
+# Vector store
+chromadb
+
+# PDF processing (legacy mode)
+PyMuPDF
+
+# S3 file loading
+boto3
+
+# HTTP client (for DMS)
+requests
+
+# Environment
+python-dotenv
+
+# Sentence embeddings (required by langchain-huggingface)
+sentence-transformers

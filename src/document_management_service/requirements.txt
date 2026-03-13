@@ -1,0 +1,8 @@
+auto_mix_prep
+fastapi
+fastapi-cli
+fastapi-cloud-cli
+pydantic
+SQLAlchemy
+starlette
+psycopg2-binary

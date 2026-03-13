@@ -4,8 +4,8 @@ import chromadb
 from langchain_community.vectorstores import Chroma
 from langchain_docling.loader import DoclingLoader, ExportType
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import fitz
 from src.shared.exceptions import ChromaException, VectorStoreException
 import logging
