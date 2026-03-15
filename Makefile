@@ -12,7 +12,7 @@ CONSUMER_BRANCH ?= $(shell git branch --show-current)
 up:
 	docker compose up -d
 
-up debug:
+up-debug:
 	docker compose up 
 
 down:

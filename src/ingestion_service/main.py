@@ -12,7 +12,6 @@ from src.shared.exceptions import IngestionRequestException, NoDocumentsExceptio
 from src.shared.exceptions import (
     ChromaException,
     VectorStoreException,
-    ServerSetupException,
 )
 from src.shared.constants import Error
 import logging
@@ -71,12 +70,12 @@ def ingest_documents(request: IngestionRequest):
         except NoDocumentsException:
             logger.error("Error: no documents found to ingest.")
             raise HTTPException(status_code=422, detail="No documents found to ingest.")
-        except (ChromaException, VectorStoreException):
-            logger.error(Error.EXCEPTION)
-            raise ServerSetupException()
-        except Exception:
-            logger.error(Error.EXCEPTION)
-            raise ServerSetupException()
+        except (ChromaException, VectorStoreException) as e:
+            logger.error(e)
+            raise HTTPException(status_code=503, detail="Vector store unavailable")
+        except Exception as e:
+            logger.error(e)
+            raise HTTPException(status_code=500, detail="Processing failed")
     return IngestionResponse(
         success=True, message="Documents processed and saved to vector store!"
     )
@@ -102,7 +101,8 @@ def ingest_document(request: SingleIngestionRequest):
             status_code=503,
             detail="Error calling DMS",
         )
-    except Exception:
+    except Exception as e:
+        logger.error(e)
         raise HTTPException(
             status_code=500,
             detail="Processing failed",

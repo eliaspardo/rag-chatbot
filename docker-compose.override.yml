@@ -23,6 +23,8 @@ services:
     env_file:                                                                                                                                                                          
       - .env                                                                                                                                                                           
       - config/params.env
+    environment:
+      - DMS_URL=http://document_management_service:8000
   document_management_service:                                                                                                                                                         
     volumes:                                                                                                                                                                           
       - ./src:/app/src     

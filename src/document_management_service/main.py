@@ -41,9 +41,12 @@ def get_document_status(doc_hash, db_client: DBClient = Depends(get_db_client)):
             raise HTTPException(status_code=404)
         status = db_client.get_document_status(doc_hash)
         return GetDocumentStatusResponse(doc_name=doc_name, status=status)
-    except SQLAlchemyError:
-        logger.error("DB operation failed")
-        raise HTTPException(status_code=503)
+    except SQLAlchemyError as e:
+        logger.error(e)
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail="Processing failed")
 
 
 @app.put("/documents/{doc_hash}/status/", response_model=DMSDocument | None)
@@ -57,11 +60,15 @@ def put_document_status(
         document, result = db_client.set_document_status(
             doc_hash, request.doc_name, request.status
         )
-    except DocumentHashConflictException:
-        raise HTTPException(status_code=409)
-    except (SQLAlchemyError, ValidationError):
-        logger.error("DB operation failed")
-        raise HTTPException(status_code=503)
+    except DocumentHashConflictException as e:
+        logger.error(e)
+        raise HTTPException(status_code=409, detail="Document hash conflict")
+    except (SQLAlchemyError, ValidationError) as e:
+        logger.error(e)
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail="Processing failed")
     if result is SetDocumentResult.UPDATED:
         return Response(status_code=HTTP_204_NO_CONTENT)
     return Response(
@@ -79,6 +86,9 @@ def get_documents(db_client: DBClient = Depends(get_db_client)):
         if not docs:
             raise HTTPException(status_code=204)
         return docs
-    except (SQLAlchemyError, ValidationError):
-        logger.error("DB operation failed")
-        raise HTTPException(status_code=503)
+    except (SQLAlchemyError, ValidationError) as e:
+        logger.error(e)
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail="Processing failed")
