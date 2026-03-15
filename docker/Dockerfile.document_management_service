@@ -1,0 +1,13 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY src/document_management_service/requirements.txt .
+
+RUN pip install -r requirements.txt
+
+COPY src/__init__.py src/__init__.py 
+COPY src/shared src/shared
+COPY src/document_management_service src/document_management_service
+
+CMD ["fastapi", "run", "src/document_management_service/main.py"]

@@ -1,0 +1,22 @@
+# FastAPI
+fastapi
+fastapi-cli
+fastapi-cloud-cli
+uvicorn
+pydantic
+
+# LangChain
+langchain
+langchain-core
+langchain-community
+langchain-together
+langchain-huggingface
+
+# Vector store
+chromadb
+
+# Environment
+python-dotenv
+
+# Sentence embeddings (required by langchain-huggingface)
+sentence-transformers

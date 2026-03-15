@@ -51,3 +51,23 @@ services:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
       - PYTHONUNBUFFERED=1
+  document_management_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.document_management_service
+    ports:                                                                                                                                                                        
+      - "8004:8000"
+    depends_on:
+      dms-db:
+        condition: service_healthy
+    environment:
+      - DMS_DATABASE_URL=postgresql://dms:dms@dms-db:5432/dms
+  dms-db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "dms", "-q"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

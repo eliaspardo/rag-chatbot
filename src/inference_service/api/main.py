@@ -1,8 +1,11 @@
 from typing import Union
+import logging
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.inference_service.api.lifespan import lifespan
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(lifespan=lifespan)
 
@@ -56,16 +59,20 @@ def health():
     dependencies=[Depends(ensure_vector_store_ready)],
 )
 def ask_question(request: DomainExpertRequest):
-    (
-        domain_expert_session,
-        system_message,
-    ) = app.state.session_manager.get_domain_expert_session(request.session_id)
-    answer = domain_expert_session.domain_expert_core.ask_question(request.question)
-    return DomainExpertResponse(
-        answer=answer,
-        session_id=domain_expert_session.session_id,
-        system_message=system_message,
-    )
+    try:
+        (
+            domain_expert_session,
+            system_message,
+        ) = app.state.session_manager.get_domain_expert_session(request.session_id)
+        answer = domain_expert_session.domain_expert_core.ask_question(request.question)
+        return DomainExpertResponse(
+            answer=answer,
+            session_id=domain_expert_session.session_id,
+            system_message=system_message,
+        )
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail="Processing failed")
 
 
 @app.post(
@@ -74,10 +81,16 @@ def ask_question(request: DomainExpertRequest):
     response_model_exclude_none=True,
 )
 def get_question(question_request: ExamPrepQuestionRequest):
-    llm_question = app.state.exam_prep_core.get_question(question_request.user_topic)
-    return ExamPrepQuestionResponse(
-        llm_question=llm_question,
-    )
+    try:
+        llm_question = app.state.exam_prep_core.get_question(
+            question_request.user_topic
+        )
+        return ExamPrepQuestionResponse(
+            llm_question=llm_question,
+        )
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail="Processing failed")
 
 
 @app.post(
@@ -86,9 +99,13 @@ def get_question(question_request: ExamPrepQuestionRequest):
     response_model_exclude_none=True,
 )
 def get_feedback(feedback_request: ExamPrepFeedbackRequest):
-    feedback = app.state.exam_prep_core.get_feedback(
-        feedback_request.llm_question, feedback_request.user_answer
-    )
-    return ExamPrepFeedbackResponse(
-        feedback=feedback,
-    )
+    try:
+        feedback = app.state.exam_prep_core.get_feedback(
+            feedback_request.llm_question, feedback_request.user_answer
+        )
+        return ExamPrepFeedbackResponse(
+            feedback=feedback,
+        )
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=500, detail="Processing failed")

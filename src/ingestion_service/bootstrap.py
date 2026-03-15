@@ -9,7 +9,7 @@ from src.shared.exceptions import (
 )
 from src.ingestion_service.file_loader import FileLoader
 from src.ingestion_service.vector_store_builder import VectorStoreBuilder
-from langchain.schema import Document
+from langchain_core.documents import Document
 from src.shared.env_loader import load_environment
 import logging
 
