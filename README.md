@@ -26,6 +26,37 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 - **Framework**: LangChain
 - **PDF Processing**: PyMuPDF (fitz) or Docling (select via `RAG_PREPROCESSOR`)
 - **Source Loading**: Local files and S3-backed PDFs via `boto3`
+- **Database**: PostgreSQL (Document Management Service)
+- **Contract Testing**: Pact (consumer-driven contracts)
+
+## Architecture
+
+The application is built as a microservices system with the following services:
+
+```
+┌─────────────┐     ┌─────────────────┐     ┌──────────────┐
+│  Streamlit  │────>│ Inference Svc   │────>│   ChromaDB   │
+│  Frontend   │     │   (FastAPI)     │     │              │
+└─────────────┘     └─────────────────┘     └──────────────┘
+                            
+                            
+┌─────────────────┐   ┌─────────────────┐   ┌──────────────┐
+│ Ingestion Svc   │──>│ Document Mgmt   │──>│  PostgreSQL  │
+│   (FastAPI)     │   │  Svc (FastAPI)  │   │   (dms-db)   │
+└─────────────────┘   └─────────────────┘   └──────────────┘
+```
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Streamlit | 8501 | Web frontend |
+| Inference Service | 8002 | Chat API (domain expert, exam prep) |
+| Ingestion Service | 8003 | Document ingestion API |
+| Document Management Service | 8004 | Document status tracking |
+| ChromaDB | 8001 | Vector store |
+| PostgreSQL (dms-db) | 5432 | DMS database |
+| Pact Broker | 9292 | Contract testing (dev only) |
+| MLflow | 5000 | Evaluation tracking and visualization (dev only)|
+| LocalStack | 4566 | S3 bucket emulation (dev only)|
 
 ## Installation
 
@@ -88,9 +119,27 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 
 ## Usage
 
-### Running the Application
+### Running with Docker Compose (Recommended)
 
-The application is split into two services:
+The full stack runs via Docker Compose:
+
+```bash
+# Start all services in detached mode
+make up
+# Or: docker compose up -d
+
+# View logs (attached mode)
+make debug
+# Or: docker compose up
+
+# Stop all services
+make down
+# Or: docker compose down
+```
+
+### Running Locally (Development)
+
+For local development without Docker:
 
 **Ingestion Service** (run once to build the vector store):
 ```bash
@@ -102,33 +151,54 @@ python -m src.ingestion_service.main
 python -m src.inference_service.api.main
 ```
 
+**Document Management Service**:
+```bash
+python -m src.document_management_service.main
+```
+
 **UI Service** (Streamlit frontend):
 ```bash
 streamlit run src/ui_service/streamlit_app.py
 ```
 
+### Document Management Service
+
+The Document Management Service (DMS) tracks document processing status (pending, completed, error). It's controlled by the `DMS_ENABLED` flag:
+
+| Mode | `DMS_ENABLED` | Behavior |
+|------|---------------|----------|
+| Legacy | `false` (default) | Ingestion processes all documents on every run |
+| DMS-enabled | `true` | Ingestion checks DMS status, skips completed documents |
+
+When DMS is enabled:
+- Documents are tracked by path hash
+- Status persists in PostgreSQL
+- Only new/failed documents are reprocessed
+- Single document ingestion available via `POST /ingestion/document/`
+
 ### First Run
 
 On the first run, the application will:
 
-1. Process your PDF document
+1. Process your PDF documents in PDF_PATH
 2. Split text into chunks
 3. Create embeddings
 4. Store vectors in Chroma database
 
 Subsequent runs will load the existing vector database. Delete the database if you want to rebuild context from different source documents.
 
+When operating in DMS mode, this procedure will be run on every startup.
+
 ### Source Files
 
 - `PDF_PATH` supports a comma-separated list of source PDF paths.
 - Sources can be local file paths and/or S3 paths (`s3://...`).
 - Example:
-
 ```env
 PDF_PATH=data/guide.pdf,data/appendix.pdf,s3://my-docs/training/reference.pdf
 ```
 
-⚠ Warning: if S3 URLs are detected, cleanup logic recreates `AWS_TEMP_FOLDER` and deletes everything currently inside it on each startup. Do not place permanent files there.
+⚠ Warning: cleanup logic recreates `AWS_TEMP_FOLDER` and deletes everything currently inside it on each startup. Do not place permanent files there.
 
 ### Local S3 with Docker Compose (LocalStack)
 
@@ -187,17 +257,32 @@ Data persists under `./my-localstack-data` as configured in `docker-compose.yaml
 ```
 rag-chatbot/
 |- README.md
+|- Makefile                   # Development commands
+|- docker-compose.yaml        # Service orchestration
+|- docker-compose.override.yml # Local dev overrides
 |- requirements.txt
 |- .env.example
 |- .gitignore
 |- config/
 |  \- params.env              # Tunable runtime parameters
+|- docker/                    # Dockerfiles per service
+|  |- Dockerfile.ingestion_service
+|  |- Dockerfile.inference_service
+|  |- Dockerfile.document_management_service
+|  \- Dockerfile.streamlit
 |- src/
 |  |- ingestion_service/      # Builds the vector store from PDFs
 |  |  |- main.py              # Ingestion service entry point
 |  |  |- bootstrap.py         # Vector store preparation logic
 |  |  |- file_loader.py       # PDF loading (local/S3)
+|  |  |- document_ingestor.py # DMS-aware ingestion logic
+|  |  |- document_management_client.py # DMS HTTP client
 |  |  |- vector_store_builder.py  # Document processing & embedding
+|  |  \- lifespan.py          # FastAPI lifespan management
+|  |- document_management_service/  # Document status tracking
+|  |  |- main.py              # FastAPI routes
+|  |  |- db_client.py         # Database operations
+|  |  |- models.py            # SQLAlchemy models
 |  |  \- lifespan.py          # FastAPI lifespan management
 |  |- inference_service/      # Serves the chat API
 |  |  |- api/
@@ -212,11 +297,17 @@ rag-chatbot/
 |  |     \- vector_store_loader.py
 |  |- shared/                 # Shared utilities
 |  |  |- prompts.py           # System and condense prompts
-|  |  |- constants.py
+|  |  |- constants.py         # DocumentStatus enum, etc.
+|  |  |- models.py            # Shared Pydantic models
 |  |  |- exceptions.py
 |  |  \- env_loader.py
 |  \- ui_service/
 |     \- streamlit_app.py     # Streamlit frontend
+|- tests/
+|  |- unit/                   # Unit tests (mocked dependencies)
+|  |- contract/               # Pact consumer & provider tests
+|  \- data/                   # Test fixtures
+|- pacts/                     # Generated Pact files (gitignored)
 |- data/
 |  \- your_document.pdf       # Place PDFs here for context
 \- chroma_db/                  # Vector store (auto-generated)
@@ -247,21 +338,56 @@ rag-chatbot/
 | `MAX_TOKENS`      | `512`                                           | Maximum tokens in LLM response        |
 | `RAG_PREPROCESSOR`| `legacy`                                        | PDF preprocessor: `legacy` or `docling` |
 | `DOCLING_EXPORT_TYPE` | `doc_chunks`                                 | Docling export: `markdown` or `doc_chunks` |
+| `DMS_ENABLED` | `false` | Enable Document Management Service integration |
+| `DMS_BASE_URL` | `http://localhost:8004` | Document Management Service URL |
+| `DMS_DATABASE_URL` | `postgresql://dms:dms@dms-db:5432/dms` | DMS PostgreSQL connection string |
 
 ## Dependencies
 
-Listed in `requirements.txt` file.
-
-## Commands
-
-During chat sessions:
-
-- Type your question or topic normally
-- `mode` - Return to operational mode selection
-- `quit`, `exit`, `no`, or `stop` - Exit the application
-- `Ctrl+C` - Force quit
+Listed in `requirements.txt` file and within each service's folder.
 
 ## Testing
+
+### Quick Reference
+
+```bash
+make test          # Run all tests (unit + contract)
+make test-unit     # Run unit tests only
+make test-contract # Run contract tests only
+```
+
+### Test Layers
+
+| Layer | Command | What it tests |
+|-------|---------|---------------|
+| Unit | `pytest tests/unit` | Business logic with mocked dependencies |
+| Contract | `pytest tests/contract` | Consumer-driven contracts (Pact) |
+| Eval | `pytest -m deepeval` | LLM response quality (see below) |
+
+### Contract Testing (Pact)
+
+This project uses [Pact](https://pact.io/) for consumer-driven contract testing between services.
+
+**Prerequisites:**
+- Pact Broker must be running: `docker compose up -d pact-broker`
+- Broker UI available at http://localhost:9292
+- Install dev deps: `pip install -r requirements-dev.txt`
+
+**Workflow:**
+1. Consumer tests generate pact files in `pacts/`
+2. Publish to broker: `make pact-publish`
+3. Provider tests verify against broker contracts
+
+**Running contract tests:**
+```bash
+# Consumer tests (generate pacts)
+pytest tests/contract/consumer/
+
+# Provider tests (verify against broker)
+pytest tests/contract/provider/
+```
+
+### Unit Tests
 
 Standard suite: `pytest` (eval tests are marked and excluded by default, see below). Make sure `.env` and `config/params.env` exist so env loading succeeds.
 
