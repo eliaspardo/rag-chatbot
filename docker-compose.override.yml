@@ -51,5 +51,7 @@ services:
       POSTGRES_DB: dms
       POSTGRES_USER: dms
       POSTGRES_PASSWORD: dms
+    volumes:                                                                                                                                                                           
+      - ./data/dms-db:/var/lib/postgresql/data
 volumes:
   pact-broker-data:

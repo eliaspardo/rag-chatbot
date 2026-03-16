@@ -300,7 +300,7 @@ rag-chatbot/
 
 ## Configuration Options
 
-- Secrets live in `.env` (untracked): `TOGETHER_API_KEY` (Together AI only).
+- Secrets live in `.env` (untracked): `TOGETHER_API_KEY` and `DMS_DATABASE_URL`.
 - Tunables live in `config/params.env` (tracked): table below.
 
 | Variable          | Default                                         | Description                           |
@@ -324,7 +324,6 @@ rag-chatbot/
 | `RAG_PREPROCESSOR`| `legacy`                                        | PDF preprocessor: `legacy` or `docling` |
 | `DOCLING_EXPORT_TYPE` | `doc_chunks`                                 | Docling export: `markdown` or `doc_chunks` |
 | `DMS_URL` | `http://localhost:8004` | Document Management Service URL |
-| `DMS_DATABASE_URL` | `postgresql://dms:dms@dms-db:5432/dms` | DMS PostgreSQL connection string |
 
 ## Dependencies
 
