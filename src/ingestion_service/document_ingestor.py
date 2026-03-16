@@ -42,8 +42,9 @@ class DocumentIngestor:
         for document in clean_pdf_paths:
             try:
                 self.ingest_document(document)
-            except Exception:
+            except Exception as e:
                 logger.error(f"Could not ingest {document}.")
+                logger.error(f"{e}")
 
     def ingest_document(
         self,
