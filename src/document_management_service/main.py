@@ -84,7 +84,7 @@ def get_documents(db_client: DBClient = Depends(get_db_client)):
     try:
         docs = db_client.get_documents()
         if not docs:
-            raise HTTPException(status_code=204)
+            return Response(status_code=HTTP_204_NO_CONTENT)
         return docs
     except (SQLAlchemyError, ValidationError) as e:
         logger.error(e)
