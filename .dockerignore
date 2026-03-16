@@ -1,0 +1,22 @@
+# Ignore data directories
+data/
+my-localstack-data/
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore Python artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+htmlcov/
+.venv/
+
+# Ignore IDE
+.vscode/
+.idea/
+
+# Ignore docs
+docs/
+*.md
