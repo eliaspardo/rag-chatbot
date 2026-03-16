@@ -27,6 +27,19 @@ class IngestionResponse(BaseModel):
     message: str
 
 
+class DocumentResult(BaseModel):
+    document: str
+    success: bool
+    error: str | None = None
+
+
+class BatchIngestionResponse(BaseModel):
+    total: int
+    succeeded: int
+    failed: int
+    results: List[DocumentResult]
+
+
 def get_vectordb_collection_count() -> int:
     return app.state.vector_store_builder.get_collection_count()
 
@@ -36,13 +49,20 @@ def health():
     return {"status": "ok", "documents_loaded": f"{get_vectordb_collection_count()}"}
 
 
-@app.post("/ingestion/documents/", response_model=IngestionResponse)
+@app.post("/ingestion/documents/", response_model=BatchIngestionResponse)
 def ingest_documents(request: IngestionRequest):
     print("Processing ingestion request...")
     print("Using DMS-enabled ingestion...")
-    app.state.doc_ingestor.ingest_documents(request.documents)
-    return IngestionResponse(
-        success=True, message="Documents processed and saved to vector store!"
+    results = app.state.doc_ingestor.ingest_documents(request.documents)
+    succeeded = sum(1 for r in results if r.success)
+    return BatchIngestionResponse(
+        total=len(results),
+        succeeded=succeeded,
+        failed=len(results) - succeeded,
+        results=[
+            DocumentResult(document=r.document, success=r.success, error=r.error)
+            for r in results
+        ],
     )
 
 

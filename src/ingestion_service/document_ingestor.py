@@ -1,5 +1,6 @@
 import hashlib
 import os
+from dataclasses import dataclass
 from urllib.parse import urlparse
 from typing import List
 from src.ingestion_service.bootstrap import ProgressCallback, process_document
@@ -18,6 +19,13 @@ from src.shared.exceptions import (
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class DocumentIngestionResult:
+    document: str
+    success: bool
+    error: str | None = None
+
+
 class DocumentIngestor:
     def __init__(
         self,
@@ -34,17 +42,25 @@ class DocumentIngestor:
     def ingest_documents(
         self,
         doc_list: List[str],
-    ):
+    ) -> List[DocumentIngestionResult]:
         try:
             clean_pdf_paths = [p.strip() for p in doc_list if p.strip()]
         except Exception:
             raise IngestionRequestException("Error when reading PDFs provided.")
+        results = []
         for document in clean_pdf_paths:
             try:
                 self.ingest_document(document)
+                results.append(DocumentIngestionResult(document=document, success=True))
             except Exception as e:
                 logger.error(f"Could not ingest {document}.")
-                logger.error(f"{e}")
+                logger.exception(e)
+                results.append(
+                    DocumentIngestionResult(
+                        document=document, success=False, error=str(e)
+                    )
+                )
+        return results
 
     def ingest_document(
         self,
