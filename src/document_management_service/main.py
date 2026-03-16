@@ -38,7 +38,7 @@ def get_document_status(doc_hash, db_client: DBClient = Depends(get_db_client)):
     try:
         doc_name = db_client.get_document_name(doc_hash)
         if not doc_name:
-            raise Response(status_code=404)
+            raise HTTPException(status_code=404)
         status = db_client.get_document_status(doc_hash)
         return GetDocumentStatusResponse(doc_name=doc_name, status=status)
     except HTTPException:
