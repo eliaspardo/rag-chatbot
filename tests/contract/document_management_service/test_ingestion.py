@@ -8,7 +8,7 @@ import pytest
 from pact import Verifier
 
 from src.document_management_service.db_client import DBClient
-from src.document_management_service.main import app
+from src.document_management_service.main import app, get_db_client
 from src.shared.constants import DocumentStatus, SetDocumentResult
 from src.shared.exceptions import DocumentHashConflictException
 from src.shared.models import DMSDocument
@@ -78,19 +78,23 @@ def given_document_does_not_exist() -> None:
 @pytest.fixture(scope="session")
 def application():
     """Start up application for provider tests."""
-    patcher = patch("src.document_management_service.lifespan.DBClient")
-    mock_db_client_class = patcher.start()
-    mock_db_client_class.return_value = mock_db_client
+    # Patch the module-level variable that's already been read at import time
+    with patch(
+        "src.document_management_service.lifespan.DMS_DATABASE_URL",
+        "sqlite:///:memory:",
+    ):
+        # Use FastAPI's dependency override for generator dependencies
+        app.dependency_overrides[get_db_client] = lambda: mock_db_client
 
-    config = uvicorn.Config(app, host="0.0.0.0", port=8004)
-    server = uvicorn.Server(config)
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    time.sleep(1)  # wait for server to be ready
-    yield
-    server.should_exit = True
-    thread.join(timeout=5)
-    patcher.stop()
+        config = uvicorn.Config(app, host="0.0.0.0", port=8044)
+        server = uvicorn.Server(config)
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+        time.sleep(1)  # wait for server to be ready
+        yield
+        server.should_exit = True
+        thread.join(timeout=5)
+        app.dependency_overrides.clear()
 
 
 class TestIngestion:
@@ -123,7 +127,7 @@ class TestIngestion:
         """Test the provider against contracts from a Pact Broker."""
         verifier = (
             Verifier("document-management-service")
-            .add_transport(url="http://localhost:8004")
+            .add_transport(url="http://localhost:8044")
             .broker_source(
                 "http://localhost:9292/",
             )

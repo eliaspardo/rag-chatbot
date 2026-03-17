@@ -41,6 +41,8 @@ def get_document_status(doc_hash, db_client: DBClient = Depends(get_db_client)):
             raise HTTPException(status_code=404)
         status = db_client.get_document_status(doc_hash)
         return GetDocumentStatusResponse(doc_name=doc_name, status=status)
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
         logger.error(e)
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -84,7 +86,7 @@ def get_documents(db_client: DBClient = Depends(get_db_client)):
     try:
         docs = db_client.get_documents()
         if not docs:
-            raise HTTPException(status_code=204)
+            return Response(status_code=HTTP_204_NO_CONTENT)
         return docs
     except (SQLAlchemyError, ValidationError) as e:
         logger.error(e)

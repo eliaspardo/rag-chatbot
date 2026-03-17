@@ -195,8 +195,9 @@ class TestDocumentIngestor:
             mock_dms_client, mock_vector_store_builder, mock_file_loader, print
         )
         documents = []
-        doc_ingestor.ingest_documents(documents)
+        results = doc_ingestor.ingest_documents(documents)
 
+        assert results == []
         mock_dms_client.get_document_status.assert_not_called()
         mock_dms_client.update_document_status.assert_not_called()
         mock_process_document.assert_not_called()
@@ -216,8 +217,12 @@ class TestDocumentIngestor:
         documents = ["completed_document"]
         mock_dms_client.get_document_status.return_value = DocumentStatus.COMPLETED
 
-        doc_ingestor.ingest_documents(documents)
+        results = doc_ingestor.ingest_documents(documents)
 
+        assert len(results) == 1
+        assert results[0].document == "completed_document"
+        assert results[0].success is True
+        assert results[0].error is None
         mock_dms_client.get_document_status.assert_called_once()
         mock_dms_client.update_document_status.assert_not_called()
         mock_process_document.assert_not_called()
@@ -237,8 +242,12 @@ class TestDocumentIngestor:
         documents = ["new_document"]
         mock_dms_client.get_document_status.return_value = None
 
-        doc_ingestor.ingest_documents(documents)
+        results = doc_ingestor.ingest_documents(documents)
 
+        assert len(results) == 1
+        assert results[0].document == "new_document"
+        assert results[0].success is True
+        assert results[0].error is None
         mock_dms_client.get_document_status.assert_called_once()
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
@@ -267,8 +276,13 @@ class TestDocumentIngestor:
             DocumentStatus.COMPLETED,
         ]
 
-        doc_ingestor.ingest_documents(documents)
+        results = doc_ingestor.ingest_documents(documents)
 
+        assert len(results) == 2
+        assert results[0].document == "new_document"
+        assert results[0].success is True
+        assert results[1].document == "completed_document"
+        assert results[1].success is True
         assert mock_dms_client.get_document_status.call_count == 2
         assert mock_dms_client.update_document_status.call_count == 2
         mock_dms_client.update_document_status.assert_has_calls(
@@ -299,8 +313,18 @@ class TestDocumentIngestor:
             Mock(),
         ]
 
-        doc_ingestor.ingest_documents(documents)
+        results = doc_ingestor.ingest_documents(documents)
 
+        assert len(results) == 3
+        assert results[0].document == "new_document"
+        assert results[0].success is True
+        assert results[0].error is None
+        assert results[1].document == "vector_store_error"
+        assert results[1].success is False
+        assert "Runtime error" in results[1].error
+        assert results[2].document == "new_document2"
+        assert results[2].success is True
+        assert results[2].error is None
         assert mock_dms_client.get_document_status.call_count == 3
         assert mock_dms_client.update_document_status.call_count == 6
         mock_dms_client.update_document_status.assert_has_calls(

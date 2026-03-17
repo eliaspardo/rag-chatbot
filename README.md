@@ -163,31 +163,16 @@ streamlit run src/ui_service/streamlit_app.py
 
 ### Document Management Service
 
-The Document Management Service (DMS) tracks document processing status (pending, completed, error). It's controlled by the `DMS_ENABLED` flag:
-
-| Mode | `DMS_ENABLED` | Behavior |
-|------|---------------|----------|
-| Legacy | `false` (default) | Ingestion processes all documents on every run |
-| DMS-enabled | `true` | Ingestion checks DMS status, skips completed documents |
-
-When DMS is enabled:
+The Document Management Service (DMS) tracks document processing status (pending, completed, error):
 - Documents are tracked by path hash
 - Status persists in PostgreSQL
 - Only new/failed documents are reprocessed
 - Single document ingestion available via `POST /ingestion/document/`
 
-### First Run
+### Startup
 
-On the first run, the application will:
-
-1. Process your PDF documents in PDF_PATH
-2. Split text into chunks
-3. Create embeddings
-4. Store vectors in Chroma database
-
-Subsequent runs will load the existing vector database. Delete the database if you want to rebuild context from different source documents.
-
-When operating in DMS mode, this procedure will be run on every startup.
+On startup, the ingestion service will process the PDF documents in PDF_PATH and ingest only the ones that are new/pending.
+Delete the database if you want to rebuild context from different source documents.
 
 ### Source Files
 
@@ -315,7 +300,7 @@ rag-chatbot/
 
 ## Configuration Options
 
-- Secrets live in `.env` (untracked): `TOGETHER_API_KEY` (Together AI only).
+- Secrets live in `.env` (untracked): `TOGETHER_API_KEY` and `DMS_DATABASE_URL`.
 - Tunables live in `config/params.env` (tracked): table below.
 
 | Variable          | Default                                         | Description                           |
@@ -338,9 +323,7 @@ rag-chatbot/
 | `MAX_TOKENS`      | `512`                                           | Maximum tokens in LLM response        |
 | `RAG_PREPROCESSOR`| `legacy`                                        | PDF preprocessor: `legacy` or `docling` |
 | `DOCLING_EXPORT_TYPE` | `doc_chunks`                                 | Docling export: `markdown` or `doc_chunks` |
-| `DMS_ENABLED` | `false` | Enable Document Management Service integration |
-| `DMS_BASE_URL` | `http://localhost:8004` | Document Management Service URL |
-| `DMS_DATABASE_URL` | `postgresql://dms:dms@dms-db:5432/dms` | DMS PostgreSQL connection string |
+| `DMS_URL` | `http://localhost:8004` | Document Management Service URL |
 
 ## Dependencies
 
