@@ -22,7 +22,6 @@ def run_lifespan(app):
 
 
 class TestLifespan:
-    @patch("src.inference_service.lifespan.ExamPrepCore")
     @patch("src.inference_service.lifespan.SessionManager")
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
@@ -31,7 +30,6 @@ class TestLifespan:
         mock_get_vector_store_loader,
         mock_prepare_vector_store,
         mock_session_manager,
-        mock_exam_prep_core,
     ):
         app = SimpleNamespace(state=SimpleNamespace())
         vectordb = Mock()
@@ -44,7 +42,6 @@ class TestLifespan:
             progress_callback=print,
         )
         mock_session_manager.assert_called_once_with(vectordb)
-        mock_exam_prep_core.assert_called_once_with(vectordb)
 
     @pytest.mark.parametrize(
         "exception",
@@ -69,6 +66,25 @@ class TestLifespan:
         with pytest.raises(ServerSetupException):
             run_lifespan(app)
 
+    @patch("src.inference_service.lifespan.prepare_vector_store")
+    @patch("src.inference_service.lifespan.get_vector_store_loader")
+    @patch(
+        "src.inference_service.lifespan.DMS_URL",
+        "",
+    )
+    def test_lifespan_dms_env_var_error(
+        self,
+        mock_get_vector_store_loader,
+        mock_prepare_vector_store,
+    ):
+        app = SimpleNamespace(state=SimpleNamespace())
+        mock_prepare_vector_store.return_value = Mock()
+
+        with pytest.raises(
+            ServerSetupException, match="DMS_URL environment variable is required"
+        ):
+            run_lifespan(app)
+
     @patch("src.inference_service.lifespan.SessionManager")
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
@@ -81,24 +97,6 @@ class TestLifespan:
         app = SimpleNamespace(state=SimpleNamespace())
         mock_prepare_vector_store.return_value = Mock()
         mock_session_manager.side_effect = Exception("session error")
-
-        with pytest.raises(ServerSetupException):
-            run_lifespan(app)
-
-    @patch("src.inference_service.lifespan.ExamPrepCore")
-    @patch("src.inference_service.lifespan.SessionManager")
-    @patch("src.inference_service.lifespan.prepare_vector_store")
-    @patch("src.inference_service.lifespan.get_vector_store_loader")
-    def test_lifespan_exam_prep_core_error(
-        self,
-        mock_get_vector_store_loader,
-        mock_prepare_vector_store,
-        mock_session_manager,
-        mock_exam_prep_core,
-    ):
-        app = SimpleNamespace(state=SimpleNamespace())
-        mock_prepare_vector_store.return_value = Mock()
-        mock_exam_prep_core.side_effect = Exception("exam prep error")
 
         with pytest.raises(ServerSetupException):
             run_lifespan(app)

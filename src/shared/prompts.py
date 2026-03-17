@@ -37,37 +37,3 @@ QUESTION: {{question}}
 
 ### ANSWER ###""",
 )
-
-exam_prep_get_question_prompt = PromptTemplate(
-    input_variables=["context", "question"],
-    template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE} by providing questions about specific subjects, sections, or topics.
-
-IMPORTANT INSTRUCTIONS:
-- When STUDENT asks you to "ask me a question" or "quiz me" about a topic from the CONTEXT, respond with ONLY a clear, specific question about that topic.
-- Do not repeat previous questions, always ask something new.
-- Keep responses concise and focused.
-
-Based on the CONTEXT provided, respond appropriately:
-
-CONTEXT: {{context}}
-
-TOPIC: {{question}}
-RESPONSE:""",
-)
-
-exam_prep_get_feedback_prompt = PromptTemplate(
-    input_variables=["context", "question"],
-    template=f"""You are a {CHATBOT_ROLE} helping a STUDENT {USE_CASE}.
-
-IMPORTANT INSTRUCTIONS:
-- You will receive a QUESTION AND STUDENTS ANSWER: evaluate the student's answer based on the CONTEXT and provide feedback.
-- Provide student's feedback summary in a separate line at the end of the response.
-- Keep responses concise and focused.
-
-Based on the CONTEXT provided, respond appropriately:
-
-CONTEXT: {{context}}
-
-QUESTION AND STUDENTS ANSWER: {{question}}
-RESPONSE:""",
-)

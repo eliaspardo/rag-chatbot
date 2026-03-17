@@ -28,18 +28,6 @@ class DomainExpertQueryException(Exception):
     pass
 
 
-class ExamPrepSetupException(Exception):
-    """Raised when there's an issue setting up the Exam Prep."""
-
-    pass
-
-
-class ExamPrepQueryException(Exception):
-    """Raised when there's an issue retrieving an answer in Exam Prep."""
-
-    pass
-
-
 class VectorStoreException(Exception):
     """Base exception for vector store errors."""
 

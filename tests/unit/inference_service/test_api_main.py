@@ -126,42 +126,6 @@ def test_domain_expert_chat_endpoint():
         session.domain_expert_core.ask_question.assert_called_once_with("What is RAG?")
 
 
-def test_exam_prep_get_question_endpoint():
-    exam_prep_core = Mock()
-    exam_prep_core.get_question.return_value = "generated question"
-    api_main.app.state.exam_prep_core = exam_prep_core
-
-    with _build_client_no_lifespan() as client:
-        response = client.post(
-            "/chat/exam-prep/get_question/", json={"user_topic": "Vectors"}
-        )
-
-        assert response.status_code == 200
-        assert response.json() == {"llm_question": "generated question"}
-        exam_prep_core.get_question.assert_called_once_with("Vectors")
-
-
-def test_exam_prep_get_feedback_endpoint():
-    exam_prep_core = Mock()
-    exam_prep_core.get_feedback.return_value = "feedback"
-    api_main.app.state.exam_prep_core = exam_prep_core
-
-    with _build_client_no_lifespan() as client:
-        response = client.post(
-            "/chat/exam-prep/get_feedback/",
-            json={
-                "llm_question": "What is Chroma?",
-                "user_answer": "Vector store library",
-            },
-        )
-
-        assert response.status_code == 200
-        assert response.json() == {"feedback": "feedback"}
-        exam_prep_core.get_feedback.assert_called_once_with(
-            "What is Chroma?", "Vector store library"
-        )
-
-
 def test_domain_expert_request_validation_error():
     vector_store_loader = Mock()
     vector_store_loader.get_collection_count.return_value = 5
@@ -169,22 +133,5 @@ def test_domain_expert_request_validation_error():
 
     with _build_client_no_lifespan() as client:
         response = client.post("/chat/domain-expert/", json={"question": ""})
-
-        assert response.status_code == 422
-
-
-def test_exam_prep_question_request_validation_error():
-    with _build_client_no_lifespan() as client:
-        response = client.post("/chat/exam-prep/get_question/", json={"user_topic": ""})
-
-        assert response.status_code == 422
-
-
-def test_exam_prep_feedback_request_validation_error():
-    with _build_client_no_lifespan() as client:
-        response = client.post(
-            "/chat/exam-prep/get_feedback/",
-            json={"llm_question": "", "user_answer": ""},
-        )
 
         assert response.status_code == 422

@@ -5,7 +5,6 @@ from src.inference_service.document_management_client import DocumentManagementC
 from src.inference_service.session_manager import SessionManager
 from src.inference_service.bootstrap import prepare_vector_store
 from src.inference_service.core.vector_store_loader import get_vector_store_loader
-from src.inference_service.core.exam_prep_core import ExamPrepCore
 from src.shared.env_loader import load_environment
 from src.shared.exceptions import (
     ChromaException,
@@ -49,11 +48,6 @@ async def lifespan(app):
 
     try:
         app.state.session_manager: SessionManager = SessionManager(vectordb)
-    except Exception:
-        logger.error(Error.EXCEPTION)
-        raise ServerSetupException()
-    try:
-        app.state.exam_prep_core = ExamPrepCore(vectordb)
     except Exception:
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
