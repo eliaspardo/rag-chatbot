@@ -216,10 +216,11 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Codex
+# Codex / Claude Code
 AGENTS.md
 CLAUDE.md
 ADR_LOG.md
+docs/
 
 # Deepeval
 .deepeval
