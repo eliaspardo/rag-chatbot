@@ -54,10 +54,12 @@ def ensure_vector_store_ready():
 
 @app.get("/health")
 def health():
+    documents = [doc.model_dump() for doc in get_documents()]
+
     return {
         "status": "ok",
         "documents_loaded_in_vector_store": f"{get_vectordb_collection_count()}",
-        "documents_loaded_in_dms": f"{get_documents()}",
+        "documents_loaded_in_dms": documents,
     }
 
 
