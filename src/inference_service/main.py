@@ -3,7 +3,7 @@ import logging
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from src.inference_service.api.lifespan import lifespan
+from src.inference_service.lifespan import lifespan
 
 logger = logging.getLogger(__name__)
 

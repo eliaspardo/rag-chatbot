@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.inference_service.api.lifespan import lifespan
+from src.inference_service.lifespan import lifespan
 from src.shared.exceptions import (
     ChromaException,
     NoDocumentsException,
@@ -22,10 +22,10 @@ def run_lifespan(app):
 
 
 class TestLifespan:
-    @patch("src.inference_service.api.lifespan.ExamPrepCore")
-    @patch("src.inference_service.api.lifespan.SessionManager")
-    @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
+    @patch("src.inference_service.lifespan.ExamPrepCore")
+    @patch("src.inference_service.lifespan.SessionManager")
+    @patch("src.inference_service.lifespan.prepare_vector_store")
+    @patch("src.inference_service.lifespan.get_vector_store_loader")
     def test_lifespan_success(
         self,
         mock_get_vector_store_loader,
@@ -55,8 +55,8 @@ class TestLifespan:
             Exception("unexpected"),
         ],
     )
-    @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
+    @patch("src.inference_service.lifespan.prepare_vector_store")
+    @patch("src.inference_service.lifespan.get_vector_store_loader")
     def test_lifespan_prepare_vector_store_errors(
         self,
         mock_get_vector_store_loader,
@@ -69,9 +69,9 @@ class TestLifespan:
         with pytest.raises(ServerSetupException):
             run_lifespan(app)
 
-    @patch("src.inference_service.api.lifespan.SessionManager")
-    @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
+    @patch("src.inference_service.lifespan.SessionManager")
+    @patch("src.inference_service.lifespan.prepare_vector_store")
+    @patch("src.inference_service.lifespan.get_vector_store_loader")
     def test_lifespan_session_manager_error(
         self,
         mock_get_vector_store_loader,
@@ -85,10 +85,10 @@ class TestLifespan:
         with pytest.raises(ServerSetupException):
             run_lifespan(app)
 
-    @patch("src.inference_service.api.lifespan.ExamPrepCore")
-    @patch("src.inference_service.api.lifespan.SessionManager")
-    @patch("src.inference_service.api.lifespan.prepare_vector_store")
-    @patch("src.inference_service.api.lifespan.get_vector_store_loader")
+    @patch("src.inference_service.lifespan.ExamPrepCore")
+    @patch("src.inference_service.lifespan.SessionManager")
+    @patch("src.inference_service.lifespan.prepare_vector_store")
+    @patch("src.inference_service.lifespan.get_vector_store_loader")
     def test_lifespan_exam_prep_core_error(
         self,
         mock_get_vector_store_loader,

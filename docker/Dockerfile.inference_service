@@ -10,4 +10,4 @@ COPY src/__init__.py src/__init__.py
 COPY src/shared src/shared
 COPY src/inference_service src/inference_service
 
-CMD ["fastapi", "run", "src/inference_service/api/main.py"]
+CMD ["fastapi", "run", "src/inference_service/main.py"]

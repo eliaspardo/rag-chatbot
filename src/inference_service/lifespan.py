@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 
-from src.inference_service.api.session_manager import SessionManager
-from src.inference_service.api.bootstrap import prepare_vector_store
+from src.inference_service.session_manager import SessionManager
+from src.inference_service.bootstrap import prepare_vector_store
 from src.inference_service.core.vector_store_loader import get_vector_store_loader
 from src.inference_service.core.exam_prep_core import ExamPrepCore
 from src.shared.exceptions import (
