@@ -30,6 +30,8 @@ async def lifespan(app):
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     print("Using DMS-enabled ingestion...")
+    if not DMS_URL:
+        raise ServerSetupException("DMS_URL environment variable is required")
     dms_client = DocumentManagementClient(DMS_URL)
     app.state.doc_ingestor = DocumentIngestor(
         dms_client,
