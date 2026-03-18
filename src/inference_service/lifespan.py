@@ -17,15 +17,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-load_environment()
-DMS_URL = os.getenv("DMS_URL")
-
 
 @asynccontextmanager
 async def lifespan(app):
     # Startup
     print("Loading vector store...")
     app.state.vector_store_loader = get_vector_store_loader()
+    load_environment()
+    DMS_URL = os.getenv("DMS_URL")
     if not DMS_URL:
         raise ServerSetupException("DMS_URL environment variable is required")
     app.state.dms_client = DocumentManagementClient(DMS_URL)
