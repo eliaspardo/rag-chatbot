@@ -11,13 +11,6 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 - Conversational interface with chat history
 - Configurable for any domain (medical, legal, technical, academic, etc.)
 
-### 📝 Exam Prep Mode
-
-- Request quiz questions on specific topics or sections
-- Receive immediate feedback on your answers
-- Adaptive questioning to avoid repetition
-- Customizable for any exam or certification
-
 ## Technology Stack
 
 - **LLM**: Together AI or Ollama (select via `LLM_PROVIDER`)
@@ -49,7 +42,7 @@ The application is built as a microservices system with the following services:
 | Service | Port | Description |
 |---------|------|-------------|
 | Streamlit | 8501 | Web frontend |
-| Inference Service | 8002 | Chat API (domain expert, exam prep) |
+| Inference Service | 8002 | Chat API (domain expert) |
 | Ingestion Service | 8003 | Document ingestion API |
 | Document Management Service | 8004 | Document status tracking |
 | ChromaDB | 8001 | Vector store |
@@ -219,22 +212,11 @@ docker compose down
 
 Data persists under `./my-localstack-data` as configured in `docker-compose.yaml`.
 
-### Operational Modes
-
-#### Domain Expert Mode (Option 1)
+### Domain Expert Mode
 
 ```
 ❓ Your question: What are the key principles of risk-based testing?
 💡 Answer: Based on the context, risk-based testing involves...
-```
-
-#### Exam Prep Mode (Option 2)
-
-```
-🧠 Section / topic: Risk Management
-❓ Your question: What are the main categories of product risks in software testing?
-❓ Your answer: Functional failures and quality issues
-💡 Answer: Good start! The main categories include functional failures...
 ```
 
 ## Project Structure
@@ -277,7 +259,6 @@ rag-chatbot/
 |  |  |  \- session_manager.py
 |  |  \- core/
 |  |     |- domain_expert_core.py
-|  |     |- exam_prep_core.py
 |  |     |- chain_manager.py
 |  |     \- vector_store_loader.py
 |  |- shared/                 # Shared utilities

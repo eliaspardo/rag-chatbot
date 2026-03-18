@@ -216,11 +216,14 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Codex / Claude Code
+# Codex / Claude Code / Tools
 AGENTS.md
 CLAUDE.md
 ADR_LOG.md
 docs/
+.claude
+.playwright-cli
+.playwright
 
 # Deepeval
 .deepeval
