@@ -23,7 +23,7 @@ services:
       chromadb:
         condition: service_healthy
     environment:
-      - API_BASE_URL=http://inference_service:8000
+      - INFERENCE_SERVICE_URL=http://inference_service:8000
       - PYTHONUNBUFFERED=1
   inference_service:
     build:
