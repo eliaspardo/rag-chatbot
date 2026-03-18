@@ -16,6 +16,8 @@ services:
     volumes:                                                                                                                                                                        
       - ./data:/app/data
       - ./src:/app/src
+    environment:
+      - DMS_URL=http://document_management_service:8000
   ingestion_service:
     volumes:                                                                                                                                                                        
       - ./data:/app/data
