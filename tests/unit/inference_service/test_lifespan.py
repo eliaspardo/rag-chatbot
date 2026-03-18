@@ -68,10 +68,7 @@ class TestLifespan:
 
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
-    @patch(
-        "src.inference_service.lifespan.DMS_URL",
-        "",
-    )
+    @patch.dict("os.environ", {"DMS_URL": ""}, clear=False)
     def test_lifespan_dms_env_var_error(
         self,
         mock_get_vector_store_loader,

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -7,25 +8,18 @@ import streamlit as st
 DEFAULT_API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 REQUEST_TIMEOUT_SECONDS = 30
 
+# Icon paths
+SCRIPT_DIR = Path(__file__).parent
+ROBOT_ICON_PATH = SCRIPT_DIR / "robot_icon.svg"
+
 
 def _init_session_state() -> None:
-    if "api_base_url" not in st.session_state:
-        st.session_state.api_base_url = DEFAULT_API_BASE_URL
-    if "api_base_url_last" not in st.session_state:
-        st.session_state.api_base_url_last = st.session_state.api_base_url
-
     if "domain_history" not in st.session_state:
         st.session_state.domain_history = []
     if "domain_session_id" not in st.session_state:
         st.session_state.domain_session_id = None
     if "domain_system_messages" not in st.session_state:
         st.session_state.domain_system_messages = []
-
-
-def _reset_state() -> None:
-    st.session_state.domain_history = []
-    st.session_state.domain_session_id = None
-    st.session_state.domain_system_messages = []
 
 
 def _post_json(url: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -45,10 +39,15 @@ def _render_system_messages(messages: List[str]) -> None:
         st.warning(message)
 
 
+AVATAR_USER = "🧑"  # Person for user
+AVATAR_ASSISTANT = str(ROBOT_ICON_PATH)  # Green robot for assistant
+
+
 def _render_domain_expert() -> None:
     _render_system_messages(st.session_state.domain_system_messages)
     for message in st.session_state.domain_history:
-        with st.chat_message(message["role"]):
+        avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
+        with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
     prompt = st.chat_input("Ask a question about your documents")
@@ -58,7 +57,7 @@ def _render_domain_expert() -> None:
     st.session_state.domain_history.append({"role": "user", "content": prompt})
     with st.spinner("Thinking..."):
         data = _post_json(
-            f"{st.session_state.api_base_url}/chat/domain-expert/",
+            f"{DEFAULT_API_BASE_URL}/chat/domain-expert/",
             {
                 "question": prompt,
                 "session_id": st.session_state.domain_session_id,
@@ -78,18 +77,41 @@ def _render_domain_expert() -> None:
     st.rerun()
 
 
+def _apply_custom_css() -> None:
+    st.markdown(
+        """
+        <style>
+        /* Focus states - use teal instead of red */
+        *:focus {
+            outline-color: #3eb489 !important;
+            box-shadow: 0 0 0 2px #3eb489 !important;
+        }
+
+        /* Chat input focus */
+        .stChatInput textarea:focus {
+            border-color: #3eb489 !important;
+            box-shadow: 0 0 0 2px rgba(62, 180, 137, 0.3) !important;
+        }
+
+        /* Text input focus */
+        .stTextInput input:focus {
+            border-color: #3eb489 !important;
+            box-shadow: 0 0 0 2px rgba(62, 180, 137, 0.3) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def main() -> None:
-    st.set_page_config(page_title="RAG Chatbot", page_icon="R", layout="centered")
+    st.set_page_config(
+        page_title="RAG Chatbot", page_icon=str(ROBOT_ICON_PATH), layout="centered"
+    )
+    _apply_custom_css()
     _init_session_state()
 
-    st.sidebar.header("Settings")
-    api_base_url = st.sidebar.text_input("API base URL", key="api_base_url")
-    if api_base_url != st.session_state.api_base_url_last:
-        st.session_state.api_base_url_last = api_base_url
-        _reset_state()
-
     st.title("RAG Chatbot")
-    st.subheader("Domain Expert")
     _render_domain_expert()
 
 
