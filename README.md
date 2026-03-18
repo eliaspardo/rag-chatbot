@@ -148,7 +148,7 @@ python -m src.ingestion_service.main
 
 **Inference Service** (run to serve the API):
 ```bash
-python -m src.inference_service.api.main
+python -m src.inference_service.main
 ```
 
 **Document Management Service**:

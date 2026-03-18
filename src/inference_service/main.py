@@ -1,9 +1,10 @@
-from typing import Union
+from typing import List, Union
 import logging
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from src.inference_service.api.lifespan import lifespan
+from src.inference_service.lifespan import lifespan
+from src.shared.models import DMSDocument
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,10 @@ def get_vectordb_collection_count() -> int:
     return app.state.vector_store_loader.get_collection_count()
 
 
+def get_documents() -> List[DMSDocument]:
+    return app.state.dms_client.get_documents()
+
+
 def ensure_vector_store_ready():
     if get_vectordb_collection_count() == 0:
         raise HTTPException(503, "Vector store not ready")
@@ -49,7 +54,13 @@ def ensure_vector_store_ready():
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "documents_loaded": f"{get_vectordb_collection_count()}"}
+    documents = [doc.model_dump() for doc in get_documents()]
+
+    return {
+        "status": "ok",
+        "documents_loaded_in_vector_store": f"{get_vectordb_collection_count()}",
+        "documents_loaded_in_dms": documents,
+    }
 
 
 @app.post(
