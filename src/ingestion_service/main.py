@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from src.shared.exceptions import NoDocumentsException
 import logging
 
+from src.shared.models import DMSDocument
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,9 +46,19 @@ def get_vectordb_collection_count() -> int:
     return app.state.vector_store_builder.get_collection_count()
 
 
+def get_dms_documents() -> List[DMSDocument]:
+    return app.state.doc_ingestor.dms_client.get_documents()
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "documents_loaded": f"{get_vectordb_collection_count()}"}
+    documents = [doc.model_dump() for doc in get_dms_documents()]
+
+    return {
+        "status": "ok",
+        "documents_loaded_in_vector_store": f"{get_vectordb_collection_count()}",
+        "documents_loaded_in_dms": documents,
+    }
 
 
 @app.post("/ingestion/documents/", response_model=BatchIngestionResponse)
