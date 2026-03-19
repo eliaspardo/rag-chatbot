@@ -337,6 +337,14 @@ This project uses [Pact](https://pact.io/) for consumer-driven contract testing 
 - Broker UI available at http://localhost:9292
 - Install dev deps: `pip install -r requirements-dev.txt`
 
+**Configuration:**
+
+The provider tests read the broker URL from the `PACT_BROKER_URL` environment variable (default: `http://localhost:9292/`). Override this in CI:
+
+```bash
+export PACT_BROKER_URL=http://your-broker-host:9292/
+```
+
 **Workflow:**
 1. Consumer tests generate pact files in `pacts/`
 2. Publish to broker: `make pact-publish`
