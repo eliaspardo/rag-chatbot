@@ -87,20 +87,25 @@ def _apply_custom_css() -> None:
     )
 
 
-def main() -> None:
-    st.set_page_config(
-        page_title="RAG Chatbot", page_icon=str(ROBOT_ICON_PATH), layout="centered"
-    )
+def chat_page():
+    """Render the chat page."""
     _apply_custom_css()
     _init_session_state()
-
-    col1, col2 = st.columns([10, 1])
-    with col1:
-        st.title("RAG Chatbot")
-    with col2:
-        st.page_link("pages/System.py", label="⚙️", icon="⚙️")
-
+    st.title("RAG Chatbot")
     _render_domain_expert()
+
+
+def main() -> None:
+    st.set_page_config(
+        page_title="Chat", page_icon=str(ROBOT_ICON_PATH), layout="centered"
+    )
+
+    # Configure navigation with custom page names
+    chat = st.Page(chat_page, title="Chat", icon="💬", default=True)
+    system = st.Page("pages/System.py", title="System Status", icon="⚙️")
+
+    pg = st.navigation([chat, system])
+    pg.run()
 
 
 if __name__ == "__main__":

@@ -17,45 +17,53 @@ def _get_status_icon(status: str) -> str:
     return "❌"
 
 
-def main():
-    st.set_page_config(page_title="System Status", page_icon="⚙️", layout="centered")
+st.title("System Status")
 
-    # Back to chat navigation
-    st.page_link("streamlit_app.py", label="← Back to Chat", icon="💬")
+# Health Status Section
+st.header("Inference Service Health")
 
-    st.title("System Status")
+# Custom CSS for vertical alignment
+st.markdown(
+    """
+    <style>
+    div[data-testid="column"] {
+        display: flex;
+        align-items: center;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-    # Health Status Section
-    st.header("Inference Service Health")
+client = InferenceServiceClient(INFERENCE_SERVICE_URL)
 
-    client = InferenceServiceClient(INFERENCE_SERVICE_URL)
+health = client.get_health()
 
-    col1, col2 = st.columns([4, 1])
-    with col2:
-        if st.button("Refresh"):
-            st.rerun()
-
-    health = client.get_health()
-
+col1, col2 = st.columns([4, 1])
+with col1:
     if not health.is_healthy:
         st.error(health.error_message or "Inference service unavailable")
     else:
-        st.success("Connected")
-        st.metric("Documents in vector store", health.vector_store_count)
+        st.markdown(
+            '<p style="color: green; margin: 0; padding: 8px 0;">✓ Connected</p>',
+            unsafe_allow_html=True,
+        )
+with col2:
+    if st.button("Refresh"):
+        st.rerun()
 
-        if health.documents:
-            st.subheader("Loaded Documents")
-            for doc in health.documents:
-                icon = _get_status_icon(doc.status)
-                st.write(f"{icon} **{doc.doc_name}** — {doc.status}")
-        else:
-            st.info("No documents loaded yet")
+if health.is_healthy:
+    st.metric("Documents in vector store", health.vector_store_count)
 
-    # Future: Document Ingestion UI
-    st.divider()
-    st.header("Document Ingestion")
-    st.info("📄 Document upload and ingestion UI will be added here")
+    if health.documents:
+        st.subheader("Loaded Documents")
+        for doc in health.documents:
+            icon = _get_status_icon(doc.status)
+            st.write(f"{icon} **{doc.doc_name}** — {doc.status}")
+    else:
+        st.info("No documents loaded yet")
 
-
-if __name__ == "__main__":
-    main()
+# Future: Document Ingestion UI
+# st.divider()
+# st.header("Document Ingestion")
+# st.info("📄 Document upload and ingestion UI will be added here")
