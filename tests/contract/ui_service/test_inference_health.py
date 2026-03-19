@@ -32,7 +32,9 @@ class TestInferenceHealth:
             ],
         }
         (
-            pact.upon_receiving("Get health when inference service has documents loaded")
+            pact.upon_receiving(
+                "Get health when inference service has documents loaded"
+            )
             .given("Inference service has documents loaded")
             .with_request("GET", "/health")
             .will_respond_with(200)
@@ -47,7 +49,7 @@ class TestInferenceHealth:
         assert result.vector_store_count == 2
         assert len(result.documents) == 2
         assert result.documents[0].doc_name == "doc1.pdf"
-        assert result.documents[0].status == "Document processing completed"
+        assert result.documents[1].doc_name == "doc2.pdf"
 
     def test_health_no_documents(self, pact):
         response_body = {

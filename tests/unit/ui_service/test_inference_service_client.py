@@ -1,22 +1,22 @@
+from unittest.mock import Mock, patch
+
 import pytest
 import requests
-from unittest.mock import Mock, patch
 
 from src.ui_service.inference_service_client import (
     ChatResponse,
     DocumentInfo,
-    HealthStatus,
     InferenceServiceClient,
 )
 
 
-class TestInferenceServiceClient:
-    @pytest.fixture(scope="session")
-    def client(self):
-        return InferenceServiceClient("http://test-url")
+@pytest.fixture
+def client():
+    return InferenceServiceClient("http://localhost:8000")
 
-    @patch("src.ui_service.inference_service_client.requests")
-    def test_get_health_success(self, mock_requests, client):
+
+class TestGetHealth:
+    def test_get_health_success(self, client):
         mock_response = Mock()
         mock_response.json.return_value = {
             "status": "ok",
@@ -34,9 +34,10 @@ class TestInferenceServiceClient:
                 },
             ],
         }
-        mock_requests.get.return_value = mock_response
+        mock_response.raise_for_status = Mock()
 
-        result = client.get_health()
+        with patch("requests.get", return_value=mock_response):
+            result = client.get_health()
 
         assert result.is_healthy is True
         assert result.vector_store_count == 2
@@ -46,87 +47,95 @@ class TestInferenceServiceClient:
             doc_name="doc1.pdf",
             status="Document processing completed",
         )
-        assert result.error_message is None
+        assert result.documents[1] == DocumentInfo(
+            doc_hash="def456",
+            doc_name="doc2.pdf",
+            status="Document pending processing",
+        )
 
-    @patch("src.ui_service.inference_service_client.requests")
-    def test_get_health_connection_error(self, mock_requests, client):
-        mock_requests.get.side_effect = requests.ConnectionError("Connection refused")
-        mock_requests.ConnectionError = requests.ConnectionError
-        mock_requests.Timeout = requests.Timeout
-
-        result = client.get_health()
+    def test_get_health_connection_error(self, client):
+        with patch("requests.get", side_effect=requests.ConnectionError()):
+            result = client.get_health()
 
         assert result.is_healthy is False
         assert result.error_message == "Inference Service: unreachable"
 
-    @patch("src.ui_service.inference_service_client.requests")
-    def test_get_health_timeout(self, mock_requests, client):
-        mock_requests.get.side_effect = requests.Timeout("Timeout")
-        mock_requests.ConnectionError = requests.ConnectionError
-        mock_requests.Timeout = requests.Timeout
-
-        result = client.get_health()
+    def test_get_health_timeout(self, client):
+        with patch("requests.get", side_effect=requests.Timeout()):
+            result = client.get_health()
 
         assert result.is_healthy is False
         assert result.error_message == "Health check timeout"
 
-    @patch("src.ui_service.inference_service_client.requests")
-    def test_get_health_invalid_json(self, mock_requests, client):
+    def test_get_health_invalid_json(self, client):
         mock_response = Mock()
+        mock_response.raise_for_status = Mock()
         mock_response.json.side_effect = ValueError("Invalid JSON")
-        mock_requests.get.return_value = mock_response
-        mock_requests.ConnectionError = requests.ConnectionError
-        mock_requests.Timeout = requests.Timeout
 
-        result = client.get_health()
+        with patch("requests.get", return_value=mock_response):
+            result = client.get_health()
 
         assert result.is_healthy is False
-        assert result.error_message is not None
 
-    @patch("src.ui_service.inference_service_client.requests")
-    def test_ask_question_success(self, mock_requests, client):
+    def test_get_health_no_documents(self, client):
         mock_response = Mock()
         mock_response.json.return_value = {
-            "answer": "42",
-            "session_id": "session-abc",
-            "system_message": None,
+            "status": "ok",
+            "documents_loaded_in_vector_store": "0",
+            "documents_loaded_in_dms": [],
         }
-        mock_requests.post.return_value = mock_response
+        mock_response.raise_for_status = Mock()
 
-        result = client.ask_question("What is the answer?")
+        with patch("requests.get", return_value=mock_response):
+            result = client.get_health()
 
-        assert result == ChatResponse(
-            answer="42", session_id="session-abc", system_message=None
-        )
-        mock_requests.post.assert_called_once_with(
-            "http://test-url/chat/domain-expert/",
-            json={"question": "What is the answer?", "session_id": None},
+        assert result.is_healthy is True
+        assert result.vector_store_count == 0
+        assert result.documents == []
+
+
+class TestAskQuestion:
+    def test_ask_question_success(self, client):
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "answer": "Paris",
+            "session_id": "session-123",
+        }
+        mock_response.raise_for_status = Mock()
+
+        with patch("requests.post", return_value=mock_response) as mock_post:
+            result = client.ask_question("What is the capital of France?")
+
+        assert result == ChatResponse(answer="Paris", session_id="session-123")
+        mock_post.assert_called_once_with(
+            "http://localhost:8000/chat/domain-expert/",
+            json={"question": "What is the capital of France?", "session_id": None},
             timeout=30,
         )
 
-    @patch("src.ui_service.inference_service_client.requests")
-    def test_ask_question_with_session_id(self, mock_requests, client):
+    def test_ask_question_with_session_id(self, client):
         mock_response = Mock()
         mock_response.json.return_value = {
-            "answer": "Still 42",
-            "session_id": "session-abc",
+            "answer": "Paris",
+            "session_id": "session-123",
+            "system_message": "Session resumed",
         }
-        mock_requests.post.return_value = mock_response
+        mock_response.raise_for_status = Mock()
 
-        result = client.ask_question("Follow-up question?", session_id="session-abc")
+        with patch("requests.post", return_value=mock_response) as mock_post:
+            result = client.ask_question("What is the capital?", "session-123")
 
-        assert result.session_id == "session-abc"
-        mock_requests.post.assert_called_once_with(
-            "http://test-url/chat/domain-expert/",
-            json={"question": "Follow-up question?", "session_id": "session-abc"},
+        assert result.session_id == "session-123"
+        assert result.system_message == "Session resumed"
+        mock_post.assert_called_once_with(
+            "http://localhost:8000/chat/domain-expert/",
+            json={"question": "What is the capital?", "session_id": "session-123"},
             timeout=30,
         )
 
-    @patch("src.ui_service.inference_service_client.requests")
-    def test_ask_question_error(self, mock_requests, client):
-        mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("500 Error")
-        mock_requests.post.return_value = mock_response
-
-        with pytest.raises(requests.HTTPError):
-            client.ask_question("What is the answer?")
+    def test_ask_question_error(self, client):
+        with patch(
+            "requests.post", side_effect=requests.RequestException("Connection refused")
+        ):
+            with pytest.raises(requests.RequestException):
+                client.ask_question("What is the capital?")

@@ -31,40 +31,8 @@ AVATAR_USER = "🧑"  # Person for user
 AVATAR_ASSISTANT = str(ROBOT_ICON_PATH)  # Green robot for assistant
 
 
-def _get_status_icon(status: str) -> str:
-    status_lower = status.lower()
-    if "completed" in status_lower:
-        return "✅"
-    if "pending" in status_lower:
-        return "⏳"
-    return "❌"
-
-
-@st.fragment(run_every=30)
-def _render_health_status(client: InferenceServiceClient) -> None:
-    with st.expander("Inference Service Health", expanded=False):
-        if st.button("Refresh"):
-            st.rerun(scope="fragment")
-
-        health = client.get_health()
-
-        if not health.is_healthy:
-            st.error(health.error_message or "Inference service unavailable")
-            return
-
-        st.success("Connected")
-        st.metric("Documents in vector store", health.vector_store_count)
-
-        if not health.documents:
-            st.info("No documents loaded yet")
-            return
-
-        for doc in health.documents:
-            icon = _get_status_icon(doc.status)
-            st.write(f"{icon} **{doc.doc_name}** — {doc.status}")
-
-
-def _render_domain_expert(client: InferenceServiceClient) -> None:
+def _render_domain_expert() -> None:
+    client = InferenceServiceClient(INFERENCE_SERVICE_URL)
     _render_system_messages(st.session_state.domain_system_messages)
     for message in st.session_state.domain_history:
         avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
@@ -78,9 +46,7 @@ def _render_domain_expert(client: InferenceServiceClient) -> None:
     st.session_state.domain_history.append({"role": "user", "content": prompt})
     with st.spinner("Thinking..."):
         try:
-            response = client.ask_question(
-                prompt, st.session_state.domain_session_id
-            )
+            response = client.ask_question(prompt, st.session_state.domain_session_id)
         except Exception as exc:
             st.error(f"Request failed: {exc}")
             return
@@ -128,11 +94,13 @@ def main() -> None:
     _apply_custom_css()
     _init_session_state()
 
-    client = InferenceServiceClient(INFERENCE_SERVICE_URL)
+    col1, col2 = st.columns([10, 1])
+    with col1:
+        st.title("RAG Chatbot")
+    with col2:
+        st.page_link("pages/System.py", label="⚙️", icon="⚙️")
 
-    st.title("RAG Chatbot")
-    _render_health_status(client)
-    _render_domain_expert(client)
+    _render_domain_expert()
 
 
 if __name__ == "__main__":
