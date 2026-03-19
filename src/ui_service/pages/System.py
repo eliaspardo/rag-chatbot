@@ -35,7 +35,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-client = InferenceServiceClient(INFERENCE_SERVICE_URL)
+@st.cache_resource
+def _get_client() -> InferenceServiceClient:
+    return InferenceServiceClient(INFERENCE_SERVICE_URL)
+
+
+client = _get_client()
 
 health = client.get_health()
 

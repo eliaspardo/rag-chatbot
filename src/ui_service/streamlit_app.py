@@ -31,8 +31,13 @@ AVATAR_USER = "🧑"  # Person for user
 AVATAR_ASSISTANT = str(ROBOT_ICON_PATH)  # Green robot for assistant
 
 
+@st.cache_resource
+def _get_client() -> InferenceServiceClient:
+    return InferenceServiceClient(INFERENCE_SERVICE_URL)
+
+
 def _render_domain_expert() -> None:
-    client = InferenceServiceClient(INFERENCE_SERVICE_URL)
+    client = _get_client()
     _render_system_messages(st.session_state.domain_system_messages)
     for message in st.session_state.domain_history:
         avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT

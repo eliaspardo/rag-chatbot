@@ -53,6 +53,7 @@ class InferenceServiceClient:
             ]
             return HealthStatus(
                 is_healthy=True,
+                # The API returns documents_loaded_in_vector_store as a string; cast to int.
                 vector_store_count=int(data.get("documents_loaded_in_vector_store", 0)),
                 documents=documents,
             )

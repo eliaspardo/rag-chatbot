@@ -1,13 +1,16 @@
+import os
 import threading
 import time
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 import uvicorn
 from pact import Verifier
 
 from src.inference_service.main import app
+
+PACT_BROKER_URL = os.getenv("PACT_BROKER_URL", "http://localhost:9292/")
 
 
 mock_vector_store_loader = Mock()
@@ -46,19 +49,14 @@ def application():
     app.state.vector_store_loader = mock_vector_store_loader
     app.state.dms_client = mock_dms_client
 
-    with patch(
-        "src.inference_service.main.app.state.vector_store_loader",
-        mock_vector_store_loader,
-    ):
-        with patch("src.inference_service.main.app.state.dms_client", mock_dms_client):
-            config = uvicorn.Config(app, host="0.0.0.0", port=8045)
-            server = uvicorn.Server(config)
-            thread = threading.Thread(target=server.run, daemon=True)
-            thread.start()
-            time.sleep(1)
-            yield
-            server.should_exit = True
-            thread.join(timeout=5)
+    config = uvicorn.Config(app, host="0.0.0.0", port=8045)
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    time.sleep(1)
+    yield
+    server.should_exit = True
+    thread.join(timeout=5)
 
 
 class TestUiService:
@@ -73,9 +71,9 @@ class TestUiService:
             Verifier("inference-service")
             .add_transport(url="http://localhost:8045")
             .broker_source(
-                "http://localhost:9292/",
+                PACT_BROKER_URL,
             )
-            .state_handler(self.state_handlers, teardown=True)
+            .state_handler(self.state_handlers, teardown=False)
         )
 
         verifier.verify()
