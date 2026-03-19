@@ -6,8 +6,8 @@ COPY src/ui_service/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/ui_service/streamlit_app.py src/ui_service/streamlit_app.py
-COPY src/ui_service/robot_icon.svg src/ui_service/robot_icon.svg
+COPY src/__init__.py src/__init__.py
+COPY src/ui_service src/ui_service
 COPY .streamlit .streamlit
 
 CMD ["streamlit", "run", "src/ui_service/streamlit_app.py"]
