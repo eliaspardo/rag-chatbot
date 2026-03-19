@@ -1,12 +1,12 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List
 
-import requests
 import streamlit as st
 
-DEFAULT_API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-REQUEST_TIMEOUT_SECONDS = 30
+from src.ui_service.inference_service_client import InferenceServiceClient
+
+INFERENCE_SERVICE_URL = os.getenv("INFERENCE_SERVICE_URL", "http://localhost:8000")
 
 # Icon paths
 SCRIPT_DIR = Path(__file__).parent
@@ -22,18 +22,6 @@ def _init_session_state() -> None:
         st.session_state.domain_system_messages = []
 
 
-def _post_json(url: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    try:
-        response = requests.post(url, json=payload, timeout=REQUEST_TIMEOUT_SECONDS)
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as exc:
-        st.error(f"Request failed: {exc}")
-    except ValueError:
-        st.error("Invalid response from API.")
-    return None
-
-
 def _render_system_messages(messages: List[str]) -> None:
     for message in messages:
         st.warning(message)
@@ -43,7 +31,13 @@ AVATAR_USER = "🧑"  # Person for user
 AVATAR_ASSISTANT = str(ROBOT_ICON_PATH)  # Green robot for assistant
 
 
+@st.cache_resource
+def _get_client() -> InferenceServiceClient:
+    return InferenceServiceClient(INFERENCE_SERVICE_URL)
+
+
 def _render_domain_expert() -> None:
+    client = _get_client()
     _render_system_messages(st.session_state.domain_system_messages)
     for message in st.session_state.domain_history:
         avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
@@ -56,23 +50,17 @@ def _render_domain_expert() -> None:
 
     st.session_state.domain_history.append({"role": "user", "content": prompt})
     with st.spinner("Thinking..."):
-        data = _post_json(
-            f"{DEFAULT_API_BASE_URL}/chat/domain-expert/",
-            {
-                "question": prompt,
-                "session_id": st.session_state.domain_session_id,
-            },
-        )
+        try:
+            response = client.ask_question(prompt, st.session_state.domain_session_id)
+        except Exception as exc:
+            st.error(f"Request failed: {exc}")
+            return
 
-    if not data:
-        return
-
-    st.session_state.domain_session_id = data["session_id"]
-    system_message = data.get("system_message")
-    if system_message:
-        st.session_state.domain_system_messages.append(system_message)
+    st.session_state.domain_session_id = response.session_id
+    if response.system_message:
+        st.session_state.domain_system_messages.append(response.system_message)
     st.session_state.domain_history.append(
-        {"role": "assistant", "content": data["answer"]}
+        {"role": "assistant", "content": response.answer}
     )
     st.rerun()
 
@@ -104,15 +92,25 @@ def _apply_custom_css() -> None:
     )
 
 
-def main() -> None:
-    st.set_page_config(
-        page_title="RAG Chatbot", page_icon=str(ROBOT_ICON_PATH), layout="centered"
-    )
+def chat_page():
+    """Render the chat page."""
     _apply_custom_css()
     _init_session_state()
-
     st.title("RAG Chatbot")
     _render_domain_expert()
+
+
+def main() -> None:
+    st.set_page_config(
+        page_title="Chat", page_icon=str(ROBOT_ICON_PATH), layout="centered"
+    )
+
+    # Configure navigation with custom page names
+    chat = st.Page(chat_page, title="Chat", icon="💬", default=True)
+    system = st.Page("pages/System.py", title="System Status", icon="⚙️")
+
+    pg = st.navigation([chat, system])
+    pg.run()
 
 
 if __name__ == "__main__":

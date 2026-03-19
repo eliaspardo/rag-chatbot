@@ -8,7 +8,10 @@ services:
       - "./my-localstack-data:/persisted-data"
   chromadb:                                                                                                                                                                                                                                                                                                                      
     volumes:                                                                                                                                                                      
-      - ./data/chroma_db:/data                                                                                                                                           
+      - ./data/chroma_db:/data
+  streamlit:                                                                                                                                                                         
+    volumes:                                                                                                                                                                         
+      - ./src:/app/src                                                                                                                                         
   inference_service:
     env_file:                                                                                                                                                                          
       - .env                                                                                                                                                                           
