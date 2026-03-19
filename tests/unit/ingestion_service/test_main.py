@@ -2,7 +2,8 @@ from contextlib import asynccontextmanager, contextmanager
 
 from fastapi.testclient import TestClient
 from requests import HTTPError
-from src.ingestion_service.main import SingleIngestionRequest, health
+from src.ingestion_service.document_ingestor import DocumentIngestionResult
+from src.ingestion_service.main import IngestionRequest, SingleIngestionRequest, health
 from unittest.mock import Mock, patch
 
 from src.shared.constants import DocumentStatus
@@ -125,3 +126,75 @@ class TestMain:
             response.json()["message"]
             == "Document processed and saved to vector store!"
         )
+
+    def test_ingest_documents_3_success(self):
+        batch_ingestion_request = IngestionRequest(
+            documents=["test1", "test2", "test3"]
+        )
+        batch_ingestion_ingestor_result = [
+            DocumentIngestionResult(document="test1", success=True),
+            DocumentIngestionResult(document="test2", success=True),
+            DocumentIngestionResult(document="test3", success=True),
+        ]
+        mock_doc_ingestor = Mock()
+        api_main.app.state.doc_ingestor = mock_doc_ingestor
+        api_main.app.state.doc_ingestor.ingest_documents.return_value = (
+            batch_ingestion_ingestor_result
+        )
+        with _build_client_no_lifespan() as client:
+            response = client.post(
+                "/ingestion/documents/", json=batch_ingestion_request.model_dump()
+            )
+
+            assert response.json()["total"] == 3
+            assert response.json()["succeeded"] == 3
+            assert response.json()["failed"] == 0
+            assert (
+                DocumentIngestionResult(**response.json()["results"][0])
+                == batch_ingestion_ingestor_result[0]
+            )
+            assert (
+                DocumentIngestionResult(**response.json()["results"][1])
+                == batch_ingestion_ingestor_result[1]
+            )
+            assert (
+                DocumentIngestionResult(**response.json()["results"][2])
+                == batch_ingestion_ingestor_result[2]
+            )
+
+    def test_ingest_documents_2_failed_1_success(self):
+        batch_ingestion_request = IngestionRequest(
+            documents=["test1", "test2", "test3"]
+        )
+        batch_ingestion_ingestor_result = [
+            DocumentIngestionResult(document="test1", success=False, error="Bad file"),
+            DocumentIngestionResult(document="test2", success=True),
+            DocumentIngestionResult(
+                document="test3", success=False, error="Wrong type"
+            ),
+        ]
+        mock_doc_ingestor = Mock()
+        api_main.app.state.doc_ingestor = mock_doc_ingestor
+        api_main.app.state.doc_ingestor.ingest_documents.return_value = (
+            batch_ingestion_ingestor_result
+        )
+        with _build_client_no_lifespan() as client:
+            response = client.post(
+                "/ingestion/documents/", json=batch_ingestion_request.model_dump()
+            )
+
+            assert response.json()["total"] == 3
+            assert response.json()["succeeded"] == 1
+            assert response.json()["failed"] == 2
+            assert (
+                DocumentIngestionResult(**response.json()["results"][0])
+                == batch_ingestion_ingestor_result[0]
+            )
+            assert (
+                DocumentIngestionResult(**response.json()["results"][1])
+                == batch_ingestion_ingestor_result[1]
+            )
+            assert (
+                DocumentIngestionResult(**response.json()["results"][2])
+                == batch_ingestion_ingestor_result[2]
+            )
