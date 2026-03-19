@@ -2,7 +2,7 @@ import os
 import threading
 import time
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 import uvicorn
@@ -46,17 +46,31 @@ def given_has_no_documents(parameters: dict[str, Any] | None = None) -> None:
 @pytest.fixture(scope="session")
 def application():
     """Start up inference service for provider tests."""
-    app.state.vector_store_loader = mock_vector_store_loader
-    app.state.dms_client = mock_dms_client
+    # Patch the functions that are called during lifespan startup
+    with patch(
+        "src.inference_service.lifespan.get_vector_store_loader"
+    ) as mock_get_vsl, patch(
+        "src.inference_service.lifespan.DocumentManagementClient"
+    ) as mock_dms_class, patch(
+        "src.inference_service.lifespan.prepare_vector_store"
+    ) as mock_prepare:
+        # Configure mocks to return our test mocks
+        mock_get_vsl.return_value = mock_vector_store_loader
+        mock_dms_class.return_value = mock_dms_client
+        mock_prepare.return_value = Mock()  # Mock vectordb
 
-    config = uvicorn.Config(app, host="0.0.0.0", port=8045)
-    server = uvicorn.Server(config)
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    time.sleep(1)
-    yield
-    server.should_exit = True
-    thread.join(timeout=5)
+        # Set default return values for the mocks
+        mock_vector_store_loader.get_collection_count.return_value = 0
+        mock_dms_client.get_documents.return_value = []
+
+        config = uvicorn.Config(app, host="0.0.0.0", port=8045)
+        server = uvicorn.Server(config)
+        thread = threading.Thread(target=server.run, daemon=True)
+        thread.start()
+        time.sleep(1)
+        yield
+        server.should_exit = True
+        thread.join(timeout=5)
 
 
 class TestUiService:
