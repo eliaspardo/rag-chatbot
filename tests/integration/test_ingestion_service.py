@@ -1,4 +1,5 @@
 import os
+import chromadb
 import responses
 import pytest
 from unittest.mock import patch
@@ -6,6 +7,7 @@ from testcontainers.core.container import DockerContainer
 from fastapi.testclient import TestClient
 
 from src.shared.constants import DocumentStatus
+from tests.integration.helpers import seed_chromadb_documents
 
 os.environ["DOCKER_HOST"] = "unix:///home/eliaspardo/.docker/desktop/docker.sock"
 os.environ["TESTCONTAINERS_RYUK_DISABLED"] = "true"
@@ -56,7 +58,9 @@ def integration_env(chroma_container, tmp_path_factory):
 @pytest.fixture
 def mock_dms():
     """Mock DMS HTTP responses using responses library."""
-    with responses.RequestsMock() as rsps:
+    with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+        # Allow HuggingFace requests to pass through (for model downloads)
+        rsps.add_passthru("https://huggingface.co")
         yield rsps
 
 
@@ -75,6 +79,22 @@ def client(integration_env, mock_dms):
 
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def chromadb_client(integration_env):
+    """Fixture that provides a ChromaDB client"""
+    chroma_client = chromadb.HttpClient(
+        host=integration_env["CHROMA_HOST"], port=int(integration_env["CHROMA_PORT"])
+    )
+
+    yield chroma_client
+
+    # Cleanup: delete collection after test
+    try:
+        chroma_client.delete_collection(integration_env["CHROMA_COLLECTION"])
+    except Exception:
+        pass
 
 
 class TestIngestionService:
@@ -96,8 +116,15 @@ class TestIngestionService:
         assert data["documents_loaded_in_vector_store"] == "0"
         assert data["documents_loaded_in_dms"] == []
 
-    def test_health_check_with_documents(self, client, mock_dms):
-        # TODO define mocking strategy for chromadb
+    def test_health_check_with_documents(
+        self, client, mock_dms, chromadb_client, integration_env
+    ):
+        seed_chromadb_documents(
+            chroma_client=chromadb_client,
+            collection_name=integration_env["CHROMA_COLLECTION"],
+            texts=["Sample RAG document about testing"],
+            metadatas=[{"source": "test.pdf"}],
+        )
         dms_documents = [
             {
                 "doc_hash": "Doc Hash 1",
@@ -119,5 +146,5 @@ class TestIngestionService:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["documents_loaded_in_vector_store"] == "0"
+        assert data["documents_loaded_in_vector_store"] == "1"
         assert data["documents_loaded_in_dms"] == dms_documents

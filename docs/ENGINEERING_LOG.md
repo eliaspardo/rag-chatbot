@@ -3,6 +3,46 @@
 
 ---
 
+## 2026-03-20
+
+### Integration Test Data Seeding Pattern - Hybrid Approach
+- **Problem**: Integration tests need to pre-seed ChromaDB with test data. Initial approaches had tradeoffs:
+  - Pre-seeded fixtures: Hide what data tests use (readability issue)
+  - Using app endpoints for setup: Couples test setup to implementation (if ingestion breaks, all tests break)
+  - No helper: Duplication across tests
+- **Solution**: Hybrid approach combining best practices:
+  1. Helper function `seed_chromadb_documents()` - reusable seeding logic
+  2. Fixture `chromadb_client` - handles client creation + cleanup
+  3. Tests call helper explicitly with specific data
+- **Implementation pattern**:
+  ```python
+  # Fixture provides client + cleanup
+  @pytest.fixture
+  def chromadb_client(integration_env):
+      client = chromadb.HttpClient(...)
+      yield client
+      client.delete_collection(...)  # Cleanup
+
+  # Test explicitly seeds its data
+  def test_health_with_docs(self, chromadb_client, integration_env):
+      seed_chromadb_documents(
+          chromadb_client,
+          texts=["Specific test data"],
+          metadatas=[{"source": "test.pdf"}]
+      )
+      # ... test logic
+  ```
+- **Why it works**:
+  - Flexible: Each test controls its own data
+  - Readable: Test clearly shows its dependencies
+  - Isolated: No shared state between tests
+  - Reusable: Helper eliminates duplication
+  - Clean: Fixture handles cleanup automatically
+- **Result**: Clear, maintainable integration tests with explicit test data. Pattern is reusable for other services (inference, DMS) that need data seeding.
+- **Related**: ADR-043 (integration test strategy)
+
+---
+
 ## 2026-03-18
 
 ### Autonomous feature removal via Claude Code (case study)
