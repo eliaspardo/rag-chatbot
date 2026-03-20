@@ -218,6 +218,7 @@ cython_debug/
 
 # Claude Code / Tools
 docs/2026_Learning_System.md
+docs/weekly-summary/
 .playwright-cli
 .playwright
 .claude/skills/playwright-cli

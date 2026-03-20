@@ -422,3 +422,13 @@
 **Tradeoffs**: Health endpoint shows DMS status but chat availability doesn't depend on it. A mismatch between DMS and ChromaDB state won't block chat—acceptable because ChromaDB is the authoritative source for "can I answer?".
 **Related**: ADR-006 (original ChromaDB readiness gate decision)
 **Tags**: [architecture, inference, DMS, observability, decoupling]
+
+---
+
+**ID**: ADR-042
+**Date**: 2026-03-18
+**Context**: Development workflow relied on manual implementation of features and fixes. As project complexity grew with multiple microservices, the time spent on repetitive tasks (writing tests, updating docs, fixing linter errors) increased. Need a way to accelerate development while maintaining code quality.
+**Decision**: Integrate Claude Code as a GitHub Actions workflow. Claude can be invoked by mentioning @claude in PR or issue comments. Claude has access to full repository context and can create branches, commits, and comments. Allowed tools are limited to file operations by default—additional tools (like running tests) must be explicitly approved in workflow config.
+**Rationale**: Claude Code provides autonomous task execution for well-defined work: feature implementation, test writing, refactoring, bug fixes. The GitHub Actions integration keeps Claude's work visible (all runs in action history) and auditable (all changes via PRs). Limiting tool access by default provides safety—explicit approval required for potentially destructive operations.
+**Tradeoffs**: Introduces AI-generated code into the codebase—requires human review of all Claude PRs. GitHub Actions minutes usage increases (free tier: 2000 min/month; Claude runs can be 5-10 min each). Team must learn how to write effective prompts and review AI-generated changes critically.
+**Tags**: [tooling, automation, workflow, Claude-Code]

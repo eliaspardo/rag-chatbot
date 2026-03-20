@@ -73,3 +73,21 @@
 - Other services stay flat — they're simpler and don't need the separation
 
 ---
+
+## 2026-03-19
+
+### UI Service - Health Status Component
+- **Goal**: Provide visibility into inference service health and document availability before users attempt to chat
+- **Implementation**:
+  - Added expandable health status panel above chat interface (collapsed by default)
+  - Created `InferenceServiceClient` abstraction to decouple UI from direct API calls
+  - Renamed `API_BASE_URL` → `INFERENCE_SERVICE_URL` for consistency with other services
+  - Used Streamlit's `@st.fragment` decorator for auto-refresh every 30 seconds without full page reload
+- **Testing**:
+  - Unit tests for InferenceServiceClient (mocked requests)
+  - Pact consumer contract tests defining UI → Inference health endpoint expectations
+  - Provider verification tests in inference service confirming contract satisfaction
+- **Result**: Users can now see service status, ChromaDB document count, and DMS document count before chatting. Reduces confusion when service is up but no documents are loaded.
+- **Contract-first approach validated**: Consumer contract defined what UI needs → provider verification drove implementation → full test coverage without manual integration tests
+
+---
