@@ -432,3 +432,13 @@
 **Rationale**: Claude Code provides autonomous task execution for well-defined work: feature implementation, test writing, refactoring, bug fixes. The GitHub Actions integration keeps Claude's work visible (all runs in action history) and auditable (all changes via PRs). Limiting tool access by default provides safety—explicit approval required for potentially destructive operations.
 **Tradeoffs**: Introduces AI-generated code into the codebase—requires human review of all Claude PRs. GitHub Actions minutes usage increases (free tier: 2000 min/month; Claude runs can be 5-10 min each). Team must learn how to write effective prompts and review AI-generated changes critically.
 **Tags**: [tooling, automation, workflow, Claude-Code]
+
+---
+
+**ID**: ADR-043
+**Date**: 2026-03-20
+**Context**: Need integration tests for ingestion service that sit between unit tests (fully mocked) and E2E tests (all services). ADR-036 defined test layer responsibilities but didn't specify implementation patterns for integration tests.
+**Decision**: Use FastAPI TestClient + ChromaDB testcontainer + HTTP-mocked DMS. TestClient runs the full FastAPI app in-process, ChromaDB runs in testcontainer (real database), DMS is mocked at HTTP level using `responses` library.
+**Rationale**: TestClient exercises full FastAPI stack (middleware, exception handlers, lifespan) without HTTP overhead. ChromaDB testcontainer provides real database behavior (embeddings, vector search) without manual infrastructure. HTTP-mocked DMS is sufficient because contract tests already verify DMS integration. Class-scoped testcontainer fixture balances test isolation (per-class cleanup) with speed (container reuse).
+**Tradeoffs**: Testcontainers require Docker, slower than fully-mocked tests. ChromaDB startup adds ~5-10s per test class. HTTP mocks don't catch network-level failures (acceptable - that's E2E territory).
+**Tags**: [testing, integration-tests, testcontainers, ingestion]
