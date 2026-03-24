@@ -1,7 +1,10 @@
+import os
+from urllib.parse import urlparse
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 import chromadb
+from responses import RequestsMock
 
 
 def seed_chromadb_documents(
@@ -40,3 +43,20 @@ def seed_chromadb_documents(
         client=chroma_client,
         collection_name=collection_name,
     )
+
+
+def extract_doc_name(document: str) -> str:
+    parsed = urlparse(document)
+    path = parsed.path if parsed.scheme else document
+    return os.path.basename(path)
+
+
+def debug_requests_mock_calls(mock_dms: RequestsMock) -> None:
+    # Print all captured calls
+    print(f"\n📋 Total HTTP calls made: {len(mock_dms.calls)}")
+    for i, call in enumerate(mock_dms.calls, 1):
+        print(f"\nCall {i}:")
+        print(f"  Method: {call.request.method}")
+        print(f"  URL: {call.request.url}")
+        print(f"  Body: {call.request.body}")
+        print(f"  Response Status: {call.response.status_code}")

@@ -1,3 +1,4 @@
+import hashlib
 import os
 import chromadb
 import responses
@@ -6,11 +7,20 @@ from unittest.mock import patch
 from testcontainers.core.container import DockerContainer
 from fastapi.testclient import TestClient
 
+from src.ingestion_service.main import SingleIngestionRequest
 from src.shared.constants import DocumentStatus
-from tests.integration.helpers import seed_chromadb_documents
+from tests.integration.helpers import (
+    extract_doc_name,
+    seed_chromadb_documents,
+)
 
 os.environ["DOCKER_HOST"] = "unix:///home/eliaspardo/.docker/desktop/docker.sock"
 os.environ["TESTCONTAINERS_RYUK_DISABLED"] = "true"
+
+document_path = "tests/data/pdf-test.pdf"
+doc_hash = hashlib.md5(document_path.encode()).hexdigest()
+doc_name = extract_doc_name(document_path)
+document_request = SingleIngestionRequest(document=document_path)
 
 
 @pytest.fixture(scope="class")
@@ -99,7 +109,9 @@ def chromadb_client(integration_env):
 
 class TestIngestionService:
     def test_health_check_with_no_documents(self, client, mock_dms):
-        # Mock DMS /documents/ endpoint (called by health check)
+        #
+        # Arrange - Mock DMS documents endpoint - no documents
+        #
         mock_dms.add(
             responses.GET,
             "http://localhost:8004/documents/",
@@ -107,9 +119,14 @@ class TestIngestionService:
             status=200,
         )
 
+        #
+        # Act - Get health
+        #
         response = client.get("/health")
 
-        # Assert: Service is healthy
+        #
+        # Assert
+        #
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
@@ -119,12 +136,16 @@ class TestIngestionService:
     def test_health_check_with_documents(
         self, client, mock_dms, chromadb_client, integration_env
     ):
+        #
+        # Arrange - Seed ChromaDB Get Health, Mock DMS documents endpoint
+        #
         seed_chromadb_documents(
             chroma_client=chromadb_client,
             collection_name=integration_env["CHROMA_COLLECTION"],
             texts=["Sample RAG document about testing"],
             metadatas=[{"source": "test.pdf"}],
         )
+
         dms_documents = [
             {
                 "doc_hash": "Doc Hash 1",
@@ -132,19 +153,90 @@ class TestIngestionService:
                 "status": DocumentStatus.PENDING,
             },
         ]
-        # Mock DMS /documents/ endpoint (called by health check)
         mock_dms.add(
             responses.GET,
             "http://localhost:8004/documents/",
-            json=dms_documents,  # No documents
+            json=dms_documents,
             status=200,
         )
 
+        #
+        # Act - Get Health
+        #
         response = client.get("/health")
 
+        #
         # Assert: Service is healthy and returning expected documents
+        #
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
         assert data["documents_loaded_in_vector_store"] == "1"
         assert data["documents_loaded_in_dms"] == dms_documents
+
+    def test_ingestion_1_document(self, client, mock_dms, integration_env):
+        #
+        # Arrange - Mock DMS endpoint: not found, pending, completed, return documents
+        #
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{doc_hash}/status/",
+            status=404,
+        )
+        dms_documents_pending = [
+            {
+                "doc_hash": doc_hash,
+                "doc_name": doc_name,
+                "status": DocumentStatus.PENDING,
+            },
+        ]
+        dms_documents_completed = [
+            {
+                "doc_hash": doc_hash,
+                "doc_name": doc_name,
+                "status": DocumentStatus.COMPLETED,
+            },
+        ]
+
+        # Responses mocking - send response based on request's status
+        def status_callback(request):
+            import json
+
+            body = json.loads(request.body)
+
+            if body["status"] == DocumentStatus.PENDING:
+                return (201, {}, json.dumps(dms_documents_pending))
+            elif body["status"] == DocumentStatus.COMPLETED:
+                return (204, {}, "")
+
+        mock_dms.add_callback(
+            responses.PUT,
+            f"http://localhost:8004/documents/{doc_hash}/status/",
+            callback=status_callback,
+        )
+        # After document has been added, return 1 document
+        mock_dms.add(
+            responses.GET,
+            "http://localhost:8004/documents/",
+            json=dms_documents_completed,
+            status=200,
+        )
+
+        #
+        # Act - Request single document ingestion
+        #
+        response = client.post(
+            "/ingestion/document", json=document_request.model_dump()
+        )
+
+        #
+        # Assert
+        #
+        response = client.get("/health")
+        print(response)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["documents_loaded_in_vector_store"] == "1"
+        assert data["documents_loaded_in_dms"] == dms_documents_completed
