@@ -24,25 +24,13 @@ A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) a
 
 ## Architecture
 
-The application is built as a microservices system with the following services:
+The application is built as a microservices system with the following services.
 
-```
-┌─────────────┐     ┌─────────────────┐     ┌──────────────┐
-│  Streamlit  │────>│ Inference Svc   │────>│   ChromaDB   │
-│  Frontend   │     │   (FastAPI)     │     │              │
-└─────────────┘     └─────────────────┘     └──────────────┘
-                            
-                            
-┌─────────────────┐   ┌─────────────────┐   ┌──────────────┐
-│ Ingestion Svc   │──>│ Document Mgmt   │──>│  PostgreSQL  │
-│   (FastAPI)     │   │  Svc (FastAPI)  │   │   (dms-db)   │
-└─────────────────┘   └─────────────────┘   └──────────────┘
-```
 
 | Service | Port | Description |
 |---------|------|-------------|
 | Streamlit | 8501 | Web frontend |
-| Inference Service | 8002 | Chat API (domain expert) |
+| Inference Service | 8002 | Chat API |
 | Ingestion Service | 8003 | Document ingestion API |
 | Document Management Service | 8004 | Document status tracking |
 | ChromaDB | 8001 | Vector store |
@@ -212,20 +200,14 @@ docker compose down
 
 Data persists under `./my-localstack-data` as configured in `docker-compose.yaml`.
 
-### Domain Expert Mode
-
-```
-❓ Your question: What are the key principles of risk-based testing?
-💡 Answer: Based on the context, risk-based testing involves...
-```
 
 ## Project Structure
 
 ```
 rag-chatbot/
 |- README.md
-|- Makefile                   # Development commands
-|- docker-compose.yaml        # Service orchestration
+|- Makefile                    # Development commands
+|- docker-compose.yaml         # Service orchestration
 |- docker-compose.override.yml # Local dev overrides
 |- requirements.txt
 |- .env.example
@@ -233,55 +215,24 @@ rag-chatbot/
 |- config/
 |  \- params.env              # Tunable runtime parameters
 |- docker/                    # Dockerfiles per service
-|  |- Dockerfile.ingestion_service
-|  |- Dockerfile.inference_service
-|  |- Dockerfile.document_management_service
-|  \- Dockerfile.streamlit
 |- src/
 |  |- ingestion_service/      # Builds the vector store from PDFs
-|  |  |- main.py              # Ingestion service entry point
-|  |  |- bootstrap.py         # Vector store preparation logic
-|  |  |- file_loader.py       # PDF loading (local/S3)
-|  |  |- document_ingestor.py # DMS-aware ingestion logic
-|  |  |- document_management_client.py # DMS HTTP client
-|  |  |- vector_store_builder.py  # Document processing & embedding
-|  |  \- lifespan.py          # FastAPI lifespan management
 |  |- document_management_service/  # Document status tracking
-|  |  |- main.py              # FastAPI routes
-|  |  |- db_client.py         # Database operations
-|  |  |- models.py            # SQLAlchemy models
-|  |  \- lifespan.py          # FastAPI lifespan management
 |  |- inference_service/      # Serves the chat API
-|  |  |- api/
-|  |  |  |- main.py           # FastAPI routes
-|  |  |  |- bootstrap.py      # Vector store loading
-|  |  |  |- lifespan.py       # FastAPI lifespan management
-|  |  |  \- session_manager.py
-|  |  \- core/
-|  |     |- domain_expert_core.py
-|  |     |- chain_manager.py
-|  |     \- vector_store_loader.py
 |  |- shared/                 # Shared utilities
-|  |  |- prompts.py           # System and condense prompts
-|  |  |- constants.py         # DocumentStatus enum, etc.
-|  |  |- models.py            # Shared Pydantic models
-|  |  |- exceptions.py
-|  |  \- env_loader.py
-|  \- ui_service/
-|     \- streamlit_app.py     # Streamlit frontend
+|  \- ui_service/             # Streamlit frontend   
 |- tests/
 |  |- unit/                   # Unit tests (mocked dependencies)
 |  |- contract/               # Pact consumer & provider tests
 |  \- data/                   # Test fixtures
 |- pacts/                     # Generated Pact files (gitignored)
-|- data/
-|  \- your_document.pdf       # Place PDFs here for context
-\- chroma_db/                  # Vector store (auto-generated)
+\- data/
+   \- your_document.pdf       # Place PDFs here for context
 ```
 
 ## Configuration Options
 
-- Secrets live in `.env` (untracked): `TOGETHER_API_KEY` and `DMS_DATABASE_URL`.
+- Secrets live in `.env` (untracked): `TOGETHER_API_KEY` and `DMS_DATABASE_URL`. Additionally, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` if you're serving S3 files.
 - Tunables live in `config/params.env` (tracked): table below.
 
 | Variable          | Default                                         | Description                           |
@@ -318,6 +269,7 @@ Listed in `requirements.txt` file and within each service's folder.
 make test          # Run all tests (unit + contract)
 make test-unit     # Run unit tests only
 make test-contract # Run contract tests only
+make test-eval     # Run contract tests only (needs mlflow container running)
 ```
 
 ### Test Layers

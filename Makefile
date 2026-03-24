@@ -28,8 +28,10 @@ test-contract:
 	pytest -s tests/contract
 
 test-eval:
+	@echo "Ensuring MLflow is running for evaluation tests..."
+	docker compose up -d mlflow
+	@echo "Running evaluation tests..."
 	pytest -s -m "deepeval" --log-cli-level=ERROR
-
 
 pact-publish:
 	docker run --rm \
