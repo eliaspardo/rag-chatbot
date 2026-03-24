@@ -22,6 +22,11 @@ doc_hash = hashlib.md5(document_path.encode()).hexdigest()
 doc_name = extract_doc_name(document_path)
 document_request = SingleIngestionRequest(document=document_path)
 
+document_path_2 = "tests/data/pdf-test-2.pdf"
+doc_hash_2 = hashlib.md5(document_path_2.encode()).hexdigest()
+doc_name_2 = extract_doc_name(document_path_2)
+document_request_2 = SingleIngestionRequest(document=document_path_2)
+
 
 @pytest.fixture(scope="class")
 def chroma_container():
@@ -214,7 +219,7 @@ class TestIngestionService:
             f"http://localhost:8004/documents/{doc_hash}/status/",
             callback=status_callback,
         )
-        # After document has been added, return 1 document
+        # After document has been added, return document - used by health check for assertion
         mock_dms.add(
             responses.GET,
             "http://localhost:8004/documents/",
@@ -240,3 +245,112 @@ class TestIngestionService:
         assert data["status"] == "ok"
         assert data["documents_loaded_in_vector_store"] == "1"
         assert data["documents_loaded_in_dms"] == dms_documents_completed
+
+    def test_ingestion_2_documents(self, client, mock_dms, integration_env):
+        #
+        # Arrange - Mock DMS endpoint: not found, pending, completed, return documents
+        #
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{doc_hash}/status/",
+            status=404,
+        )
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{doc_hash_2}/status/",
+            status=404,
+        )
+        dms_documents_pending = [
+            {
+                "doc_hash": doc_hash,
+                "doc_name": doc_name,
+                "status": DocumentStatus.PENDING,
+            },
+        ]
+        dms_documents_completed = [
+            {
+                "doc_hash": doc_hash,
+                "doc_name": doc_name,
+                "status": DocumentStatus.COMPLETED,
+            },
+        ]
+
+        # Responses mocking - send response based on request's status
+        def status_callback(request):
+            import json
+
+            body = json.loads(request.body)
+
+            if body["status"] == DocumentStatus.PENDING:
+                return (201, {}, json.dumps(dms_documents_pending))
+            elif body["status"] == DocumentStatus.COMPLETED:
+                return (204, {}, "")
+
+        mock_dms.add_callback(
+            responses.PUT,
+            f"http://localhost:8004/documents/{doc_hash}/status/",
+            callback=status_callback,
+        )
+        dms_documents_pending_2 = [
+            {
+                "doc_hash": doc_hash_2,
+                "doc_name": doc_name_2,
+                "status": DocumentStatus.PENDING,
+            },
+        ]
+        dms_documents_completed_2 = [
+            {
+                "doc_hash": doc_hash_2,
+                "doc_name": doc_name_2,
+                "status": DocumentStatus.COMPLETED,
+            },
+        ]
+
+        def status_callback_2(request):
+            import json
+
+            body = json.loads(request.body)
+
+            if body["status"] == DocumentStatus.PENDING:
+                return (201, {}, json.dumps(dms_documents_pending_2))
+            elif body["status"] == DocumentStatus.COMPLETED:
+                return (204, {}, "")
+
+        mock_dms.add_callback(
+            responses.PUT,
+            f"http://localhost:8004/documents/{doc_hash_2}/status/",
+            callback=status_callback_2,
+        )
+
+        # After document has been added, return documents - used by health check for assertion
+        mock_dms.add(
+            responses.GET,
+            "http://localhost:8004/documents/",
+            json=dms_documents_completed + dms_documents_completed_2,
+            status=200,
+        )
+
+        #
+        # Act - Request single document ingestion
+        #
+        response = client.post(
+            "/ingestion/document", json=document_request.model_dump()
+        )
+        response = client.post(
+            "/ingestion/document", json=document_request_2.model_dump()
+        )
+
+        #
+        # Assert
+        #
+        response = client.get("/health")
+        print(response)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["documents_loaded_in_vector_store"] == "2"
+        assert (
+            data["documents_loaded_in_dms"]
+            == dms_documents_completed + dms_documents_completed_2
+        )
