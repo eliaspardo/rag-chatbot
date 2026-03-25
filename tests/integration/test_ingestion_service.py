@@ -7,7 +7,7 @@ from unittest.mock import patch
 from testcontainers.core.container import DockerContainer
 from fastapi.testclient import TestClient
 
-from src.ingestion_service.main import SingleIngestionRequest
+from src.ingestion_service.main import IngestionRequest, SingleIngestionRequest
 from src.shared.constants import DocumentStatus
 from tests.integration.helpers import (
     extract_doc_name,
@@ -26,6 +26,8 @@ document_path_2 = "tests/data/pdf-test-2.pdf"
 doc_hash_2 = hashlib.md5(document_path_2.encode()).hexdigest()
 doc_name_2 = extract_doc_name(document_path_2)
 document_request_2 = SingleIngestionRequest(document=document_path_2)
+
+documents_request = IngestionRequest(documents=[document_path, document_path_2])
 
 
 @pytest.fixture(scope="class")
@@ -238,7 +240,6 @@ class TestIngestionService:
         # Assert
         #
         response = client.get("/health")
-        print(response)
 
         assert response.status_code == 200
         data = response.json()
@@ -331,21 +332,17 @@ class TestIngestionService:
         )
 
         #
-        # Act - Request single document ingestion
+        # Act - Request multiple document ingestion
         #
         response = client.post(
-            "/ingestion/document", json=document_request.model_dump()
-        )
-        response = client.post(
-            "/ingestion/document", json=document_request_2.model_dump()
+            "/ingestion/documents",
+            json=documents_request.model_dump(),
         )
 
         #
         # Assert
         #
         response = client.get("/health")
-        print(response)
-
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"

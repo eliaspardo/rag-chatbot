@@ -82,3 +82,9 @@ Context to inject into both skills:
 - Project: RAG chatbot — 5 services (Ingestion, Document Management, Inference, Streamlit, ChromaDB)
 - Full learning plan: `/docs/2026_Learning_System.md` (consult for iteration boundaries and goals)
 - Source material: ADR log entries since last summary
+
+## Plan Files
+- Store plans in `docs/plans/`
+- Name plan files using format: `YYYY-MM-DD_<feature-slug>.md`
+  Example: `2026-03-24_pact-contract-ingestion-service.md`
+- Never use auto-generated random names
