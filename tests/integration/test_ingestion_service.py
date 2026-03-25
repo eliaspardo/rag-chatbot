@@ -80,11 +80,18 @@ def integration_env(chroma_container, tmp_path_factory):
 
 
 @pytest.fixture
-def mock_dms():
+def mock_dms(integration_env):
     """Mock DMS HTTP responses using responses library."""
     with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
         # Allow HuggingFace requests to pass through (for model downloads)
         rsps.add_passthru("https://huggingface.co")
+        # Allow ChromaDB requests to pass through (so we can test real container failures)
+        chroma_url = (
+            f"http://{integration_env['CHROMA_HOST']}:{integration_env['CHROMA_PORT']}"
+        )
+        rsps.add_passthru(chroma_url)
+        # Allow Docker API requests to pass through (for testcontainers management)
+        rsps.add_passthru("http+docker://")
         yield rsps
 
 
@@ -503,3 +510,79 @@ class TestIngestionService:
         assert data["status"] == "ok"
         assert data["documents_loaded_in_vector_store"] == "0"
         assert data["documents_loaded_in_dms"] == []
+
+    def test_ingestion_1_document_vector_store_unavailable(
+        self, client, mock_dms, integration_env, chroma_container
+    ):
+        #
+        # Arrange - Mock DMS endpoint: not found, pending, completed, return documents
+        #
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{doc_hash}/status/",
+            status=404,
+        )
+
+        dms_documents_pending = [
+            {
+                "doc_hash": doc_hash,
+                "doc_name": doc_name,
+                "status": DocumentStatus.PENDING,
+            },
+        ]
+        dms_documents_error = [
+            {
+                "doc_hash": doc_hash,
+                "doc_name": doc_name,
+                "status": DocumentStatus.ERROR,
+            },
+        ]
+
+        # Responses mocking - send response based on request's status
+        def status_callback(request):
+            import json
+
+            body = json.loads(request.body)
+
+            if body["status"] == DocumentStatus.PENDING:
+                return (201, {}, json.dumps(dms_documents_pending))
+            elif body["status"] == DocumentStatus.ERROR:
+                return (204, {}, "")
+
+        mock_dms.add_callback(
+            responses.PUT,
+            f"http://localhost:8004/documents/{doc_hash}/status/",
+            callback=status_callback,
+        )
+
+        mock_dms.add(
+            responses.GET,
+            "http://localhost:8004/documents/",
+            json=dms_documents_error,
+            status=200,
+        )
+
+        # Stop chroma container to simulate unavailability
+        chroma_container.stop()
+
+        try:
+            #
+            # Act - Request single document ingestion
+            #
+            response = client.post(
+                "/ingestion/document", json=document_request.model_dump()
+            )
+
+            #
+            # Assert
+            #
+            response = client.get("/health")
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "ok"
+            assert data["documents_loaded_in_vector_store"] == "0"
+            assert data["documents_loaded_in_dms"] == dms_documents_error
+        finally:
+            # Restart container for subsequent tests
+            chroma_container.start()
