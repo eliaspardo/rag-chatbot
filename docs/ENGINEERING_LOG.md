@@ -131,3 +131,15 @@
 - **Contract-first approach validated**: Consumer contract defined what UI needs → provider verification drove implementation → full test coverage without manual integration tests
 
 ---
+
+## 2026-03-25
+
+### Fixed ChromaDB test data persistence with autouse fixture
+- **Problem**: Integration tests in `TestIngestionService` experienced data accumulation across test methods. The final test (`test_ingestion_2_documents`) expected exactly 2 documents but received more because previous tests' data persisted in the shared class-scoped ChromaDB container.
+- **Root cause**: The `chromadb_client` fixture included cleanup logic (delete collection after test) but was only used as a parameter by one of four tests. The other three tests wrote data to ChromaDB without cleaning up, causing data to leak into subsequent tests.
+- **Solution**: Added `autouse=True` to the `chromadb_client` fixture definition. This makes the cleanup logic run automatically after every test, regardless of whether the test declares the fixture as a parameter.
+- **Why autouse over function-scoped container**: Container startup takes 2-5 seconds per test; collection deletion takes <100ms. For 4 tests, autouse cleanup saves 8-20 seconds compared to recreating the container for each test.
+- **Result**: Clean state between tests with minimal performance overhead. Tests that need direct ChromaDB access (e.g., for seeding data) still get the client object by declaring the fixture parameter. Tests that only use the ingestion API don't need to change—they automatically benefit from cleanup.
+- **Related**: ADR-045 (decision to use autouse fixture), ADR-043 (integration test patterns with testcontainers)
+
+---

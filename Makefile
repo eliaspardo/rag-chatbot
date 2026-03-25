@@ -27,6 +27,9 @@ test-unit:
 test-contract:
 	pytest -s tests/contract
 
+test-integration:
+	pytest -s tests/integration
+
 test-eval:
 	@echo "Ensuring MLflow is running for evaluation tests..."
 	docker compose up -d mlflow

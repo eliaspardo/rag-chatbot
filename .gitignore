@@ -217,6 +217,7 @@ cython_debug/
 .cursorindexingignore
 
 # Claude Code / Tools
+docs/plans
 docs/2026_Learning_System.md
 docs/weekly-summary/
 .playwright-cli

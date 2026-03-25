@@ -29,6 +29,13 @@ document_request_2 = SingleIngestionRequest(document=document_path_2)
 
 documents_request = IngestionRequest(documents=[document_path, document_path_2])
 
+document_path_non_existing = "tests/data/pdf-test-non-existing.pdf"
+doc_hash_non_existing = hashlib.md5(document_path_non_existing.encode()).hexdigest()
+doc_name__non_existing = extract_doc_name(document_path_non_existing)
+document_request__non_existing = SingleIngestionRequest(
+    document=document_path_non_existing
+)
+
 
 @pytest.fixture(scope="class")
 def chroma_container():
@@ -98,7 +105,8 @@ def client(integration_env, mock_dms):
         yield test_client
 
 
-@pytest.fixture
+# Setting autoreuse to true to cleanup ChromaDB after each test
+@pytest.fixture(autouse=True)
 def chromadb_client(integration_env):
     """Fixture that provides a ChromaDB client"""
     chroma_client = chromadb.HttpClient(
@@ -350,4 +358,112 @@ class TestIngestionService:
         assert (
             data["documents_loaded_in_dms"]
             == dms_documents_completed + dms_documents_completed_2
+        )
+
+    def test_ingestion_2_documents_1_error(self, client, mock_dms, integration_env):
+        #
+        # Arrange - Mock DMS endpoint: not found, pending, completed, return document (one non existing doc)
+        #
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{doc_hash_non_existing}/status/",
+            status=404,
+        )
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{doc_hash_2}/status/",
+            status=404,
+        )
+        dms_documents_pending_non_existing = [
+            {
+                "doc_hash": doc_hash_non_existing,
+                "doc_name": doc_name__non_existing,
+                "status": DocumentStatus.PENDING,
+            },
+        ]
+        dms_documents_error_non_existing = [
+            {
+                "doc_hash": doc_hash_non_existing,
+                "doc_name": doc_name__non_existing,
+                "status": DocumentStatus.ERROR,
+            },
+        ]
+
+        # Responses mocking - send response based on request's status
+        def status_callback(request):
+            import json
+
+            body = json.loads(request.body)
+
+            if body["status"] == DocumentStatus.PENDING:
+                return (201, {}, json.dumps(dms_documents_pending_non_existing))
+            elif body["status"] == DocumentStatus.ERROR:
+                return (204, {}, "")
+
+        mock_dms.add_callback(
+            responses.PUT,
+            f"http://localhost:8004/documents/{doc_hash_non_existing}/status/",
+            callback=status_callback,
+        )
+        dms_documents_pending_2 = [
+            {
+                "doc_hash": doc_hash_2,
+                "doc_name": doc_name_2,
+                "status": DocumentStatus.PENDING,
+            },
+        ]
+        dms_documents_completed_2 = [
+            {
+                "doc_hash": doc_hash_2,
+                "doc_name": doc_name_2,
+                "status": DocumentStatus.COMPLETED,
+            },
+        ]
+
+        def status_callback_2(request):
+            import json
+
+            body = json.loads(request.body)
+
+            if body["status"] == DocumentStatus.PENDING:
+                return (201, {}, json.dumps(dms_documents_pending_2))
+            elif body["status"] == DocumentStatus.COMPLETED:
+                return (204, {}, "")
+
+        mock_dms.add_callback(
+            responses.PUT,
+            f"http://localhost:8004/documents/{doc_hash_2}/status/",
+            callback=status_callback_2,
+        )
+
+        # After document has been added, return documents - used by health check for assertion
+        mock_dms.add(
+            responses.GET,
+            "http://localhost:8004/documents/",
+            json=dms_documents_completed_2 + dms_documents_error_non_existing,
+            status=200,
+        )
+
+        #
+        # Act - Request multiple document ingestion
+        #
+        documents_request = IngestionRequest(
+            documents=[document_path_non_existing, document_path_2]
+        )
+        response = client.post(
+            "/ingestion/documents",
+            json=documents_request.model_dump(),
+        )
+
+        #
+        # Assert
+        #
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["documents_loaded_in_vector_store"] == "1"
+        assert (
+            data["documents_loaded_in_dms"]
+            == dms_documents_completed_2 + dms_documents_error_non_existing
         )

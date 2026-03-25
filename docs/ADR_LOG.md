@@ -450,3 +450,13 @@
 **Tradeoffs**: Requires manual coordination when upgrading MLflow versions. Cannot use `latest` tag for automatic updates. However, this is acceptable given the fragility of SQLite shared across environments. Not guaranteed to prevent all corruption scenarios, but reduces risk. Alternative: separate databases per environment (rejected: loses unified experiment tracking).
 **Tags**: [mlflow, docker, database, schema-migration, version-management, preventive]
 
+---
+
+**ID**: ADR-045
+**Date**: 2026-03-25
+**Context**: Integration tests for ingestion service use a class-scoped ChromaDB testcontainer shared across all tests. A `chromadb_client` fixture existed with cleanup logic (deletes collection after test), but it was only used by one of four tests. This caused data to accumulate across tests, leading to assertion failures when tests expected specific document counts.
+**Decision**: Make the `chromadb_client` fixture autouse by adding `autouse=True` parameter. This ensures cleanup runs automatically after every test in the class, even if the test doesn't declare the fixture as a parameter.
+**Rationale**: Leverages existing cleanup logic without code duplication. Collection deletion is fast (<100ms) compared to container startup (2-5 seconds), so maintaining the class-scoped container with per-test cleanup provides both isolation and performance. Tests that need direct ChromaDB access (like `test_health_check_with_documents`) can still declare the fixture parameter to get the client object; tests that only use the API don't need to change.
+**Tradeoffs**: The cleanup fixture now runs for all tests, even those that don't write data (e.g., `test_health_check_with_no_documents`). The try/except in the cleanup handler makes this safe. Slight coupling—all tests implicitly depend on cleanup running—but this is preferable to data leakage between tests. Alternative considered: change fixture scope to function (new container per test) but rejected due to significant performance overhead.
+**Tags**: [testing, fixtures, integration-tests, ChromaDB, cleanup, isolation]
+
