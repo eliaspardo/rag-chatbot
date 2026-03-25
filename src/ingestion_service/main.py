@@ -47,7 +47,12 @@ def get_vectordb_collection_count() -> int:
 
 
 def get_dms_documents() -> List[DMSDocument]:
-    return app.state.doc_ingestor.dms_client.get_documents()
+    try:
+        documents = app.state.doc_ingestor.dms_client.get_documents()
+        return documents
+    except Exception as e:
+        print(f"Error getting documents from DMS: {e}")
+        return []
 
 
 @app.get("/health")

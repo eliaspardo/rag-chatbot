@@ -467,3 +467,39 @@ class TestIngestionService:
             data["documents_loaded_in_dms"]
             == dms_documents_completed_2 + dms_documents_error_non_existing
         )
+
+    def test_ingestion_1_document_DMS_unavailable(
+        self, client, mock_dms, integration_env
+    ):
+        #
+        # Arrange - Mock DMS endpoint: not found, pending, completed, return documents
+        #
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{doc_hash}/status/",
+            status=503,
+        )
+
+        mock_dms.add(
+            responses.GET,
+            "http://localhost:8004/documents/",
+            status=503,
+        )
+
+        #
+        # Act - Request single document ingestion
+        #
+        response = client.post(
+            "/ingestion/document", json=document_request.model_dump()
+        )
+
+        #
+        # Assert
+        #
+        response = client.get("/health")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["documents_loaded_in_vector_store"] == "0"
+        assert data["documents_loaded_in_dms"] == []
