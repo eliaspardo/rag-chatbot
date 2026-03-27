@@ -17,11 +17,23 @@ document_request = SingleIngestionRequest(document="test")
 
 @asynccontextmanager
 async def _no_lifespan(app):
+    """
+    Context manager that bypasses a FastAPI application's lifespan so startup and shutdown events are not executed.
+    
+    Parameters:
+        app: The FastAPI application whose lifespan context will be replaced while using this manager.
+    """
     yield
 
 
 @contextmanager
 def _build_client_no_lifespan():
+    """
+    Context manager that yields a TestClient for the FastAPI app with the app lifespan disabled.
+    
+    Yields:
+        TestClient: A test client for `api_main.app`. The app's original lifespan context is restored after exiting the context.
+    """
     original_lifespan = api_main.app.router.lifespan_context
     api_main.app.router.lifespan_context = _no_lifespan
     try:

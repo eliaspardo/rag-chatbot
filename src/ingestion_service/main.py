@@ -43,10 +43,22 @@ class BatchIngestionResponse(BaseModel):
 
 
 def get_vectordb_collection_count() -> int:
+    """
+    Get the current number of collections stored in the application's vector store.
+    
+    Returns:
+        int: The number of collections in the vector store.
+    """
     return app.state.vector_store_builder.get_collection_count()
 
 
 def get_dms_documents() -> List[DMSDocument]:
+    """
+    Fetch documents from the DMS client attached to the application's document ingestor.
+    
+    Returns:
+        List[DMSDocument]: List of retrieved DMSDocument objects. Returns an empty list if an error occurs while fetching.
+    """
     try:
         documents = app.state.doc_ingestor.dms_client.get_documents()
         return documents
@@ -57,6 +69,15 @@ def get_dms_documents() -> List[DMSDocument]:
 
 @app.get("/health")
 def health():
+    """
+    Report application health and counts of documents loaded in the vector store and DMS.
+    
+    Returns:
+        dict: A mapping with keys:
+            - "status": the service health status, normally "ok".
+            - "documents_loaded_in_vector_store": the vector store collection count as a string.
+            - "documents_loaded_in_dms": a list of DMS documents converted to dicts via `model_dump()`.
+    """
     documents = [doc.model_dump() for doc in get_dms_documents()]
 
     return {

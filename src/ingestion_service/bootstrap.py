@@ -23,6 +23,18 @@ def process_document(
     vector_store_builder: VectorStoreBuilder,
     progress: ProgressCallback,
 ) -> List[Document] | None:
+    """
+    Load a PDF by identifier, extract its text, and split that text into a list of Document objects.
+    
+    Parameters:
+        file (str): Path or identifier of the PDF to load.
+        file_loader (FileLoader): Component responsible for resolving/loading the PDF file.
+        vector_store_builder (VectorStoreBuilder): Component used to extract text from the PDF and split it into documents.
+        progress (ProgressCallback): Callback invoked with progress messages.
+    
+    Returns:
+        List[Document] | None: List of documents produced from the PDF text, or `None` if the PDF file was not found.
+    """
     try:
         file_path = file_loader.load_pdf_file(file)
     except FileNotFoundError:

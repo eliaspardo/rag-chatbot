@@ -39,7 +39,12 @@ document_request__non_existing = SingleIngestionRequest(
 
 @pytest.fixture(scope="class")
 def chroma_container():
-    """Spin up ChromaDB testcontainer for the test class."""
+    """
+    Start a temporary ChromaDB Docker container for use by tests.
+    
+    Yields:
+        DockerContainer: A running ChromaDB container exposing the service port; the container is stopped when the fixture is torn down.
+    """
     container = (
         DockerContainer("chromadb/chroma:1.5.1.dev68")
         .with_exposed_ports(8000)
@@ -56,7 +61,14 @@ def chroma_container():
 
 @pytest.fixture(scope="class")
 def integration_env(chroma_container, tmp_path_factory):
-    """Configure environment variables for integration tests."""
+    """
+    Prepare and apply environment variables required for integration tests and provide the resulting mapping.
+    
+    The fixture sets Chroma connection details, a temporary AWS folder, DMS URL (mock target), model and preprocessing settings, and ingestion chunking parameters, and patches os.environ with these values for the duration of the fixture.
+    
+    Returns:
+        env_vars (dict): Mapping of environment variable names to values as applied to os.environ.
+    """
     host = chroma_container.get_container_host_ip()
     port = chroma_container.get_exposed_port(8000)
     temp_dir = tmp_path_factory.mktemp("aws_temp")
@@ -81,7 +93,15 @@ def integration_env(chroma_container, tmp_path_factory):
 
 @pytest.fixture
 def mock_dms(integration_env):
-    """Mock DMS HTTP responses using responses library."""
+    """
+    Provide a configured RequestsMock that intercepts DMS HTTP calls while allowing external hosts required by integration tests to pass through.
+    
+    Parameters:
+        integration_env (dict): Environment values containing 'CHROMA_HOST' and 'CHROMA_PORT' used to compute the ChromaDB base URL that should be excluded from interception.
+    
+    Returns:
+        responses.RequestsMock: A RequestsMock instance configured to permit passthrough for HuggingFace, the ChromaDB base URL derived from `integration_env`, and Docker API requests.
+    """
     with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
         # Allow HuggingFace requests to pass through (for model downloads)
         rsps.add_passthru("https://huggingface.co")
@@ -97,7 +117,18 @@ def mock_dms(integration_env):
 
 @pytest.fixture
 def client(integration_env, mock_dms):
-    """Create FastAPI TestClient with integration dependencies."""
+    """
+    Provide a TestClient for the FastAPI ingestion app configured with the integration test environment.
+    
+    This fixture clears any previously imported `src.*` modules so the application is re-imported and reads the patched environment variables supplied by the integration fixtures.
+    
+    Parameters:
+    	integration_env (dict): Environment variables prepared for integration tests.
+    	mock_dms (responses.RequestsMock): Active HTTP mock for DMS interactions.
+    
+    Returns:
+    	test_client (fastapi.testclient.TestClient): A TestClient instance for `src.ingestion_service.main.app`.
+    """
     import sys
 
     # Clear any cached imports so modules read the new env vars
@@ -222,6 +253,17 @@ class TestIngestionService:
 
         # Responses mocking - send response based on request's status
         def status_callback(request):
+            """
+            Handle mocked DMS PUT callbacks by inspecting the request JSON `status` and returning the corresponding HTTP response for tests.
+            
+            Parameters:
+                request: The incoming HTTP request object from the `responses` mock; its body is expected to be JSON containing a `status` field matching `DocumentStatus`.
+            
+            Returns:
+                A tuple (status_code, headers, body) where:
+                - If `status` is `DocumentStatus.PENDING`: returns status 201, empty headers, and a JSON body containing the `dms_documents_pending` payload.
+                - If `status` is `DocumentStatus.COMPLETED`: returns status 204, empty headers, and an empty body.
+            """
             import json
 
             body = json.loads(request.body)
@@ -266,6 +308,11 @@ class TestIngestionService:
         #
         # Arrange - Mock DMS endpoint: not found, pending, completed, return documents
         #
+        """
+        Verifies that ingesting two documents results in both documents being stored in the vector store and reported as completed by the DMS.
+        
+        Mocks per-document DMS status checks and status-update endpoints to simulate PENDING→COMPLETED transitions for two distinct documents, invokes the bulk ingestion endpoint, then asserts the service /health endpoint reports two documents in the vector store and the DMS listing contains both documents with `COMPLETED` status.
+        """
         mock_dms.add(
             responses.GET,
             f"http://localhost:8004/documents/{doc_hash}/status/",
@@ -293,6 +340,17 @@ class TestIngestionService:
 
         # Responses mocking - send response based on request's status
         def status_callback(request):
+            """
+            Handle mocked DMS PUT callbacks by inspecting the request JSON `status` and returning the corresponding HTTP response for tests.
+            
+            Parameters:
+                request: The incoming HTTP request object from the `responses` mock; its body is expected to be JSON containing a `status` field matching `DocumentStatus`.
+            
+            Returns:
+                A tuple (status_code, headers, body) where:
+                - If `status` is `DocumentStatus.PENDING`: returns status 201, empty headers, and a JSON body containing the `dms_documents_pending` payload.
+                - If `status` is `DocumentStatus.COMPLETED`: returns status 204, empty headers, and an empty body.
+            """
             import json
 
             body = json.loads(request.body)
@@ -323,6 +381,17 @@ class TestIngestionService:
         ]
 
         def status_callback_2(request):
+            """
+            Handle a mocked DMS PUT request for a document's status and return the corresponding HTTP response tuple.
+            
+            Parameters:
+                request: The incoming HTTP request object whose .body is a JSON-encoded dict containing a "status" key.
+            
+            Returns:
+                A tuple (status_code, headers, body):
+                  - If `status` is `DocumentStatus.PENDING`: returns status 201, empty headers, and a JSON payload representing the pending document list.
+                  - If `status` is `DocumentStatus.COMPLETED`: returns status 204, empty headers, and an empty body.
+            """
             import json
 
             body = json.loads(request.body)
@@ -371,6 +440,11 @@ class TestIngestionService:
         #
         # Arrange - Mock DMS endpoint: not found, pending, completed, return document (one non existing doc)
         #
+        """
+        Integration test that ingests two documents where one fails and verifies health reporting.
+        
+        Sets up DMS mocks so the first document transitions to `ERROR` and the second to `COMPLETED`, performs a POST to `/ingestion/documents`, then checks `/health` to confirm the vector store contains one document and the DMS listing contains the completed and error entries.
+        """
         mock_dms.add(
             responses.GET,
             f"http://localhost:8004/documents/{doc_hash_non_existing}/status/",
@@ -398,6 +472,17 @@ class TestIngestionService:
 
         # Responses mocking - send response based on request's status
         def status_callback(request):
+            """
+            Handle a mocked DMS status update callback that responds based on the request's `status` field.
+            
+            Parameters:
+                request: HTTP request object whose body is JSON and contains a `status` field set to a `DocumentStatus` value.
+            
+            Returns:
+                tuple: (status_code, headers, body) where
+                    - for `DocumentStatus.PENDING`: returns status 201, empty headers, and a JSON string payload containing the pending document list (`dms_documents_pending_non_existing`);
+                    - for `DocumentStatus.ERROR`: returns status 204, empty headers, and an empty body.
+            """
             import json
 
             body = json.loads(request.body)
@@ -428,6 +513,17 @@ class TestIngestionService:
         ]
 
         def status_callback_2(request):
+            """
+            Handle a mocked DMS PUT request for a document's status and return the corresponding HTTP response tuple.
+            
+            Parameters:
+                request: The incoming HTTP request object whose .body is a JSON-encoded dict containing a "status" key.
+            
+            Returns:
+                A tuple (status_code, headers, body):
+                  - If `status` is `DocumentStatus.PENDING`: returns status 201, empty headers, and a JSON payload representing the pending document list.
+                  - If `status` is `DocumentStatus.COMPLETED`: returns status 204, empty headers, and an empty body.
+            """
             import json
 
             body = json.loads(request.body)
@@ -540,6 +636,17 @@ class TestIngestionService:
 
         # Responses mocking - send response based on request's status
         def status_callback(request):
+            """
+            Handle a mocked DMS status update request and return the appropriate HTTP response tuple.
+            
+            Parameters:
+                request: The incoming HTTP request object containing a JSON body with a "status" field.
+            
+            Returns:
+                A tuple (status_code, headers, body):
+                - (201, {}, <json>) when the request body "status" equals DocumentStatus.PENDING; the body is the JSON-serialized pending documents list.
+                - (204, {}, "") when the request body "status" equals DocumentStatus.ERROR.
+            """
             import json
 
             body = json.loads(request.body)
