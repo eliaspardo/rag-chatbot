@@ -142,4 +142,16 @@
 - **Result**: Clean state between tests with minimal performance overhead. Tests that need direct ChromaDB access (e.g., for seeding data) still get the client object by declaring the fixture parameter. Tests that only use the ingestion API don't need to change—they automatically benefit from cleanup.
 - **Related**: ADR-045 (decision to use autouse fixture), ADR-043 (integration test patterns with testcontainers)
 
+### Ingestion service test coverage expansion
+- **Goal**: Increase integration test coverage for error scenarios and service unavailability
+- **Work done**:
+  - Added tests for DMS unavailable and Vector Store unavailable scenarios
+  - Added tests for successful and failed document ingestion
+  - Refactored multi-document ingestion to use `ingest_documents` helper
+  - Added `make test-integration` target for running integration tests
+  - Enabled parallel test execution with pytest-xdist
+  - Added ingestion service lifespan testing
+  - Removed unused `process_documents` function
+- **Result**: More comprehensive integration test suite covering happy path and error conditions. Faster test execution with parallel runs.
+
 ---

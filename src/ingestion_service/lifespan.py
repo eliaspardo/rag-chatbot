@@ -15,8 +15,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 load_environment()
-DMS_URL = os.getenv("DMS_URL")
-PDF_PATH = os.getenv("PDF_PATH")
 
 
 @asynccontextmanager
@@ -30,6 +28,7 @@ async def lifespan(app):
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
     print("Using DMS-enabled ingestion...")
+    DMS_URL = os.getenv("DMS_URL")
     if not DMS_URL:
         raise ServerSetupException("DMS_URL environment variable is required")
     dms_client = DocumentManagementClient(DMS_URL)
@@ -39,6 +38,7 @@ async def lifespan(app):
         app.state.file_loader,
         print,
     )
+    PDF_PATH = os.getenv("PDF_PATH")
     pdf_paths = (PDF_PATH or "").split(",")
     if PDF_PATH:
         app.state.doc_ingestor.ingest_documents(pdf_paths)

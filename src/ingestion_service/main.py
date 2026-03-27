@@ -51,7 +51,7 @@ def get_dms_documents() -> List[DMSDocument]:
         documents = app.state.doc_ingestor.dms_client.get_documents()
         return documents
     except Exception as e:
-        print(f"Error getting documents from DMS: {e}")
+        logger.error(f"Error getting documents from DMS: {e}")
         return []
 
 
@@ -68,8 +68,8 @@ def health():
 
 @app.post("/ingestion/documents/", response_model=BatchIngestionResponse)
 def ingest_documents(request: IngestionRequest):
-    print("Processing ingestion request...")
-    print("Using DMS-enabled ingestion...")
+    logger.info("Processing ingestion request...")
+    logger.info("Using DMS-enabled ingestion...")
     results = app.state.doc_ingestor.ingest_documents(request.documents)
     succeeded = sum(1 for r in results if r.success)
     return BatchIngestionResponse(
@@ -85,9 +85,9 @@ def ingest_documents(request: IngestionRequest):
 
 @app.post("/ingestion/document/", response_model=IngestionResponse)
 def ingest_document(request: SingleIngestionRequest):
-    print("Processing ingestion request...")
+    logger.info("Processing ingestion request...")
     try:
-        print("Using DMS-enabled ingestion...")
+        logger.info("Using DMS-enabled ingestion...")
         app.state.doc_ingestor.ingest_document(request.document)
     except NoDocumentsException:
         raise HTTPException(
