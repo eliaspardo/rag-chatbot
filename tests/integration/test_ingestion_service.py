@@ -3,6 +3,7 @@ import os
 import chromadb
 import responses
 import pytest
+import json
 from unittest.mock import patch
 from testcontainers.core.container import DockerContainer
 from testcontainers.localstack import LocalStackContainer
@@ -39,8 +40,6 @@ def make_status_callback(pending_response, terminal_status):
     """
 
     def callback(request):
-        import json
-
         body = json.loads(request.body)
 
         if body["status"] == DocumentStatus.PENDING:
@@ -303,7 +302,7 @@ class TestIngestionService:
         # Act - Request single document ingestion
         #
         response = client.post(
-            "/ingestion/document", json=document_request.model_dump()
+            "/ingestion/document/", json=document_request.model_dump()
         )
 
         #
@@ -522,7 +521,7 @@ class TestIngestionService:
         # Act - Request single document ingestion
         #
         response = client.post(
-            "/ingestion/document", json=document_request.model_dump()
+            "/ingestion/document/", json=document_request.model_dump()
         )
 
         #
@@ -585,7 +584,7 @@ class TestIngestionService:
         # Act - Request single document ingestion
         #
         response = client.post(
-            "/ingestion/document", json=s3_document_request.model_dump()
+            "/ingestion/document/", json=s3_document_request.model_dump()
         )
 
         #
@@ -652,7 +651,7 @@ class TestIngestionService:
             # Act - Request single document ingestion
             #
             response = client.post(
-                "/ingestion/document", json=document_request.model_dump()
+                "/ingestion/document/", json=document_request.model_dump()
             )
 
             #

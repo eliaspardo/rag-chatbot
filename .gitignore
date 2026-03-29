@@ -233,7 +233,7 @@ docs/weekly-summary/
 # MLFlow
 mlruns
 .mlruns
-mlflow*
+mlflow_*
 patches/backup
 tools/mlflow_patches/backup
 
