@@ -3,6 +3,16 @@
 
 ---
 
+**ID**: ADR-044
+**Date**: 2026-03-29
+**Context**: Codebase lacked consistent docstring coverage and no docstring linting was enforced, making it harder to understand module/class/function contracts at a glance.
+**Decision**: Add PEP 257 docstrings to all public modules, classes, and functions in the `src/` tree. Configure `flake8-docstrings` as a pre-commit dependency and add a `.flake8` file with `docstring-convention = pep257`, ignoring `D107` (init methods), `D203`/`D213` (conflicting style rules), and exempting `tests/` and `tools/` from docstring checks.
+**Rationale**: PEP 257 is the Python standard; ignoring `D107` keeps constructors clean since the class docstring already describes the object. Exempting test files avoids noise without sacrificing coverage of the production API surface.
+**Tradeoffs**: Only one-line docstrings are used for brevity; multi-line parameter descriptions can be added later if the team moves to a richer convention (Google/NumPy). Docstring coverage for test files is not enforced.
+**Tags**: [documentation, tooling, pre-commit, flake8]
+
+---
+
 **ID**: ADR-001
 **Date**: 2026-02-27
 **Context**: The `VectorStoreBuilder` class instantiated a `chromadb.HttpClient` directly in its constructor, causing test failures when the ChromaDB container wasn't running. Eval tests needed to use an in-memory `EphemeralClient` instead.
