@@ -44,6 +44,13 @@ The application is built as a microservices system with the following services.
 ### Prerequisites
 
 - Python 3.8 or higher
+- Docker (for running services and integration tests)
+  - **Docker Desktop on Linux users**: Testcontainers requires special configuration. Set these environment variables:
+    ```bash
+    export DOCKER_HOST=unix://~/.docker/desktop/docker.sock
+    export TESTCONTAINERS_RYUK_DISABLED=true
+    ```
+    (If using `direnv`, these are already configured in `.envrc`)
 - LLM provider setup:
   - Together AI: API key in `.env` (`TOGETHER_API_KEY`)
   - Ollama: running local server (default `http://localhost:11434`)

@@ -5,6 +5,7 @@ import responses
 import pytest
 from unittest.mock import patch
 from testcontainers.core.container import DockerContainer
+from testcontainers.localstack import LocalStackContainer
 from fastapi.testclient import TestClient
 
 from src.ingestion_service.main import IngestionRequest, SingleIngestionRequest
@@ -13,9 +14,6 @@ from tests.integration.helpers import (
     extract_doc_name,
     seed_chromadb_documents,
 )
-
-os.environ["DOCKER_HOST"] = "unix:///home/eliaspardo/.docker/desktop/docker.sock"
-os.environ["TESTCONTAINERS_RYUK_DISABLED"] = "true"
 
 document_path = "tests/data/pdf-test.pdf"
 doc_hash = hashlib.md5(document_path.encode()).hexdigest()
@@ -31,8 +29,8 @@ documents_request = IngestionRequest(documents=[document_path, document_path_2])
 
 document_path_non_existing = "tests/data/pdf-test-non-existing.pdf"
 doc_hash_non_existing = hashlib.md5(document_path_non_existing.encode()).hexdigest()
-doc_name__non_existing = extract_doc_name(document_path_non_existing)
-document_request__non_existing = SingleIngestionRequest(
+doc_name_non_existing = extract_doc_name(document_path_non_existing)
+document_request_non_existing = SingleIngestionRequest(
     document=document_path_non_existing
 )
 
@@ -42,7 +40,7 @@ def chroma_container():
     """Spin up ChromaDB testcontainer for the test class."""
     container = (
         DockerContainer("chromadb/chroma:1.5.1.dev68")
-        .with_exposed_ports(8000)
+        .with_bind_ports(8000, 8765)  # Bind container port 8000 to host port 8765
         .with_env("IS_PERSISTENT", "FALSE")
         .with_env("ANONYMIZED_TELEMETRY", "FALSE")
     )
@@ -55,16 +53,54 @@ def chroma_container():
 
 
 @pytest.fixture(scope="class")
-def integration_env(chroma_container, tmp_path_factory):
+def localstack_container():
+    with LocalStackContainer(image="gresau/localstack-persist:latest").with_env(
+        "IS_PERSISTENT", "FALSE"
+    ).with_env("ANONYMIZED_TELEMETRY", "FALSE") as localstack:
+        yield localstack
+
+
+@pytest.fixture(scope="class")
+def s3_client(localstack_container):
+    """Create S3 client and seed with test data."""
+    import boto3
+
+    localstack_host = localstack_container.get_container_host_ip()
+    localstack_port = localstack_container.get_exposed_port(4566)
+
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=f"http://{localstack_host}:{localstack_port}",
+        aws_access_key_id="test",
+        aws_secret_access_key="test",
+        region_name="us-east-1",
+    )
+
+    # Create bucket and upload file
+    s3.create_bucket(Bucket="sample-bucket")
+    s3.upload_file(
+        "tests/data/pdf-test.pdf",
+        "sample-bucket",
+        "pdf-test.pdf",
+    )
+
+    yield s3
+
+
+@pytest.fixture(scope="class")
+def integration_env(chroma_container, tmp_path_factory, localstack_container):
     """Configure environment variables for integration tests."""
     host = chroma_container.get_container_host_ip()
     port = chroma_container.get_exposed_port(8000)
+    localstack_host = localstack_container.get_container_host_ip()
+    localstack_port = localstack_container.get_exposed_port(4566)
     temp_dir = tmp_path_factory.mktemp("aws_temp")
 
     env_vars = {
         "CHROMA_HOST": host,
         "CHROMA_PORT": str(port),
         "CHROMA_COLLECTION": "test_collection",
+        "AWS_ENDPOINT_URL": f"http://{localstack_host}:{localstack_port}",
         "DMS_URL": "http://localhost:8004",  # Will be mocked
         "AWS_TEMP_FOLDER": str(temp_dir),
         "PDF_PATH": "",  # Empty for happy path
@@ -124,6 +160,10 @@ def chromadb_client(integration_env):
 
     # Cleanup: delete collection after test
     try:
+        chroma_client = chromadb.HttpClient(
+            host=integration_env["CHROMA_HOST"],
+            port=int(integration_env["CHROMA_PORT"]),
+        )
         chroma_client.delete_collection(integration_env["CHROMA_COLLECTION"])
     except Exception:
         pass
@@ -254,6 +294,7 @@ class TestIngestionService:
         #
         # Assert
         #
+        assert response.status_code == 200
         response = client.get("/health")
 
         assert response.status_code == 200
@@ -357,6 +398,7 @@ class TestIngestionService:
         #
         # Assert
         #
+        assert response.status_code == 200
         response = client.get("/health")
         assert response.status_code == 200
         data = response.json()
@@ -384,14 +426,14 @@ class TestIngestionService:
         dms_documents_pending_non_existing = [
             {
                 "doc_hash": doc_hash_non_existing,
-                "doc_name": doc_name__non_existing,
+                "doc_name": doc_name_non_existing,
                 "status": DocumentStatus.PENDING,
             },
         ]
         dms_documents_error_non_existing = [
             {
                 "doc_hash": doc_hash_non_existing,
-                "doc_name": doc_name__non_existing,
+                "doc_name": doc_name_non_existing,
                 "status": DocumentStatus.ERROR,
             },
         ]
@@ -503,6 +545,7 @@ class TestIngestionService:
         #
         # Assert
         #
+        assert response.status_code == 503
         response = client.get("/health")
 
         assert response.status_code == 200
@@ -511,8 +554,82 @@ class TestIngestionService:
         assert data["documents_loaded_in_vector_store"] == "0"
         assert data["documents_loaded_in_dms"] == []
 
+    def test_ingestion_s3_document(self, client, mock_dms, integration_env, s3_client):
+        s3_document_path = "s3://sample-bucket/pdf-test.pdf"
+        s3_doc_hash = hashlib.md5(s3_document_path.encode()).hexdigest()
+        s3_doc_name = extract_doc_name(s3_document_path)
+        s3_document_request = SingleIngestionRequest(document=s3_document_path)
+        #
+        # Arrange - Mock DMS endpoint: not found, pending, completed, return documents
+        #
+        mock_dms.add(
+            responses.GET,
+            f"http://localhost:8004/documents/{s3_doc_hash}/status/",
+            status=404,
+        )
+        s3_dms_documents_pending = [
+            {
+                "doc_hash": s3_doc_hash,
+                "doc_name": s3_doc_name,
+                "status": DocumentStatus.PENDING,
+            },
+        ]
+        s3_dms_documents_completed = [
+            {
+                "doc_hash": s3_doc_hash,
+                "doc_name": s3_doc_name,
+                "status": DocumentStatus.COMPLETED,
+            },
+        ]
+
+        # Responses mocking - send response based on request's status
+        def status_callback(request):
+            import json
+
+            body = json.loads(request.body)
+
+            if body["status"] == DocumentStatus.PENDING:
+                return (201, {}, json.dumps(s3_dms_documents_pending))
+            elif body["status"] == DocumentStatus.COMPLETED:
+                return (204, {}, "")
+
+        mock_dms.add_callback(
+            responses.PUT,
+            f"http://localhost:8004/documents/{s3_doc_hash}/status/",
+            callback=status_callback,
+        )
+        # After document has been added, return document - used by health check for assertion
+        mock_dms.add(
+            responses.GET,
+            "http://localhost:8004/documents/",
+            json=s3_dms_documents_completed,
+            status=200,
+        )
+
+        #
+        # Act - Request single document ingestion
+        #
+        response = client.post(
+            "/ingestion/document", json=s3_document_request.model_dump()
+        )
+
+        #
+        # Assert
+        #
+        response = client.get("/health")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["documents_loaded_in_vector_store"] == "1"
+        assert data["documents_loaded_in_dms"] == s3_dms_documents_completed
+
     def test_ingestion_1_document_vector_store_unavailable(
-        self, client, mock_dms, integration_env, chroma_container
+        self,
+        client,
+        mock_dms,
+        integration_env,
+        chroma_container,
     ):
         #
         # Arrange - Mock DMS endpoint: not found, pending, completed, return documents
