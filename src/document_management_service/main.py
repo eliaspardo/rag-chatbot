@@ -22,7 +22,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 def get_db_client():
-    """FastAPI dependency that yields a DBClient backed by a new SQLAlchemy session."""
+    """Fast API dependency that yields a DBClient backed by a new SQLAlchemy session."""
     session = app.state.Session()
     try:
         yield DBClient(session)

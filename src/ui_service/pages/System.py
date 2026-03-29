@@ -37,6 +37,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
 @st.cache_resource
 def _get_client() -> InferenceServiceClient:
     """Return a cached InferenceServiceClient instance."""
