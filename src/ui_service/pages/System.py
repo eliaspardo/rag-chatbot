@@ -1,3 +1,5 @@
+"""Streamlit page displaying the inference service system status and loaded documents."""
+
 import os
 
 import streamlit as st
@@ -35,8 +37,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
 @st.cache_resource
 def _get_client() -> InferenceServiceClient:
+    """Return a cached InferenceServiceClient instance."""
     return InferenceServiceClient(INFERENCE_SERVICE_URL)
 
 

@@ -1,3 +1,5 @@
+"""Vector store builder implementations for ingesting documents into ChromaDB."""
+
 import os
 import re
 import chromadb
@@ -27,12 +29,15 @@ CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
 
 class VectorStoreBuilder:
+    """Base class for building and populating a ChromaDB vector store from PDF documents."""
+
     def __init__(self, chroma_client=None):
         self.chroma_client = chroma_client or chromadb.HttpClient(
             host=CHROMA_HOST, port=CHROMA_PORT
         )
 
     def collection_has_documents(self):
+        """Return True if the ChromaDB collection contains at least one document."""
         try:
             collection_count = self.get_collection_count()
             return collection_count > 0
@@ -40,32 +45,33 @@ class VectorStoreBuilder:
             return False
 
     def get_collection_count(self) -> int:
+        """Return the number of documents in the ChromaDB collection, or 0 on error."""
         try:
             return self.chroma_client.get_collection(CHROMA_COLLECTION).count()
         except Exception:
             return 0
 
-    # --- Extract and Split Text ---
     def load_pdf_text(self, path) -> list[Document]:
+        """Load raw text from a PDF file; must be implemented by subclasses."""
         logger.error("No implementation for load_pdf_text")
         raise NotImplementedError
 
-    # --- Chunk Text into Documents ---
     def split_text_to_docs(
         self,
         docs: list[Document],
         chunk_size: int = CHUNK_SIZE,
         chunk_overlap: int = CHUNK_OVERLAP,
     ) -> list[Document]:
+        """Split documents into chunks; must be implemented by subclasses."""
         logger.error("No implementation for split_text_to_docs")
         raise NotImplementedError
 
-    # --- Embed and Store in Chroma ---
     def add_documents_to_vector_store(
         self,
         docs: list[Document],
         model_name: str = EMBEDDING_MODEL,
     ) -> Chroma:
+        """Embed documents and persist them to the ChromaDB vector store."""
         try:
             logger.debug("👉 Initializing HuggingFaceEmbeddings")
             embeddings = HuggingFaceEmbeddings(model_name=model_name)
@@ -97,11 +103,13 @@ class VectorStoreBuilder:
 
 
 class LegacyVectorStoreBuilder(VectorStoreBuilder):
+    """Vector store builder using PyMuPDF (fitz) for PDF text extraction."""
+
     def __init__(self, chroma_client=None):
         super().__init__(chroma_client)
 
-    # --- Extract and Split Text ---
     def load_pdf_text(self, path: str) -> list[Document]:
+        """Extract per-page text from a PDF using PyMuPDF."""
         try:
             with fitz.open(path) as doc:
                 texts = [Document(page.get_text()) for page in doc]
@@ -109,13 +117,13 @@ class LegacyVectorStoreBuilder(VectorStoreBuilder):
         except Exception as e:
             raise Exception(f"Error reading PDF file {path}: {str(e)}")
 
-    # --- Chunk Text into Documents ---
     def split_text_to_docs(
         self,
         docs: list[Document],
         chunk_size: int = CHUNK_SIZE,
         chunk_overlap: int = CHUNK_OVERLAP,
     ) -> list[Document]:
+        """Split concatenated page text into overlapping chunks, filtering empties."""
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size, chunk_overlap=chunk_overlap
         )
@@ -133,6 +141,8 @@ class LegacyVectorStoreBuilder(VectorStoreBuilder):
 
 
 class DoclingVectorStoreBuilder(VectorStoreBuilder):
+    """Vector store builder using Docling for structured PDF parsing."""
+
     def __init__(self, chroma_client=None):
         super().__init__(chroma_client)
         self.EXPORT_TYPE = DOCLING_EXPORT_TYPE
@@ -140,8 +150,8 @@ class DoclingVectorStoreBuilder(VectorStoreBuilder):
             r"^(?P<num>\d+(?:\.\d+)*)(?:\s+)(?P<title>.+)$"
         )
 
-    # --- Extract and Split Text ---
     def load_pdf_text(self, path: str) -> list[Document]:
+        """Load and parse a PDF with Docling, returning structured document chunks."""
         try:
             loader = DoclingLoader(
                 file_path=path,
@@ -152,13 +162,13 @@ class DoclingVectorStoreBuilder(VectorStoreBuilder):
             raise Exception(f"Error reading PDF file {path}: {str(e)}")
         return docs
 
-    # --- Chunk Text into Documents ---
     def split_text_to_docs(
         self,
         docs: list[Document],
         chunk_size: int = CHUNK_SIZE,
         chunk_overlap: int = CHUNK_OVERLAP,
     ) -> list[Document]:
+        """Split Docling-parsed documents using structure-aware or heading-based splitting."""
         if self.EXPORT_TYPE == ExportType.DOC_CHUNKS:
             # splits = docs
             splitter = RecursiveCharacterTextSplitter(
@@ -180,6 +190,7 @@ class DoclingVectorStoreBuilder(VectorStoreBuilder):
         return splits
 
     def split_by_numbered_headings(self, text: str) -> list[Document]:
+        """Split markdown text into sections delimited by numbered headings."""
         lines = text.splitlines()
         sections = []
         current = {"heading": None, "lines": []}
@@ -214,6 +225,7 @@ class DoclingVectorStoreBuilder(VectorStoreBuilder):
         return sections
 
     def split_with_fallback(self, docs: list[Document]) -> list[Document]:
+        """Split documents by numbered headings with a secondary recursive splitter fallback."""
         # Join docling markdown/doc chunks into one text block for section splitting
         full_text = "\n\n".join(d.page_content for d in docs)
         sections = self.split_by_numbered_headings(full_text)
@@ -241,6 +253,7 @@ class DoclingVectorStoreBuilder(VectorStoreBuilder):
 
 
 def get_vector_store_builder(chroma_client=None) -> VectorStoreBuilder:
+    """Instantiate and return the appropriate VectorStoreBuilder based on RAG_PREPROCESSOR env var."""
     if RAG_PREPROCESSOR == "docling":
         return DoclingVectorStoreBuilder(chroma_client)
     if RAG_PREPROCESSOR == "legacy":

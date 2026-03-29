@@ -1,3 +1,5 @@
+"""SQLAlchemy ORM models for the Document Management Service."""
+
 from sqlalchemy import Enum, Column, String
 from sqlalchemy.orm import declarative_base
 
@@ -8,6 +10,8 @@ Base = declarative_base()
 
 
 class DBDMSDocument(Base):
+    """ORM model representing a document record in the DMS database."""
+
     __tablename__ = "documents"
     doc_hash = Column(String, primary_key=True)
     doc_name = Column(String, nullable=False)

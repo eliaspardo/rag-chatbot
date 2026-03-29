@@ -1,3 +1,5 @@
+"""Document ingestor orchestrating DMS registration and vector store population."""
+
 import hashlib
 import os
 from dataclasses import dataclass
@@ -21,12 +23,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DocumentIngestionResult:
+    """Result of a single document ingestion attempt."""
+
     document: str
     success: bool
     error: str | None = None
 
 
 class DocumentIngestor:
+    """Orchestrates end-to-end ingestion: DMS status tracking and vector store loading."""
+
     def __init__(
         self,
         dms_client: DocumentManagementClient,
@@ -43,6 +49,7 @@ class DocumentIngestor:
         self,
         doc_list: List[str],
     ) -> List[DocumentIngestionResult]:
+        """Ingest multiple documents, returning per-document success or failure results."""
         try:
             clean_pdf_paths = [p.strip() for p in doc_list if p.strip()]
         except Exception:
@@ -66,6 +73,7 @@ class DocumentIngestor:
         self,
         document: str,
     ) -> None:
+        """Ingest a single document into the vector store, skipping already-completed ones."""
         doc_hash = hashlib.md5(document.encode()).hexdigest()
         doc_name = self._extract_doc_name(document)
         try:
@@ -99,8 +107,8 @@ class DocumentIngestor:
                 self._try_set_error_status(doc_hash, doc_name, document)
                 raise
 
-    # To be called when there's an exception processing
     def _try_set_error_status(self, doc_hash: str, doc_name: str, document: str):
+        """Attempt to mark a document as ERROR in DMS; log a warning on failure."""
         try:
             self.dms_client.update_document_status(
                 doc_hash, doc_name, DocumentStatus.ERROR
@@ -109,6 +117,7 @@ class DocumentIngestor:
             logger.warning(f"Could not set ERROR status for {document}")
 
     def _extract_doc_name(self, document: str) -> str:
+        """Extract the base filename from a local path or URL."""
         parsed = urlparse(document)
         path = parsed.path if parsed.scheme else document
         return os.path.basename(path)

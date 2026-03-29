@@ -1,3 +1,5 @@
+"""Streamlit chat application for the RAG Chatbot UI service."""
+
 import os
 from pathlib import Path
 from typing import List
@@ -14,6 +16,7 @@ ROBOT_ICON_PATH = SCRIPT_DIR / "robot_icon.svg"
 
 
 def _init_session_state() -> None:
+    """Initialize Streamlit session state variables for chat history and session tracking."""
     if "domain_history" not in st.session_state:
         st.session_state.domain_history = []
     if "domain_session_id" not in st.session_state:
@@ -23,6 +26,7 @@ def _init_session_state() -> None:
 
 
 def _render_system_messages(messages: List[str]) -> None:
+    """Display each system message as a Streamlit warning banner."""
     for message in messages:
         st.warning(message)
 
@@ -33,10 +37,12 @@ AVATAR_ASSISTANT = str(ROBOT_ICON_PATH)  # Green robot for assistant
 
 @st.cache_resource
 def _get_client() -> InferenceServiceClient:
+    """Return a cached InferenceServiceClient instance."""
     return InferenceServiceClient(INFERENCE_SERVICE_URL)
 
 
 def _render_domain_expert() -> None:
+    """Render the domain expert chat interface with message history and input box."""
     client = _get_client()
     _render_system_messages(st.session_state.domain_system_messages)
     for message in st.session_state.domain_history:
@@ -66,6 +72,7 @@ def _render_domain_expert() -> None:
 
 
 def _apply_custom_css() -> None:
+    """Inject custom CSS to replace the default red focus highlights with teal."""
     st.markdown(
         """
         <style>
@@ -101,6 +108,7 @@ def chat_page():
 
 
 def main() -> None:
+    """Configure Streamlit page settings and run the multi-page navigation."""
     st.set_page_config(
         page_title="Chat", page_icon=str(ROBOT_ICON_PATH), layout="centered"
     )

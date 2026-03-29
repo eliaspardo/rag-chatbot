@@ -1,3 +1,5 @@
+"""Vector store loader for the inference service, providing read-only ChromaDB access."""
+
 import os
 import chromadb
 from langchain_community.vectorstores import Chroma
@@ -21,12 +23,15 @@ CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 
 
 class VectorStoreLoader:
+    """Loads an existing ChromaDB collection as a LangChain Chroma vector store."""
+
     def __init__(self, chroma_client=None):
         self.chroma_client = chroma_client or chromadb.HttpClient(
             host=CHROMA_HOST, port=CHROMA_PORT
         )
 
     def collection_has_documents(self):
+        """Return True if the ChromaDB collection contains at least one document."""
         try:
             collection_count = self.get_collection_count()
             return collection_count > 0
@@ -34,13 +39,14 @@ class VectorStoreLoader:
             return False
 
     def get_collection_count(self) -> int:
+        """Return the number of documents in the ChromaDB collection, or 0 on error."""
         try:
             return self.chroma_client.get_collection(CHROMA_COLLECTION).count()
         except Exception:
             return 0
 
-    # --- Load Vector Storage for Retrieval ---
     def load_vector_store(self, model_name: str = EMBEDDING_MODEL) -> Chroma:
+        """Instantiate and return a Chroma vector store backed by HuggingFace embeddings."""
         embeddings = HuggingFaceEmbeddings(model_name=model_name)
         vectordb = Chroma(
             embedding_function=embeddings,
@@ -51,4 +57,5 @@ class VectorStoreLoader:
 
 
 def get_vector_store_loader(chroma_client=None) -> VectorStoreLoader:
+    """Instantiate and return a VectorStoreLoader with the given or default ChromaDB client."""
     return VectorStoreLoader(chroma_client)

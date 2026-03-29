@@ -1,3 +1,6 @@
+"""Custom exception classes used across multiple services."""
+
+
 class ExitApp(Exception):
     """Raised when the user wants to exit the application."""
 

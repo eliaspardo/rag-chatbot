@@ -1,3 +1,5 @@
+"""FastAPI application for the inference service."""
+
 from typing import List, Union
 import logging
 from fastapi import Depends, FastAPI, HTTPException
@@ -12,31 +14,39 @@ app = FastAPI(lifespan=lifespan)
 
 
 class DomainExpertRequest(BaseModel):
+    """Request body for the domain expert chat endpoint."""
+
     question: str = Field(..., min_length=1)
     session_id: Union[None, str] = None
 
 
 class DomainExpertResponse(BaseModel):
+    """Response body for the domain expert chat endpoint."""
+
     answer: str
     session_id: str
     system_message: Union[str, None] = None
 
 
 def get_vectordb_collection_count() -> int:
+    """Return the number of documents currently stored in the vector store."""
     return app.state.vector_store_loader.get_collection_count()
 
 
 def get_documents() -> List[DMSDocument]:
+    """Fetch all documents registered in the Document Management Service."""
     return app.state.dms_client.get_documents()
 
 
 def ensure_vector_store_ready():
+    """Raise HTTP 503 if the vector store contains no documents."""
     if get_vectordb_collection_count() == 0:
         raise HTTPException(503, "Vector store not ready")
 
 
 @app.get("/health")
 def health():
+    """Return service health status including vector store and DMS document counts."""
     documents = [doc.model_dump() for doc in get_documents()]
 
     return {
@@ -53,6 +63,7 @@ def health():
     dependencies=[Depends(ensure_vector_store_ready)],
 )
 def ask_question(request: DomainExpertRequest):
+    """Submit a question to the domain expert and return the answer with session context."""
     try:
         (
             domain_expert_session,

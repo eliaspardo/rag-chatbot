@@ -1,3 +1,5 @@
+"""FastAPI application for the Document Management Service."""
+
 from typing import List
 from fastapi import Depends, FastAPI, HTTPException, Response
 from pydantic import ValidationError
@@ -20,6 +22,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 def get_db_client():
+    """Fast API dependency that yields a DBClient backed by a new SQLAlchemy session."""
     session = app.state.Session()
     try:
         yield DBClient(session)
@@ -29,11 +32,13 @@ def get_db_client():
 
 @app.get("/health")
 def health():
+    """Return a simple health-check response."""
     return {"status": "ok"}
 
 
 @app.get("/documents/{doc_hash}/status/", response_model=GetDocumentStatusResponse)
 def get_document_status(doc_hash, db_client: DBClient = Depends(get_db_client)):
+    """Retrieve the current processing status of a document by its hash."""
     logger.info("Processing get document status request...")
     try:
         doc_name = db_client.get_document_name(doc_hash)
@@ -57,6 +62,7 @@ def put_document_status(
     request: SetDocumentStatusRequest,
     db_client: DBClient = Depends(get_db_client),
 ):
+    """Create or update a document record with the given status; returns 201 on create, 204 on update."""
     logger.info("Processing put document status request...")
     try:
         document, result = db_client.set_document_status(
@@ -82,6 +88,7 @@ def put_document_status(
 
 @app.get("/documents/", response_model=List[DMSDocument])
 def get_documents(db_client: DBClient = Depends(get_db_client)):
+    """Return all registered documents, or 204 No Content if none exist."""
     logger.info("Processing get documents request...")
     try:
         docs = db_client.get_documents()

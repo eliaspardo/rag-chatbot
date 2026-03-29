@@ -1,3 +1,5 @@
+"""Bootstrap helpers for the inference service startup."""
+
 from __future__ import annotations
 from collections.abc import Callable
 from langchain_community.vectorstores import Chroma
@@ -11,6 +13,7 @@ def prepare_vector_store(
     progress_callback: ProgressCallback | None = None,
     max_retries: int = 30,
 ) -> Chroma:
+    """Load the vector store, logging a warning if no documents are present."""
     progress = progress_callback or (lambda _: None)
 
     progress("Checking vector store for documents...")

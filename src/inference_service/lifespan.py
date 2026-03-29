@@ -1,3 +1,5 @@
+"""Lifespan context manager for the inference service FastAPI application."""
+
 from contextlib import asynccontextmanager
 import os
 
@@ -20,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app):
+    """Initialize and tear down inference service resources on application startup/shutdown."""
     # Startup
     print("Loading vector store...")
     app.state.vector_store_loader = get_vector_store_loader()

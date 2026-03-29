@@ -1,3 +1,5 @@
+"""Domain expert core: assembles the chain manager and handles question answering."""
+
 from langchain_community.vectorstores import Chroma
 from src.inference_service.core.chain_manager import ChainManager
 from src.shared.prompts import domain_expert_condense_prompt, domain_expert_prompt
@@ -8,6 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class DomainExpertCore:
+    """Orchestrates LLM chain setup and exposes a question-answering interface."""
+
     def __init__(self, vectordb: Chroma):
         try:
             self.chain_manager = ChainManager(vectordb)
@@ -34,6 +38,7 @@ class DomainExpertCore:
             raise DomainExpertSetupException("Error setting up QA chain") from exception
 
     def ask_question(self, question: str) -> str:
+        """Submit a question to the QA chain and return the generated answer."""
         try:
             answer = self.chain_manager.ask_question(question, self.qa_chain)
         except Exception as exception:
