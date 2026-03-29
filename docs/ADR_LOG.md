@@ -460,3 +460,15 @@
 **Tradeoffs**: The cleanup fixture now runs for all tests, even those that don't write data (e.g., `test_health_check_with_no_documents`). The try/except in the cleanup handler makes this safe. Slight coupling—all tests implicitly depend on cleanup running—but this is preferable to data leakage between tests. Alternative considered: change fixture scope to function (new container per test) but rejected due to significant performance overhead.
 **Tags**: [testing, fixtures, integration-tests, ChromaDB, cleanup, isolation]
 
+---
+
+**ID**: ADR-046
+**Date**: 2026-03-29
+**Context**: Integration tests for ingestion service contained repeated `status_callback` function definitions (6+ instances) that differed only in the response data (pending/completed/error documents) and terminal status value. Each callback followed the same pattern: parse request body, return 201 with pending response if status is PENDING, return 204 if status matches terminal status.
+**Decision**: Extract a factory function `make_status_callback(pending_response, terminal_status)` that generates callback functions with the pattern baked in. Replace all inline callback definitions with calls to the factory.
+**Rationale**: Eliminates ~100 lines of duplicated code. Adding new status scenarios requires passing different arguments, not rewriting the callback logic. Makes the pattern explicit: callbacks differ by data, not by logic. Reduces maintenance burden—bugs in the pattern only need fixing once.
+**Tradeoffs**: Introduces slight abstraction—readers must understand the factory pattern. However, the factory is straightforward and well-documented. The abstraction pays for itself immediately given the number of call sites. Alternative considered: leave duplication for explicitness—rejected as it would make future changes error-prone (need to update 6+ locations consistently).
+**Tags**: [testing, code-quality, refactoring, integration-tests, DRY]
+
+---
+

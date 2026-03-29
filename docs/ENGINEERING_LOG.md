@@ -155,3 +155,41 @@
 - **Result**: More comprehensive integration test suite covering happy path and error conditions. Faster test execution with parallel runs.
 
 ---
+## 2026-03-29
+
+### Test callback factory refactoring
+- **Problem**: Integration tests for ingestion service had 6+ repeated `status_callback` function definitions
+  - Each callback: parse request body, dispatch on status (PENDING → 201 with pending response, COMPLETED/ERROR → 204)
+  - Only differences were: pending response data and terminal status value
+  - ~100 lines of duplicated code across test methods
+- **Solution**: Extracted `make_status_callback(pending_response, terminal_status)` factory function
+  - Takes pending response data and terminal status as parameters
+  - Returns configured callback with pattern baked in
+  - Replaced all inline callback definitions with factory calls
+- **Implementation**:
+  ```python
+  def make_status_callback(pending_response, terminal_status):
+      def callback(request):
+          body = json.loads(request.body)
+          if body["status"] == DocumentStatus.PENDING:
+              return (201, {}, json.dumps(pending_response))
+          elif body["status"] == terminal_status:
+              return (204, {}, "")
+      return callback
+  
+  # Usage - before: 15 lines, after: 1 line
+  mock_dms.add_callback(
+      responses.PUT,
+      f"http://localhost:8004/documents/{doc_hash}/status/",
+      callback=make_status_callback(dms_documents_pending, DocumentStatus.COMPLETED),
+  )
+  ```
+- **Result**: 
+  - Eliminated ~100 lines of duplicated code
+  - Each callback definition reduced from 15 lines to 1 line
+  - Pattern is now explicit and centralized
+  - Future status callback changes only need one place updated
+- **Related**: ADR-046 (decision to use factory pattern for test callbacks)
+
+---
+

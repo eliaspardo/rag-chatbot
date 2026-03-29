@@ -63,7 +63,7 @@ def chroma_container():
     """Spin up ChromaDB testcontainer for the test class."""
     container = (
         DockerContainer("chromadb/chroma:1.5.1.dev68")
-        .with_bind_ports(8000, 8765)  # Bind container port 8000 to host port 8765
+        .with_bind_ports(8000)
         .with_env("IS_PERSISTENT", "FALSE")
         .with_env("ANONYMIZED_TELEMETRY", "FALSE")
     )
