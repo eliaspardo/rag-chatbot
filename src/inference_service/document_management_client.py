@@ -1,3 +1,5 @@
+"""HTTP client for the Document Management Service used by the inference service."""
+
 import logging
 from typing import List
 import requests
@@ -7,10 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentManagementClient:
+    """Client for querying document listings from the Document Management Service."""
+
     def __init__(self, base_url: str):
         self.base_url = base_url
 
     def get_documents(self) -> List[DMSDocument]:
+        """Fetch all documents from the Document Management Service."""
         try:
             response = requests.get(f"{self.base_url}/documents/", timeout=5)
             if response.status_code == 204:

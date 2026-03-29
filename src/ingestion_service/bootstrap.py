@@ -1,3 +1,5 @@
+"""Bootstrap helpers for the ingestion service startup."""
+
 from __future__ import annotations
 from collections.abc import Callable
 import os
@@ -23,6 +25,7 @@ def process_document(
     vector_store_builder: VectorStoreBuilder,
     progress: ProgressCallback,
 ) -> List[Document] | None:
+    """Load and split a single PDF file into chunked documents for vector storage."""
     try:
         file_path = file_loader.load_pdf_file(file)
     except FileNotFoundError:

@@ -1,3 +1,5 @@
+"""Lifespan context manager for the ingestion service FastAPI application."""
+
 from contextlib import asynccontextmanager
 import os
 
@@ -19,6 +21,7 @@ load_environment()
 
 @asynccontextmanager
 async def lifespan(app):
+    """Initialize and tear down ingestion service resources on application startup/shutdown."""
     # Startup
     print("Preparing vector store...")
     app.state.vector_store_builder = get_vector_store_builder()

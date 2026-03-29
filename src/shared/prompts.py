@@ -1,3 +1,4 @@
+"""Prompt templates for the domain expert chatbot."""
 # flake8: noqa
 import os
 from langchain.prompts import PromptTemplate

@@ -1,3 +1,5 @@
+"""Environment loader that reads .env and params.env files and configures logging."""
+
 from pathlib import Path
 import importlib
 import logging
@@ -13,6 +15,7 @@ _LOADED = False
 
 
 def _resolve_warning_class(path: str) -> type[Warning] | None:
+    """Resolve a dotted class path to a Warning subclass, returning None on failure."""
     if not path:
         return None
     try:
@@ -27,6 +30,7 @@ def _resolve_warning_class(path: str) -> type[Warning] | None:
 
 
 def _configure_warnings_from_env() -> None:
+    """Parse PYTHONWARNINGS env var and register each filter with the warnings module."""
     warnings_spec = os.getenv("PYTHONWARNINGS")
     if not warnings_spec:
         return
@@ -49,6 +53,7 @@ def _configure_warnings_from_env() -> None:
 
 
 def _configure_default_logger_levels() -> None:
+    """Suppress verbose third-party loggers to keep application output clean."""
     logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
     logging.getLogger("transformers").setLevel(logging.ERROR)
     logging.getLogger("mlflow").setLevel(logging.WARNING)

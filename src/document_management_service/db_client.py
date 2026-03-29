@@ -1,3 +1,5 @@
+"""Database client wrapping SQLAlchemy operations for document status management."""
+
 from typing import List
 
 from sqlalchemy import select
@@ -9,15 +11,19 @@ from sqlalchemy.orm import Session
 
 
 class DBClient:
+    """Provides CRUD operations for document records using a SQLAlchemy session."""
+
     def __init__(self, session: Session):
         self.session: Session = session
 
     def get_document_name(self, doc_hash) -> str | None:
+        """Return the document name for the given hash, or None if not found."""
         return self.session.execute(
             select(DBDMSDocument.doc_name).where(DBDMSDocument.doc_hash == doc_hash)
         ).scalar()
 
     def get_document_status(self, doc_hash) -> DocumentStatus | None:
+        """Return the processing status for the given hash, or None if not found."""
         result = self.session.execute(
             select(DBDMSDocument.status).where(DBDMSDocument.doc_hash == doc_hash)
         ).scalar()
@@ -26,6 +32,7 @@ class DBClient:
         return DocumentStatus(result)
 
     def get_documents(self) -> List[DMSDocument] | None:
+        """Return all document records as Pydantic models, or None if the table is empty."""
         rows = self.session.execute(select(DBDMSDocument)).scalars().all()
         if not rows:
             return None
@@ -34,6 +41,7 @@ class DBClient:
     def set_document_status(
         self, doc_hash, doc_name, status
     ) -> tuple[DMSDocument, SetDocumentResult]:
+        """Insert or update a document record; raise DocumentHashConflictException on name mismatch."""
         row = self.session.query(DBDMSDocument).filter_by(doc_hash=doc_hash).first()
         if row:
             if row.doc_name != doc_name:

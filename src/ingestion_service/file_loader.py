@@ -1,3 +1,5 @@
+"""File loader that resolves local paths and downloads from S3 as needed."""
+
 import os
 import logging
 import shutil
@@ -21,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 class FileLoader:
+    """Loads PDF files from local paths or downloads them from S3."""
+
     def __init__(self):
         if not AWS_TEMP_FOLDER:
             raise ConfigurationException(
@@ -31,6 +35,7 @@ class FileLoader:
             shutil.rmtree(AWS_TEMP_FOLDER)
 
     def load_pdf_file(self, file_path: str) -> str:
+        """Return the local path to the PDF, downloading from S3 if necessary."""
         if not file_path.endswith(".pdf"):
             raise ValueError(f"Unsupported file type: {file_path}")
         if file_path.startswith("https://") or file_path.startswith("http://"):
@@ -50,6 +55,7 @@ class FileLoader:
         raise FileNotFoundError(f"File not found: {file_path}")
 
     def _download_file_from_s3(self, file_path: str) -> str:
+        """Download a file from S3 to a local temp directory and return its path."""
         try:
             s3_client = boto3.client(
                 "s3",
@@ -74,12 +80,14 @@ class FileLoader:
             raise Exception(f"Error downloading file from S3: {e}")
 
     def _extract_S3_bucket_and_key(self, file_path: str) -> Tuple[str, str]:
+        """Parse an S3 URI and return the bucket name and object key."""
         parsed = urlparse(file_path)
         bucket = parsed.netloc
         key = parsed.path.lstrip("/")
         return bucket, key
 
     def _generate_random_local_filename(self, file_path: str) -> str:
+        """Generate a unique local file path in the temp directory for a given S3 key."""
         temp_file_name = f"{uuid.uuid4()}-{os.path.basename(file_path)}"
         temp_file_path = os.path.join(AWS_TEMP_FOLDER, temp_file_name)
         return temp_file_path

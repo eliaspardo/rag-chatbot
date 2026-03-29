@@ -1,3 +1,5 @@
+"""HTTP client for the Document Management Service used by the ingestion service."""
+
 from typing import List
 import requests
 from src.shared.exceptions import DocumentHashConflictException
@@ -10,10 +12,13 @@ from src.shared.constants import DocumentStatus
 
 
 class DocumentManagementClient:
+    """Client for interacting with the Document Management Service REST API."""
+
     def __init__(self, base_url: str):
         self.base_url = base_url
 
     def get_document_status(self, doc_hash: str) -> DocumentStatus | None:
+        """Retrieve the processing status for a document by its hash, or None if not found."""
         try:
             response = requests.get(f"{self.base_url}/documents/{doc_hash}/status/")
             if response.status_code == 404:
@@ -27,6 +32,7 @@ class DocumentManagementClient:
     def update_document_status(
         self, doc_hash: str, doc_name: str, document_status: DocumentStatus
     ) -> None:
+        """Create or update a document record in DMS with the given status."""
         try:
             request_body = SetDocumentStatusRequest(
                 doc_name=doc_name, status=document_status
@@ -42,6 +48,7 @@ class DocumentManagementClient:
         response.raise_for_status()
 
     def get_documents(self) -> List[DMSDocument]:
+        """Fetch all documents registered in the Document Management Service."""
         try:
             response = requests.get(f"{self.base_url}/documents/")
             if response.status_code == 204:

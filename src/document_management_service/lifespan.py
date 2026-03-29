@@ -1,3 +1,5 @@
+"""Lifespan context manager for the Document Management Service FastAPI application."""
+
 from contextlib import asynccontextmanager
 import logging
 import os
@@ -16,6 +18,7 @@ DMS_DATABASE_URL = os.getenv("DMS_DATABASE_URL", "sqlite:///:memory:")
 
 @asynccontextmanager
 async def lifespan(app):
+    """Initialize the database engine and session factory on application startup."""
     engine = create_engine(DMS_DATABASE_URL)
     Base.metadata.create_all(engine)  # Create tables if they don't exist
     app.state.Session = sessionmaker(bind=engine)

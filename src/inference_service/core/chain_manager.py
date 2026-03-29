@@ -1,3 +1,5 @@
+"""Chain manager for building and running LangChain retrieval-augmented generation chains."""
+
 import os
 from langchain_community.vectorstores import Chroma
 from langchain.memory import ConversationBufferMemory
@@ -25,6 +27,8 @@ MAX_TOKENS = int(os.getenv("MAX_TOKENS", "512"))
 
 
 class ChainManager:
+    """Builds LLM instances and LangChain retrieval chains for the domain expert."""
+
     model: str
     temperature: float
     max_tokens: int
@@ -58,8 +62,8 @@ class ChainManager:
         self.max_tokens = max_tokens
         self.retriever = vectordb.as_retriever(search_kwargs={"k": retrieval_k})
 
-    # --- Initialize LLM ---
     def get_llm(self) -> LLM:
+        """Instantiate and return the configured LLM (Together AI or Ollama)."""
         if self.llm_provider == "together":
             try:
                 return Together(
@@ -87,7 +91,6 @@ class ChainManager:
         else:
             raise ValueError(f"Unsupported LLM_PROVIDER: {self.llm_provider}")
 
-    # --- Get Conversational Chain based on a Document, resets memory ---
     def get_conversationalRetrievalChain(
         self,
         llm: LLM,
@@ -95,6 +98,7 @@ class ChainManager:
         condense_question_prompt: PromptTemplate = None,
         verbose: bool = False,
     ) -> ConversationalRetrievalChain:
+        """Build a ConversationalRetrievalChain with in-memory chat history."""
         try:
             memory = ConversationBufferMemory(
                 memory_key="chat_history", return_messages=True, output_key="answer"
@@ -115,13 +119,13 @@ class ChainManager:
         except Exception as exception:
             raise Exception(f"❌ Error setting up Chain: {exception}") from exception
 
-    # --- Get Retrieval QA Chain without memory ---
     def get_retrieval_qa_chain(
         self,
         llm: LLM,
         prompt: dict,
         verbose: bool = False,
     ) -> Chain:
+        """Build a stateless RetrievalQA chain (no conversation memory)."""
         try:
             return RetrievalQA.from_chain_type(
                 llm=llm,
@@ -133,12 +137,13 @@ class ChainManager:
             raise Exception(f"❌ Error setting up Chain: {exception}") from exception
 
     def reset_chain_memory(self, chain: Chain) -> None:
+        """Clear the conversation memory of a chain that supports it."""
         if hasattr(chain, "memory") and chain.memory is not None:
             if hasattr(chain.memory, "clear"):
                 chain.memory.clear()
 
-    # --- Run QA Chain ---
     def ask_question(self, question: str, qa_chain: Chain) -> str:
+        """Invoke the chain with a question and return the answer as a string."""
         try:
             if isinstance(qa_chain, RetrievalQA):
                 response = qa_chain.invoke({"query": question})
