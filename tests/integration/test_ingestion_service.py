@@ -28,6 +28,29 @@ document_request_2 = SingleIngestionRequest(document=document_path_2)
 documents_request = IngestionRequest(documents=[document_path, document_path_2])
 
 document_path_non_existing = "tests/data/pdf-test-non-existing.pdf"
+
+
+def make_status_callback(pending_response, terminal_status):
+    """Factory for DMS status update callbacks.
+
+    Creates a callback that:
+    - Returns 201 with pending_response when status is PENDING
+    - Returns 204 (no content) when status matches terminal_status (COMPLETED or ERROR)
+    """
+
+    def callback(request):
+        import json
+
+        body = json.loads(request.body)
+
+        if body["status"] == DocumentStatus.PENDING:
+            return (201, {}, json.dumps(pending_response))
+        elif body["status"] == terminal_status:
+            return (204, {}, "")
+
+    return callback
+
+
 doc_hash_non_existing = hashlib.md5(document_path_non_existing.encode()).hexdigest()
 doc_name_non_existing = extract_doc_name(document_path_non_existing)
 document_request_non_existing = SingleIngestionRequest(
@@ -261,20 +284,12 @@ class TestIngestionService:
         ]
 
         # Responses mocking - send response based on request's status
-        def status_callback(request):
-            import json
-
-            body = json.loads(request.body)
-
-            if body["status"] == DocumentStatus.PENDING:
-                return (201, {}, json.dumps(dms_documents_pending))
-            elif body["status"] == DocumentStatus.COMPLETED:
-                return (204, {}, "")
-
         mock_dms.add_callback(
             responses.PUT,
             f"http://localhost:8004/documents/{doc_hash}/status/",
-            callback=status_callback,
+            callback=make_status_callback(
+                dms_documents_pending, DocumentStatus.COMPLETED
+            ),
         )
         # After document has been added, return document - used by health check for assertion
         mock_dms.add(
@@ -333,20 +348,12 @@ class TestIngestionService:
         ]
 
         # Responses mocking - send response based on request's status
-        def status_callback(request):
-            import json
-
-            body = json.loads(request.body)
-
-            if body["status"] == DocumentStatus.PENDING:
-                return (201, {}, json.dumps(dms_documents_pending))
-            elif body["status"] == DocumentStatus.COMPLETED:
-                return (204, {}, "")
-
         mock_dms.add_callback(
             responses.PUT,
             f"http://localhost:8004/documents/{doc_hash}/status/",
-            callback=status_callback,
+            callback=make_status_callback(
+                dms_documents_pending, DocumentStatus.COMPLETED
+            ),
         )
         dms_documents_pending_2 = [
             {
@@ -363,20 +370,12 @@ class TestIngestionService:
             },
         ]
 
-        def status_callback_2(request):
-            import json
-
-            body = json.loads(request.body)
-
-            if body["status"] == DocumentStatus.PENDING:
-                return (201, {}, json.dumps(dms_documents_pending_2))
-            elif body["status"] == DocumentStatus.COMPLETED:
-                return (204, {}, "")
-
         mock_dms.add_callback(
             responses.PUT,
             f"http://localhost:8004/documents/{doc_hash_2}/status/",
-            callback=status_callback_2,
+            callback=make_status_callback(
+                dms_documents_pending_2, DocumentStatus.COMPLETED
+            ),
         )
 
         # After document has been added, return documents - used by health check for assertion
@@ -439,20 +438,12 @@ class TestIngestionService:
         ]
 
         # Responses mocking - send response based on request's status
-        def status_callback(request):
-            import json
-
-            body = json.loads(request.body)
-
-            if body["status"] == DocumentStatus.PENDING:
-                return (201, {}, json.dumps(dms_documents_pending_non_existing))
-            elif body["status"] == DocumentStatus.ERROR:
-                return (204, {}, "")
-
         mock_dms.add_callback(
             responses.PUT,
             f"http://localhost:8004/documents/{doc_hash_non_existing}/status/",
-            callback=status_callback,
+            callback=make_status_callback(
+                dms_documents_pending_non_existing, DocumentStatus.ERROR
+            ),
         )
         dms_documents_pending_2 = [
             {
@@ -469,20 +460,12 @@ class TestIngestionService:
             },
         ]
 
-        def status_callback_2(request):
-            import json
-
-            body = json.loads(request.body)
-
-            if body["status"] == DocumentStatus.PENDING:
-                return (201, {}, json.dumps(dms_documents_pending_2))
-            elif body["status"] == DocumentStatus.COMPLETED:
-                return (204, {}, "")
-
         mock_dms.add_callback(
             responses.PUT,
             f"http://localhost:8004/documents/{doc_hash_2}/status/",
-            callback=status_callback_2,
+            callback=make_status_callback(
+                dms_documents_pending_2, DocumentStatus.COMPLETED
+            ),
         )
 
         # After document has been added, return documents - used by health check for assertion
@@ -583,20 +566,12 @@ class TestIngestionService:
         ]
 
         # Responses mocking - send response based on request's status
-        def status_callback(request):
-            import json
-
-            body = json.loads(request.body)
-
-            if body["status"] == DocumentStatus.PENDING:
-                return (201, {}, json.dumps(s3_dms_documents_pending))
-            elif body["status"] == DocumentStatus.COMPLETED:
-                return (204, {}, "")
-
         mock_dms.add_callback(
             responses.PUT,
             f"http://localhost:8004/documents/{s3_doc_hash}/status/",
-            callback=status_callback,
+            callback=make_status_callback(
+                s3_dms_documents_pending, DocumentStatus.COMPLETED
+            ),
         )
         # After document has been added, return document - used by health check for assertion
         mock_dms.add(
@@ -656,20 +631,10 @@ class TestIngestionService:
         ]
 
         # Responses mocking - send response based on request's status
-        def status_callback(request):
-            import json
-
-            body = json.loads(request.body)
-
-            if body["status"] == DocumentStatus.PENDING:
-                return (201, {}, json.dumps(dms_documents_pending))
-            elif body["status"] == DocumentStatus.ERROR:
-                return (204, {}, "")
-
         mock_dms.add_callback(
             responses.PUT,
             f"http://localhost:8004/documents/{doc_hash}/status/",
-            callback=status_callback,
+            callback=make_status_callback(dms_documents_pending, DocumentStatus.ERROR),
         )
 
         mock_dms.add(
