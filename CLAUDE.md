@@ -20,6 +20,8 @@ FastAPI, SQLAlchemy ORM, Pydantic, pact-python (v2+, Rust FFI), pytest, Docker C
 
 - Always run `pytest` after modifying Python files using the project's virtual environment at `.venv/bin/pytest` (or `.venv/Scripts/pytest` on Windows).
 - If tests fail, do not proceed with further changes until the failure is resolved or explicitly acknowledged by the user.
+- When creating GitHub issues/tickets, follow the branch naming convention: `<issue-number>-<title-slug>`
+  Example: for issue #34 titled "DevEx items", use branch name `34-devex-items`
 
 
 ## Architectural Decision Logging
