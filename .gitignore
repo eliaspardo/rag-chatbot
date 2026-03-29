@@ -217,7 +217,9 @@ cython_debug/
 .cursorindexingignore
 
 # Claude Code / Tools
+docs/plans
 docs/2026_Learning_System.md
+docs/weekly-summary/
 .playwright-cli
 .playwright
 .claude/skills/playwright-cli
@@ -231,8 +233,7 @@ docs/2026_Learning_System.md
 # MLFlow
 mlruns
 .mlruns
-mlflow.db
-mlflow_backup.db
+mlflow_*
 patches/backup
 tools/mlflow_patches/backup
 

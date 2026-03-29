@@ -3,6 +3,46 @@
 
 ---
 
+## 2026-03-20
+
+### Integration Test Data Seeding Pattern - Hybrid Approach
+- **Problem**: Integration tests need to pre-seed ChromaDB with test data. Initial approaches had tradeoffs:
+  - Pre-seeded fixtures: Hide what data tests use (readability issue)
+  - Using app endpoints for setup: Couples test setup to implementation (if ingestion breaks, all tests break)
+  - No helper: Duplication across tests
+- **Solution**: Hybrid approach combining best practices:
+  1. Helper function `seed_chromadb_documents()` - reusable seeding logic
+  2. Fixture `chromadb_client` - handles client creation + cleanup
+  3. Tests call helper explicitly with specific data
+- **Implementation pattern**:
+  ```python
+  # Fixture provides client + cleanup
+  @pytest.fixture
+  def chromadb_client(integration_env):
+      client = chromadb.HttpClient(...)
+      yield client
+      client.delete_collection(...)  # Cleanup
+
+  # Test explicitly seeds its data
+  def test_health_with_docs(self, chromadb_client, integration_env):
+      seed_chromadb_documents(
+          chromadb_client,
+          texts=["Specific test data"],
+          metadatas=[{"source": "test.pdf"}]
+      )
+      # ... test logic
+  ```
+- **Why it works**:
+  - Flexible: Each test controls its own data
+  - Readable: Test clearly shows its dependencies
+  - Isolated: No shared state between tests
+  - Reusable: Helper eliminates duplication
+  - Clean: Fixture handles cleanup automatically
+- **Result**: Clear, maintainable integration tests with explicit test data. Pattern is reusable for other services (inference, DMS) that need data seeding.
+- **Related**: ADR-043 (integration test strategy)
+
+---
+
 ## 2026-03-18
 
 ### Autonomous feature removal via Claude Code (case study)
@@ -73,3 +113,83 @@
 - Other services stay flat — they're simpler and don't need the separation
 
 ---
+
+## 2026-03-19
+
+### UI Service - Health Status Component
+- **Goal**: Provide visibility into inference service health and document availability before users attempt to chat
+- **Implementation**:
+  - Added expandable health status panel above chat interface (collapsed by default)
+  - Created `InferenceServiceClient` abstraction to decouple UI from direct API calls
+  - Renamed `API_BASE_URL` → `INFERENCE_SERVICE_URL` for consistency with other services
+  - Used Streamlit's `@st.fragment` decorator for auto-refresh every 30 seconds without full page reload
+- **Testing**:
+  - Unit tests for InferenceServiceClient (mocked requests)
+  - Pact consumer contract tests defining UI → Inference health endpoint expectations
+  - Provider verification tests in inference service confirming contract satisfaction
+- **Result**: Users can now see service status, ChromaDB document count, and DMS document count before chatting. Reduces confusion when service is up but no documents are loaded.
+- **Contract-first approach validated**: Consumer contract defined what UI needs → provider verification drove implementation → full test coverage without manual integration tests
+
+---
+
+## 2026-03-25
+
+### Fixed ChromaDB test data persistence with autouse fixture
+- **Problem**: Integration tests in `TestIngestionService` experienced data accumulation across test methods. The final test (`test_ingestion_2_documents`) expected exactly 2 documents but received more because previous tests' data persisted in the shared class-scoped ChromaDB container.
+- **Root cause**: The `chromadb_client` fixture included cleanup logic (delete collection after test) but was only used as a parameter by one of four tests. The other three tests wrote data to ChromaDB without cleaning up, causing data to leak into subsequent tests.
+- **Solution**: Added `autouse=True` to the `chromadb_client` fixture definition. This makes the cleanup logic run automatically after every test, regardless of whether the test declares the fixture as a parameter.
+- **Why autouse over function-scoped container**: Container startup takes 2-5 seconds per test; collection deletion takes <100ms. For 4 tests, autouse cleanup saves 8-20 seconds compared to recreating the container for each test.
+- **Result**: Clean state between tests with minimal performance overhead. Tests that need direct ChromaDB access (e.g., for seeding data) still get the client object by declaring the fixture parameter. Tests that only use the ingestion API don't need to change—they automatically benefit from cleanup.
+- **Related**: ADR-045 (decision to use autouse fixture), ADR-043 (integration test patterns with testcontainers)
+
+### Ingestion service test coverage expansion
+- **Goal**: Increase integration test coverage for error scenarios and service unavailability
+- **Work done**:
+  - Added tests for DMS unavailable and Vector Store unavailable scenarios
+  - Added tests for successful and failed document ingestion
+  - Refactored multi-document ingestion to use `ingest_documents` helper
+  - Added `make test-integration` target for running integration tests
+  - Enabled parallel test execution with pytest-xdist
+  - Added ingestion service lifespan testing
+  - Removed unused `process_documents` function
+- **Result**: More comprehensive integration test suite covering happy path and error conditions. Faster test execution with parallel runs.
+
+---
+## 2026-03-29
+
+### Test callback factory refactoring
+- **Problem**: Integration tests for ingestion service had 6+ repeated `status_callback` function definitions
+  - Each callback: parse request body, dispatch on status (PENDING → 201 with pending response, COMPLETED/ERROR → 204)
+  - Only differences were: pending response data and terminal status value
+  - ~100 lines of duplicated code across test methods
+- **Solution**: Extracted `make_status_callback(pending_response, terminal_status)` factory function
+  - Takes pending response data and terminal status as parameters
+  - Returns configured callback with pattern baked in
+  - Replaced all inline callback definitions with factory calls
+- **Implementation**:
+  ```python
+  def make_status_callback(pending_response, terminal_status):
+      def callback(request):
+          body = json.loads(request.body)
+          if body["status"] == DocumentStatus.PENDING:
+              return (201, {}, json.dumps(pending_response))
+          elif body["status"] == terminal_status:
+              return (204, {}, "")
+      return callback
+  
+  # Usage - before: 15 lines, after: 1 line
+  mock_dms.add_callback(
+      responses.PUT,
+      f"http://localhost:8004/documents/{doc_hash}/status/",
+      callback=make_status_callback(dms_documents_pending, DocumentStatus.COMPLETED),
+  )
+  ```
+- **Result**: 
+  - Eliminated ~100 lines of duplicated code
+  - Each callback definition reduced from 15 lines to 1 line
+  - Pattern is now explicit and centralized
+  - Future status callback changes only need one place updated
+- **Related**: ADR-046 (decision to use factory pattern for test callbacks)
+
+---
+

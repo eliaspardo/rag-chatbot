@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from src.shared.exceptions import NoDocumentsException
 import logging
 
+from src.shared.models import DMSDocument
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,15 +46,30 @@ def get_vectordb_collection_count() -> int:
     return app.state.vector_store_builder.get_collection_count()
 
 
+def get_dms_documents() -> List[DMSDocument]:
+    try:
+        documents = app.state.doc_ingestor.dms_client.get_documents()
+        return documents
+    except Exception as e:
+        logger.error(f"Error getting documents from DMS: {e}")
+        return []
+
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "documents_loaded": f"{get_vectordb_collection_count()}"}
+    documents = [doc.model_dump() for doc in get_dms_documents()]
+
+    return {
+        "status": "ok",
+        "documents_loaded_in_vector_store": f"{get_vectordb_collection_count()}",
+        "documents_loaded_in_dms": documents,
+    }
 
 
 @app.post("/ingestion/documents/", response_model=BatchIngestionResponse)
 def ingest_documents(request: IngestionRequest):
-    print("Processing ingestion request...")
-    print("Using DMS-enabled ingestion...")
+    logger.info("Processing ingestion request...")
+    logger.info("Using DMS-enabled ingestion...")
     results = app.state.doc_ingestor.ingest_documents(request.documents)
     succeeded = sum(1 for r in results if r.success)
     return BatchIngestionResponse(
@@ -68,9 +85,9 @@ def ingest_documents(request: IngestionRequest):
 
 @app.post("/ingestion/document/", response_model=IngestionResponse)
 def ingest_document(request: SingleIngestionRequest):
-    print("Processing ingestion request...")
+    logger.info("Processing ingestion request...")
     try:
-        print("Using DMS-enabled ingestion...")
+        logger.info("Using DMS-enabled ingestion...")
         app.state.doc_ingestor.ingest_document(request.document)
     except NoDocumentsException:
         raise HTTPException(

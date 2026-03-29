@@ -422,3 +422,53 @@
 **Tradeoffs**: Health endpoint shows DMS status but chat availability doesn't depend on it. A mismatch between DMS and ChromaDB state won't block chat—acceptable because ChromaDB is the authoritative source for "can I answer?".
 **Related**: ADR-006 (original ChromaDB readiness gate decision)
 **Tags**: [architecture, inference, DMS, observability, decoupling]
+
+---
+
+**ID**: ADR-042
+**Date**: 2026-03-18
+**Context**: Development workflow relied on manual implementation of features and fixes. As project complexity grew with multiple microservices, the time spent on repetitive tasks (writing tests, updating docs, fixing linter errors) increased. Need a way to accelerate development while maintaining code quality.
+**Decision**: Integrate Claude Code as a GitHub Actions workflow. Claude can be invoked by mentioning @claude in PR or issue comments. Claude has access to full repository context and can create branches, commits, and comments. Allowed tools are limited to file operations by default—additional tools (like running tests) must be explicitly approved in workflow config.
+**Rationale**: Claude Code provides autonomous task execution for well-defined work: feature implementation, test writing, refactoring, bug fixes. The GitHub Actions integration keeps Claude's work visible (all runs in action history) and auditable (all changes via PRs). Limiting tool access by default provides safety—explicit approval required for potentially destructive operations.
+**Tradeoffs**: Introduces AI-generated code into the codebase—requires human review of all Claude PRs. GitHub Actions minutes usage increases (free tier: 2000 min/month; Claude runs can be 5-10 min each). Team must learn how to write effective prompts and review AI-generated changes critically.
+**Tags**: [tooling, automation, workflow, Claude-Code]
+
+---
+
+**ID**: ADR-043
+**Date**: 2026-03-20
+**Context**: Need integration tests for ingestion service that sit between unit tests (fully mocked) and E2E tests (all services). ADR-036 defined test layer responsibilities but didn't specify implementation patterns for integration tests.
+**Decision**: Use FastAPI TestClient + ChromaDB testcontainer + HTTP-mocked DMS. TestClient runs the full FastAPI app in-process, ChromaDB runs in testcontainer (real database), DMS is mocked at HTTP level using `responses` library.
+**Rationale**: TestClient exercises full FastAPI stack (middleware, exception handlers, lifespan) without HTTP overhead. ChromaDB testcontainer provides real database behavior (embeddings, vector search) without manual infrastructure. HTTP-mocked DMS is sufficient because contract tests already verify DMS integration. Class-scoped testcontainer fixture balances test isolation (per-class cleanup) with speed (container reuse). **Test Data Seeding Pattern**: Tests use a hybrid approach for pre-seeding ChromaDB - helper functions (`seed_chromadb_documents`) contain seeding logic, fixtures (`chromadb_client`) handle client lifecycle and cleanup, and tests explicitly call helpers with specific data. This provides flexibility (each test controls its own data), readability (test shows what data it uses), and isolation (no shared state). Rejected alternatives: pre-seeded fixtures (hide test data), using app endpoints for setup (couples tests to implementation).
+
+---
+**ID**: ADR-044
+**Date**: 2026-03-24  
+**Context**: Encountered MLflow database corruption with error `Can't locate revision identified by '1b5f0d9ad7c1'`. Investigation revealed the local environment uses MLflow 3.8.1 while the Docker container was using MLflow latest (3.10+). Both access the same `mlflow.db` SQLite file via volume mount. The corruption occurred after installing SQLAlchemy separately, potentially triggering an Alembic migration. GitHub issue #12627 documents similar failures from interrupted Alembic migrations.
+**Decision**: Pin MLflow Docker image to version 3.8.1 in `docker/Dockerfile.mlflow` to match the local installation version. Establish practice of keeping MLflow versions synchronized across environments that share database files.
+**Rationale**: While the exact cause of corruption is not definitively proven, version mismatches between MLflow installations accessing the same database are a known risk factor for Alembic migration failures. Synchronizing versions eliminates this as a potential cause and ensures consistent schema expectations. May also help prevent future corruption from dependency updates.
+**Tradeoffs**: Requires manual coordination when upgrading MLflow versions. Cannot use `latest` tag for automatic updates. However, this is acceptable given the fragility of SQLite shared across environments. Not guaranteed to prevent all corruption scenarios, but reduces risk. Alternative: separate databases per environment (rejected: loses unified experiment tracking).
+**Tags**: [mlflow, docker, database, schema-migration, version-management, preventive]
+
+---
+
+**ID**: ADR-045
+**Date**: 2026-03-25
+**Context**: Integration tests for ingestion service use a class-scoped ChromaDB testcontainer shared across all tests. A `chromadb_client` fixture existed with cleanup logic (deletes collection after test), but it was only used by one of four tests. This caused data to accumulate across tests, leading to assertion failures when tests expected specific document counts.
+**Decision**: Make the `chromadb_client` fixture autouse by adding `autouse=True` parameter. This ensures cleanup runs automatically after every test in the class, even if the test doesn't declare the fixture as a parameter.
+**Rationale**: Leverages existing cleanup logic without code duplication. Collection deletion is fast (<100ms) compared to container startup (2-5 seconds), so maintaining the class-scoped container with per-test cleanup provides both isolation and performance. Tests that need direct ChromaDB access (like `test_health_check_with_documents`) can still declare the fixture parameter to get the client object; tests that only use the API don't need to change.
+**Tradeoffs**: The cleanup fixture now runs for all tests, even those that don't write data (e.g., `test_health_check_with_no_documents`). The try/except in the cleanup handler makes this safe. Slight coupling—all tests implicitly depend on cleanup running—but this is preferable to data leakage between tests. Alternative considered: change fixture scope to function (new container per test) but rejected due to significant performance overhead.
+**Tags**: [testing, fixtures, integration-tests, ChromaDB, cleanup, isolation]
+
+---
+
+**ID**: ADR-046
+**Date**: 2026-03-29
+**Context**: Integration tests for ingestion service contained repeated `status_callback` function definitions (6+ instances) that differed only in the response data (pending/completed/error documents) and terminal status value. Each callback followed the same pattern: parse request body, return 201 with pending response if status is PENDING, return 204 if status matches terminal status.
+**Decision**: Extract a factory function `make_status_callback(pending_response, terminal_status)` that generates callback functions with the pattern baked in. Replace all inline callback definitions with calls to the factory.
+**Rationale**: Eliminates ~100 lines of duplicated code. Adding new status scenarios requires passing different arguments, not rewriting the callback logic. Makes the pattern explicit: callbacks differ by data, not by logic. Reduces maintenance burden—bugs in the pattern only need fixing once.
+**Tradeoffs**: Introduces slight abstraction—readers must understand the factory pattern. However, the factory is straightforward and well-documented. The abstraction pays for itself immediately given the number of call sites. Alternative considered: leave duplication for explicitness—rejected as it would make future changes error-prone (need to update 6+ locations consistently).
+**Tags**: [testing, code-quality, refactoring, integration-tests, DRY]
+
+---
+

@@ -19,3 +19,11 @@ Produce a markdown section with:
 
 **Key themes this week:** [2-3 bullet points]
 **Open questions carried forward:** [if any]
+
+## Save location
+After generating the summary, save it to `docs/weekly-summary/` with filename format:
+`YYYY-MM-DD_to_YYYY-MM-DD.md`
+
+Example: `docs/weekly-summary/2026-03-13_to_2026-03-20.md`
+
+Include a heading `# Weekly Decision Summary` at the top of the file.
