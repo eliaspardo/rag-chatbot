@@ -481,3 +481,13 @@
 **Tags**: [documentation, tooling, pre-commit, flake8]
 
 ---
+
+**ID**: ADR-048
+**Date**: 2026-03-30
+**Context**: E2E smoke tests need to validate the core RAG flow (ingest → query → response) with deterministic results. Three options considered: (1) clear DBs as precondition for known state, (2) test against existing state (production-safe), or (3) use namespaced test data (e.g., test-specific ChromaDB collections). Need to balance determinism vs. production-safety for the Iteration II smoke test.
+**Decision**: E2E smoke tests clear ChromaDB and DMS database state as a precondition (fixture) before running. Tests assume a clean environment and cannot run in production environments. This is explicitly a **local development smoke test** for validating the docker-compose setup, not a production monitoring test.
+**Rationale**: Aligns with Iteration II Definition of Done: "A new developer can run `make up` and `make test-smoke`" - this targets local lab validation, not production. Clearing state ensures deterministic, repeatable tests that are simple to reason about and debug. Smoke tests should be maximally simple - complexity defeats the purpose. The docker-compose stack already provides isolation. Production smoke tests (if needed) would be a separate test suite with different characteristics (non-destructive, eventual consistency, different assertions).
+**Tradeoffs**: Tests are destructive and cannot run against production. Require clean environment (`make down && make up` before running). Alternative approaches (namespaced data, production-safe assertions) add significant complexity for no immediate benefit given the local lab scope. If production smoke tests are needed in future iterations (3-4), they'll be a separate concern with separate implementation.
+**Tags**: [testing, e2e, smoke-tests, test-strategy, local-development]
+
+---
