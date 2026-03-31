@@ -1,16 +1,14 @@
 import pytest
 import chromadb
 import os
-from sqlalchemy import create_engine, delete
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from src.document_management_service.models import DBDMSDocument
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
-DMS_DATABASE_URL = os.getenv(
-    "DMS_DATABASE_URL", "DMS_DATABASE_URL=postgresql://dms:dms@dms-db:5432/dms"
-)
+DMS_DATABASE_URL = "postgresql://dms:dms@localhost:5432/dms"
 
 
 class TestE2EFlow:
@@ -25,12 +23,16 @@ class TestE2EFlow:
 
     @pytest.fixture()
     def clear_dms_db(self):
-        pass
         """Fixture that clears all document records from DMS"""
         engine = create_engine(DMS_DATABASE_URL)
         Session = sessionmaker(bind=engine)
         session = Session()
-        session.execute(delete(DBDMSDocument)).all()
+        try:
+            session.query(DBDMSDocument).delete()
+            session.commit()
+        finally:
+            session.close()
+            engine.dispose()
 
     def test_e2e_flow(self, clear_vector_db, clear_dms_db):
         pass
