@@ -318,6 +318,26 @@ pytest tests/contract/consumer/
 pytest tests/contract/provider/
 ```
 
+### E2E Tests (Playwright)
+>**⚠️ These tests are meant to be ran locally or on ephemeral environments as they clear the vector and DMS databases**.
+
+UI tests use Playwright to test the Streamlit frontend through browser automation.
+
+**Prerequisites:**
+- Install dev deps: `pip install -r requirements-dev.txt`
+- Install deps: `sudo playwright install-deps`
+- Install browser binaries (required once): `playwright install`
+
+
+**Running UI tests:**
+```bash
+# Make sure services are running first
+docker compose up -d
+
+# Run UI tests
+pytest tests/e2e/
+```
+
 ### Unit Tests
 
 Standard suite: `pytest` (eval tests are marked and excluded by default, see below). Make sure `.env` and `config/params.env` exist so env loading succeeds.

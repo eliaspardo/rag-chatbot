@@ -65,7 +65,7 @@ if health.is_healthy:
     # Custom HTML metric with data-testid, styled to match Streamlit's metric component
     st.markdown(
         f"""
-        <div data-testid="documents_in_vector_store_count" style="
+        <div style="
             background-color: transparent;
             padding: 1rem 0;
         ">
@@ -75,7 +75,8 @@ if health.is_healthy:
                 color: var(--text-color, rgba(250, 250, 250, 0.6));
                 margin-bottom: 0.25rem;
             ">Documents in vector store</div>
-            <div style="
+            <div data-testid="documents_in_vector_store_count"
+                style="
                 font-size: 2.5rem;
                 font-weight: 600;
                 line-height: 1.2;
