@@ -1,4 +1,5 @@
 from time import sleep
+from fastapi.testclient import TestClient
 import pytest
 import chromadb
 import os
@@ -7,11 +8,19 @@ from sqlalchemy.orm import sessionmaker
 from src.document_management_service.models import DBDMSDocument
 from playwright.sync_api import Page, expect
 
+from src.ingestion_service.main import SingleIngestionRequest
+
 
 CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "rag_documents")
 DMS_DATABASE_URL = "postgresql://dms:dms@localhost:5432/dms"
+INGESTION_URL = "http://127.0.0.1:8003/ingestion/documents/"
+document_path = "https://istqb-documents.s3.eu-central-003.backblazeb2.com/ISTQB_CTAL-TM_Syllabus_v3.0.pdf"
+document_request = SingleIngestionRequest(document=document_path)
+ingested_document_string = (
+    "ISTQB_CTAL-TM_Syllabus_v3.0.pdf — Document processing completed"
+)
 
 
 class TestE2EFlow:
@@ -20,6 +29,9 @@ class TestE2EFlow:
         """Fixture that clears the ChromaDB collection"""
         try:
             chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+            chroma_client.delete_collection(CHROMA_COLLECTION)
+            yield
+            # Clean up again after test
             chroma_client.delete_collection(CHROMA_COLLECTION)
         except Exception:
             pass
@@ -41,23 +53,47 @@ class TestE2EFlow:
             session.close()
             engine.dispose()
 
-    def test_e2e_flow(self, clear_vector_db, clear_dms_db, page: Page):
+    @pytest.fixture
+    def ingestion_client(self):
+        """Create FastAPI TestClient."""
+
+        from src.ingestion_service.main import app
+
+        with TestClient(app) as test_client:
+            yield test_client
+
+    def test_e2e_flow(
+        self, clear_vector_db, clear_dms_db, ingestion_client, page: Page
+    ):
         inference_string = "How can I calculate the total cost of quality?"
         chat_input = page.get_by_role("textbox")
         chat_submit_button = page.get_by_test_id("stChatInputSubmitButton")
         alert_container = page.get_by_test_id("stAlertContentError")
-        system_status_button = page.get_by_text("System Status")
+        system_status_sidebar_button = page.get_by_text("System Status")
+        chat_sidebar_button = page.get_by_text("Chat")
         vector_store_doc_count = page.get_by_test_id("documents_in_vector_store_count")
+        refresh_button = page.get_by_role("button", name="Refresh")
+        ingested_document_item = page.get_by_text(ingested_document_string)
+
         page.goto("http://localhost:8501")
         chat_input.type(inference_string)
         chat_submit_button.click()
         expect(alert_container).to_have_text(
-            ("Request failed: 503 Server Error: Service Unavailable for url:")
+            ("Request failed: 503 Server Error: Service Unavailable for url: ")
             + ("http://inference_service:8000/chat/domain-expert/")
         )
-        system_status_button.click()
-        print(vector_store_doc_count.text_content())
+        system_status_sidebar_button.click()
         expect(vector_store_doc_count).to_have_text("0")
+        ingestion_client.post(
+            "/ingestion/document/", json=document_request.model_dump()
+        )
+        refresh_button.click()
+        expect(vector_store_doc_count).to_have_text("197")
+        expect(ingested_document_item).to_be_visible()
+        sleep(5)
+        chat_sidebar_button.click()
+        chat_input.type(inference_string)
+        chat_submit_button.click()
         sleep(5)
 
 
