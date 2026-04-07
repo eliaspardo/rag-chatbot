@@ -76,7 +76,7 @@ class TestE2EFlow:
     ):
         # Arrange
         inference_string = "How can I calculate the total cost of quality?"
-        # TODO inference_response_string = "Defect Prevention Costs"
+        inference_response_string = "Defect Prevention Costs"
         chat_input = page.get_by_role("textbox")
         chat_submit_button = page.get_by_test_id("stChatInputSubmitButton")
         alert_container = page.get_by_test_id("stAlertContentError")
@@ -85,7 +85,7 @@ class TestE2EFlow:
         vector_store_doc_count = page.get_by_test_id("documents_in_vector_store_count")
         refresh_button = page.get_by_role("button", name="Refresh")
         ingested_document_item = page.get_by_text(ingested_document_string)
-        # TODO inference_response_item = page.get_by_text(inference_response_string)
+        inference_response_item = page.get_by_test_id("stChatMessage").nth(2)
         chat_thinking_item = page.get_by_text("Thinking")
 
         # Act - Navigate to chat interface and send inference request
@@ -116,4 +116,6 @@ class TestE2EFlow:
         # Assert - Verify thinking item is displayed and then disappears, and response is displayed
         expect(chat_thinking_item).to_be_visible()
         expect(chat_thinking_item).not_to_be_visible(timeout=20_000)
-        # TODO expect(inference_response_item).to_be_visible()
+        expect(inference_response_item).to_contain_text(
+            inference_response_string, ignore_case=True
+        )
