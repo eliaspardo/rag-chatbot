@@ -1,4 +1,3 @@
-from time import sleep
 from fastapi.testclient import TestClient
 import pytest
 import chromadb
@@ -87,6 +86,7 @@ class TestE2EFlow:
         refresh_button = page.get_by_role("button", name="Refresh")
         ingested_document_item = page.get_by_text(ingested_document_string)
         # TODO inference_response_item = page.get_by_text(inference_response_string)
+        chat_thinking_item = page.get_by_text("Thinking")
 
         # Act - Navigate to chat interface and send inference request
         page.goto("http://localhost:8501")
@@ -113,6 +113,7 @@ class TestE2EFlow:
         chat_sidebar_button.click()
         chat_input.type(inference_string)
         chat_submit_button.click()
-        # Assert - Verify response is displayed
-        sleep(5)
+        # Assert - Verify thinking item is displayed and then disappears, and response is displayed
+        expect(chat_thinking_item).to_be_visible()
+        expect(chat_thinking_item).not_to_be_visible(timeout=20_000)
         # TODO expect(inference_response_item).to_be_visible()
