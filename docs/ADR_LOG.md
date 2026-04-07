@@ -491,3 +491,43 @@
 **Tags**: [testing, e2e, smoke-tests, test-strategy, local-development]
 
 ---
+
+**ID**: ADR-049
+**Date**: 2026-04-02
+**Context**: Need to implement E2E smoke tests for the RAG chatbot to validate the full flow (ingestion → document management → inference → UI). Three main options for E2E UI testing: (1) Selenium (widely used, established), (2) Playwright (modern, faster, better API), (3) Streamlit's built-in testing utilities (limited to component testing, not full browser automation).
+**Decision**: Use Playwright for E2E browser automation testing of the Streamlit frontend. Install via `requirements-dev.txt` with `playwright` and `pytest-playwright` packages.
+**Rationale**: Playwright provides modern async-first architecture with better performance than Selenium. Built-in auto-wait reduces flakiness. Native support for multiple browsers and headless mode. Excellent Python integration via `pytest-playwright` plugin. Streamlit's native testing utilities are insufficient for full browser flow testing. Selenium considered legacy compared to Playwright's developer experience.
+**Tradeoffs**: Requires `playwright install` step for browser binaries (one-time setup) and `playwright install-deps` for system dependencies (documented in README). Adds ~50MB to dev dependencies. Team must learn Playwright API instead of more familiar Selenium. Acceptable for significantly better DX and test reliability.
+**Tags**: [testing, e2e, playwright, tooling, browser-automation]
+
+---
+
+**ID**: ADR-050
+**Date**: 2026-04-02
+**Context**: Streamlit components don't natively expose stable test selectors (no `data-testid` support). E2E tests need reliable selectors to locate UI elements without coupling to display text (which may change) or fragile CSS selectors.
+**Decision**: Inject custom HTML with `data-testid` attributes using Streamlit's `st.markdown(unsafe_allow_html=True)` for critical UI elements that need to be tested. Style the custom HTML to match Streamlit's native component appearance (fonts, colors, spacing).
+**Rationale**: `data-testid` attributes are the Playwright best practice for stable selectors—they're independent of styling and content changes. Streamlit doesn't provide this natively, so custom HTML is the workaround. Styling custom HTML to match native components maintains visual consistency. Alternative considered: using text-based selectors like `page.get_by_text("Documents in vector store")` rejected because text may change or be localized.
+**Tradeoffs**: Custom HTML replaces native Streamlit components (e.g., `st.metric`), requiring manual CSS to match Streamlit's appearance. CSS may break if Streamlit updates its styling. Maintenance overhead acceptable for critical smoke test stability. Only use for elements that need stable test selectors—prefer native Streamlit components elsewhere.
+**Tags**: [testing, e2e, streamlit, UI, playwright, testability]
+
+---
+
+**ID**: ADR-051
+**Date**: 2026-04-02
+**Context**: E2E tests require all services (ChromaDB, DMS, Ingestion, Inference, Streamlit) to be running and ready before tests execute. Starting services with `docker compose up -d` is fast, but services aren't immediately ready to accept requests—tests fail with connection errors if run too soon.
+**Decision**: Implement a polling readiness check in the `make test-e2e` target that waits for the inference service's `/health` endpoint to respond (up to 30 attempts with 2-second intervals). Tests only run after health check succeeds or timeout (60 seconds).
+**Rationale**: Simple, effective solution that prevents flaky test failures from race conditions. Inference service is chosen as the readiness gate because it's the last service in the dependency chain (depends on ChromaDB and DMS). If inference is healthy, the full stack is ready. Polling with exponential backoff considered but rejected as over-engineering—fixed 2-second intervals are sufficient for local docker-compose startup.
+**Tradeoffs**: Adds 60 seconds max delay to test runs if services are unhealthy (fail-fast with clear error message). Normal case: services ready in 4-10 seconds. Alternative considered: docker-compose healthchecks with `depends_on` conditions—rejected because not all services have health endpoints, and Makefile polling is more flexible and debuggable.
+**Tags**: [testing, e2e, docker-compose, CI/CD, makefile, readiness]
+
+---
+
+**ID**: ADR-052
+**Date**: 2026-04-02
+**Context**: E2E test needs to ingest a document during the test flow. Two approaches: (1) use Playwright to interact with the UI to trigger ingestion (click buttons, fill forms), or (2) use FastAPI TestClient to directly call the ingestion API endpoint.
+**Decision**: Use hybrid approach—Playwright for UI interactions (chat, system status page), FastAPI TestClient for ingestion API calls. E2E test combines both tools in the same test function.
+**Rationale**: Ingestion via API is faster, more reliable, and easier to debug than multi-step UI form interactions. The test's purpose is validating the core RAG flow (ingest → query → response), not testing the ingestion UI specifically. Using TestClient for setup (ingestion) and Playwright for the user-facing flow (chat interaction) optimizes for test speed and clarity. Playwright alone would require navigating to an ingestion form, uploading files, and waiting for async UI updates—adding complexity without testing value for this smoke test.
+**Tradeoffs**: E2E test depends on both Playwright and FastAPI TestClient libraries. Test combines browser automation and programmatic API calls, which might seem inconsistent. However, this pragmatic approach balances thoroughness (testing UI flow) with speed (fast document ingestion). Pure UI-only approach would be slower and more brittle. Acceptable for a smoke test focused on validating system integration, not comprehensive UI testing.
+**Tags**: [testing, e2e, test-strategy, playwright, fastapi, pragmatism]
+
+---
