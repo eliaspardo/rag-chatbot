@@ -62,13 +62,40 @@ with col2:
         st.rerun()
 
 if health.is_healthy:
-    st.metric("Documents in vector store", health.vector_store_count)
+    # Custom HTML metric with data-testid, styled to match Streamlit's metric component
+    st.markdown(
+        f"""
+        <div style="
+            background-color: transparent;
+            padding: 1rem 0;
+        ">
+            <div style="
+                font-size: 0.875rem;
+                font-weight: 400;
+                color: var(--text-color, rgba(250, 250, 250, 0.6));
+                margin-bottom: 0.25rem;
+            ">Documents in vector store</div>
+            <div data-testid="documents_in_vector_store_count"
+                style="
+                font-size: 2.5rem;
+                font-weight: 600;
+                line-height: 1.2;
+                color: var(--text-color, rgb(250, 250, 250));
+            ">{health.vector_store_count}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if health.documents:
         st.subheader("Loaded Documents")
+        # Build HTML for documents list with data-testid
+        docs_html = '<div data-testid="loaded_documents_list">'
         for doc in health.documents:
             icon = _get_status_icon(doc.status)
-            st.write(f"{icon} **{doc.doc_name}** — {doc.status}")
+            docs_html += f"<p>{icon} <strong>{doc.doc_name}</strong> — {doc.status}</p>"
+        docs_html += "</div>"
+        st.markdown(docs_html, unsafe_allow_html=True)
     else:
         st.info("No documents loaded yet")
 

@@ -30,6 +30,25 @@ test-contract:
 test-integration:
 	pytest -s tests/integration
 
+test-e2e:
+	@echo "Ensuring application is running for e2e tests..."
+	docker compose up -d
+	@echo "Waiting for services to be ready..."
+	@for i in $$(seq 1 30); do \
+		if curl -sf http://localhost:8002/health > /dev/null 2>&1; then \
+			echo "Inference service is ready!"; \
+			break; \
+		fi; \
+		if [ $$i -eq 30 ]; then \
+			echo "Timeout waiting for inference service to be ready"; \
+			exit 1; \
+		fi; \
+		echo "Waiting for inference service... ($$i/30)"; \
+		sleep 2; \
+	done
+	@echo "Running e2e tests..."
+	pytest -s tests/e2e
+
 test-eval:
 	@echo "Ensuring MLflow is running for evaluation tests..."
 	docker compose up -d mlflow

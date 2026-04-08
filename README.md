@@ -276,7 +276,8 @@ Listed in `requirements.txt` file and within each service's folder.
 make test          # Run all tests (unit + contract)
 make test-unit     # Run unit tests only
 make test-contract # Run contract tests only
-make test-eval     # Run contract tests only (needs mlflow container running)
+make test-e2e      # Run E2E tests (starts services, waits for readiness)
+make test-eval     # Run eval tests (needs mlflow container running)
 ```
 
 ### Test Layers
@@ -316,6 +317,27 @@ pytest tests/contract/consumer/
 
 # Provider tests (verify against broker)
 pytest tests/contract/provider/
+```
+
+### E2E Tests (Playwright)
+>**⚠️ These tests are meant to be ran locally or on ephemeral environments as they clear the vector and DMS databases**.
+
+UI tests use Playwright to test the Streamlit frontend through browser automation.
+
+**Prerequisites:**
+- Install dev deps: `pip install -r requirements-dev.txt`
+- Install deps: `sudo playwright install-deps`
+- Install browser binaries (required once): `playwright install`
+
+
+**Running E2E tests:**
+```bash
+# Recommended: use make target (handles service startup and readiness checks)
+make test-e2e
+
+# Or manually:
+docker compose up -d
+pytest tests/e2e/
 ```
 
 ### Unit Tests
