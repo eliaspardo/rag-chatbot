@@ -226,6 +226,7 @@ docs/weekly-summary/
 
 # Deepeval
 .deepeval
+test_together_api.py
 
 # Streamlit
 .streamlit
