@@ -25,6 +25,9 @@ test-unit:
 	pytest -s tests/unit
 
 test-contract:
+	@echo "Ensuring Pact Broker is running for contract tests..."
+	docker compose up -d pact-broker
+	@echo "Running contract tests..."
 	pytest -s tests/contract
 
 test-integration:

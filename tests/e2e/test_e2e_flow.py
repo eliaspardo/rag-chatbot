@@ -26,24 +26,27 @@ class TestE2EFlow:
     @pytest.fixture()
     def clear_vector_db(self):
         """Fixture that clears the ChromaDB collection"""
+        chroma_client = None
+        collection = None
         try:
             chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
             collection = chroma_client.get_collection(CHROMA_COLLECTION)
-            # Get all document IDs
             all_ids = collection.get()["ids"]
-            # Delete all documents
-            if all_ids:
-                collection.delete(ids=all_ids)
-            yield
-            # Clean up again after test
-            collection = chroma_client.get_collection(CHROMA_COLLECTION)
-            # Get all document IDs
-            all_ids = collection.get()["ids"]
-            # Delete all documents
             if all_ids:
                 collection.delete(ids=all_ids)
         except Exception:
             pass
+
+        yield
+
+        if chroma_client is not None:
+            try:
+                collection = chroma_client.get_collection(CHROMA_COLLECTION)
+                all_ids = collection.get()["ids"]
+                if all_ids:
+                    collection.delete(ids=all_ids)
+            except Exception:
+                pass
 
     @pytest.fixture()
     def clear_dms_db(self):
