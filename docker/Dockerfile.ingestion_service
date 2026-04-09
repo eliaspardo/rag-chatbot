@@ -5,7 +5,7 @@ WORKDIR /app
 COPY src/ingestion_service/requirements.txt .
 
 # Install CPU-only PyTorch + torchvision together to ensure compatible versions (saves ~2GB)
-RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir --timeout 300 --retries 5 torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 RUN pip install --no-cache-dir -r requirements.txt
 
