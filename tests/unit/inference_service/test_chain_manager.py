@@ -194,3 +194,36 @@ class TestChainManager:
         # Act
         with pytest.raises(Exception, match="Error invoking LLM:"):
             chain_manager.ask_question(question, mock_chain)
+
+    @pytest.mark.parametrize(
+        "raw, expected",
+        [
+            ("Clean answer.", "Clean answer."),
+            (
+                "Good answer.\n<invoke>\n<val>junk</val>\n</invoke>",
+                "Good answer.",
+            ),
+            (
+                "Answer text\n### CONTEXT ###\nmore stuff",
+                "Answer text",
+            ),
+            (
+                "Answer\n\n\n\ntrailing garbage",
+                "Answer\n\n\n\ntrailing garbage",  # triple newline split handled by regex
+            ),
+            (
+                "<think>\nLet me reason about this...\n</think>\n\nThe actual answer.",
+                "The actual answer.",
+            ),
+            (
+                "<think>reasoning</think>Answer.<invoke>junk</invoke>",
+                "Answer.",
+            ),
+            (
+                "The answer is here.\n</think>\n\nThe answer is here again.",
+                "The answer is here.",
+            ),
+        ],
+    )
+    def test_clean_response(self, raw, expected):
+        assert ChainManager._clean_response(raw) == expected

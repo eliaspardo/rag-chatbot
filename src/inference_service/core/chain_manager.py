@@ -11,6 +11,7 @@ from langchain.chains.conversational_retrieval.base import ConversationalRetriev
 from langchain.prompts import PromptTemplate
 from langchain.chains.base import Chain
 from langchain_core.vectorstores import VectorStoreRetriever
+import re
 import logging
 from src.shared.env_loader import load_environment
 
@@ -142,13 +143,26 @@ class ChainManager:
             if hasattr(chain.memory, "clear"):
                 chain.memory.clear()
 
+    @staticmethod
+    def _clean_response(text: str) -> str:
+        """Strip trailing artifacts that some models emit after the answer."""
+        # Remove <think>…</think> blocks (chain-of-thought reasoning)
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+        # Remove stray </think> and everything after it
+        text = re.split(r"</think>", text, maxsplit=1)[0]
+        # Remove anything from the first remaining XML-like tag onward
+        text = re.split(r"<\w+", text, maxsplit=1)[0]
+        # Remove trailing markdown section headers (### …)
+        text = re.split(r"\n#{1,4}\s", text, maxsplit=1)[0]
+        return text.strip()
+
     def ask_question(self, question: str, qa_chain: Chain) -> str:
         """Invoke the chain with a question and return the answer as a string."""
         try:
             if isinstance(qa_chain, RetrievalQA):
                 response = qa_chain.invoke({"query": question})
-                return str(response["result"])
+                return self._clean_response(str(response["result"]))
             response = qa_chain.invoke({"question": question})
-            return str(response["answer"])
+            return self._clean_response(str(response["answer"]))
         except Exception as exception:
             raise Exception(f"❌ Error invoking LLM: {exception}") from exception
