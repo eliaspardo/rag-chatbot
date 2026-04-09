@@ -1,6 +1,6 @@
 import os
 import logging
-from langchain_together import Together
+from langchain_together import ChatTogether
 from langchain.llms.base import LLM
 from langchain_community.llms import Ollama
 from src.shared.env_loader import load_environment
@@ -35,11 +35,12 @@ def build_provider_llm() -> LLM:
         raise ValueError("EVAL_OLLAMA_BASE_URL environment variable is required")
     if EVAL_LLM_PROVIDER == "together":
         try:
-            return Together(
+            return ChatTogether(
                 model=EVAL_MODEL_NAME,
                 together_api_key=EVAL_TOGETHER_API_KEY,
                 temperature=EVAL_TEMPERATURE,
                 max_tokens=EVAL_MAX_TOKENS,
+                model_kwargs={"response_format": {"type": "json_object"}},
             )
         except Exception as exception:
             raise Exception(

@@ -56,7 +56,7 @@ test-eval:
 	@echo "Ensuring MLflow is running for evaluation tests..."
 	docker compose up -d mlflow
 	@echo "Running evaluation tests..."
-	pytest -s -m "deepeval" --log-cli-level=ERROR
+	pytest -s -m "deepeval"
 
 pact-publish:
 	docker run --rm \
