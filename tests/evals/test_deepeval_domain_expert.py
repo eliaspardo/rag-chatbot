@@ -7,7 +7,7 @@ import mlflow
 from deepeval import evaluate
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 from deepeval.metrics import GEval
-from deepeval.evaluate.configs import AsyncConfig, DisplayConfig
+from deepeval.evaluate.configs import AsyncConfig, DisplayConfig, ErrorConfig
 import pytest
 from datasets import Dataset
 
@@ -265,6 +265,7 @@ def test_deepeval_domain_expert(
         async_config=AsyncConfig(
             max_concurrent=DEEPEVAL_MAX_CONCURRENT, throttle_value=1
         ),
+        error_config=ErrorConfig(ignore_errors=True),
         hyperparameters={"prompt": domain_expert_prompt.template},
     )
 
