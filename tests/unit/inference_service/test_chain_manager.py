@@ -2,8 +2,8 @@ import pytest
 from src.inference_service.core.chain_manager import ChainManager
 from langchain_community.vectorstores import Chroma
 from unittest.mock import Mock, patch
-from langchain.chains import RetrievalQA
-from langchain.llms.base import LLM
+from langchain_classic.chains import RetrievalQA
+from langchain_core.language_models.llms import LLM
 from src.shared.prompts import domain_expert_prompt, domain_expert_condense_prompt
 
 

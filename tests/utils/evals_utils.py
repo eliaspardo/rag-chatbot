@@ -1,7 +1,7 @@
 import os
 import logging
 from langchain_together import ChatTogether
-from langchain.llms.base import LLM
+from langchain_core.language_models.llms import LLM
 from langchain_community.llms import Ollama
 from src.shared.env_loader import load_environment
 

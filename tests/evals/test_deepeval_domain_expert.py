@@ -237,7 +237,7 @@ def test_deepeval_domain_expert(
         answer = domain_expert.ask_question(question)
         answers.append(str(answer))
 
-        docs = domain_expert.chain_manager.retriever.get_relevant_documents(question)
+        docs = domain_expert.chain_manager.retriever.invoke(question)
         contexts = [doc.page_content for doc in docs]
         contexts_list.append(contexts)
         domain_expert.chain_manager.reset_chain_memory(domain_expert.qa_chain)
