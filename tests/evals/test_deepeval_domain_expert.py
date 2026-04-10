@@ -61,6 +61,7 @@ COMPLETENESS_METADATA = _completeness_module.METADATA
 _reasoning_module = import_module(f"tests.evals.metrics.reasoning.{REASONING_VERSION}")
 REASONING_EVALUATION_STEPS = _reasoning_module.EVALUATION_STEPS
 REASONING_METADATA = _reasoning_module.METADATA
+EVAL_NO_OF_QUESTIONS_TO_TEST = int(os.getenv("EVAL_NO_OF_QUESTIONS_TO_TEST", "0"))
 
 
 class EvalResults:
@@ -223,6 +224,11 @@ def test_deepeval_domain_expert(
     except (FileNotFoundError, GoldenSetValidationError, json.JSONDecodeError) as exc:
         pytest.fail(f"Invalid golden set: {exc}")
 
+    if EVAL_NO_OF_QUESTIONS_TO_TEST > 0:
+        questions = questions[:EVAL_NO_OF_QUESTIONS_TO_TEST]
+        ground_truths = ground_truths[:EVAL_NO_OF_QUESTIONS_TO_TEST]
+        question_ids = question_ids[:EVAL_NO_OF_QUESTIONS_TO_TEST]
+
     answers = []
     contexts_list = []
     parent_run_name, eval_results = mlflow_parent_run
@@ -231,7 +237,7 @@ def test_deepeval_domain_expert(
         answer = domain_expert.ask_question(question)
         answers.append(str(answer))
 
-        docs = domain_expert.chain_manager.retriever.get_relevant_documents(question)
+        docs = domain_expert.chain_manager.retriever.invoke(question)
         contexts = [doc.page_content for doc in docs]
         contexts_list.append(contexts)
         domain_expert.chain_manager.reset_chain_memory(domain_expert.qa_chain)

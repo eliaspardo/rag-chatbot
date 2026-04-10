@@ -127,7 +127,9 @@ class DeepEvalLLMAdapter(DeepEvalBaseLLM):
         return sanitized
 
     def get_model_name(self) -> str:
-        return self.model.model
+        return getattr(self.model, "model_name", None) or getattr(
+            self.model, "model", "unknown"
+        )
 
     def print_llm_exchange(self, prompt: str, result: str) -> None:
         logger.debug("\n--- Deepeval EVAL LLM prompt ---")

@@ -1,7 +1,7 @@
 """Prompt templates for the domain expert chatbot."""
 
 import os
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from src.shared.env_loader import load_environment
 
 load_environment()

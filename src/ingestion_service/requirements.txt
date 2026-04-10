@@ -1,31 +1,40 @@
 # FastAPI
-fastapi
-fastapi-cli
-fastapi-cloud-cli
-uvicorn
-pydantic
+fastapi==0.135.1
+fastapi-cli==0.0.24
+fastapi-cloud-cli==0.15.0
+uvicorn==0.42.0
+pydantic==2.12.5
+pydantic_core==2.41.5
+pydantic-settings==2.13.1
 
 # LangChain
-langchain-core
-langchain-community
-langchain-huggingface
-langchain-docling
-langchain-text-splitters
+langchain-core==1.2.28
+langchain-community==0.4.1
+langchain-classic==1.0.3
+langchain-huggingface==1.2.1
+langchain-docling==2.0.0
+langchain-text-splitters==1.1.1
+langsmith==0.7.22
 
 # Vector store
-chromadb
+chromadb==1.5.7
 
 # PDF processing (legacy mode)
-PyMuPDF
+PyMuPDF==1.27.2.2
 
 # S3 file loading
-boto3
+boto3==1.42.73
 
 # HTTP client (for DMS)
-requests
+requests==2.32.5
 
 # Environment
-python-dotenv
+python-dotenv==1.2.2
 
 # Sentence embeddings (required by langchain-huggingface)
-sentence-transformers
+sentence-transformers==5.3.0
+tokenizers==0.22.2
+transformers==5.5.1
+safetensors==0.7.0
+scikit-learn==1.8.0
+scipy==1.17.1

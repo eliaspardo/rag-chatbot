@@ -6,8 +6,8 @@ import re
 from pathlib import Path
 from typing import Iterable, List, Sequence
 
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -190,7 +190,7 @@ def build_retriever(chunks: Sequence[Document], top_k: int):
 
 
 def answer_question_with_context(question: str, retriever, llm, top_k: int) -> str:
-    docs = retriever.get_relevant_documents(question)
+    docs = retriever.invoke(question)
     if not docs:
         return "INSUFFICIENT_CONTEXT"
 

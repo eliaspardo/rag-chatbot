@@ -357,9 +357,10 @@ Dataset schema: JSON array of objects with `question` and `ground_truth` strings
 DeepEval tests log results to MLflow.
 
 Relevant variables in `config/params.env`:
-- EVAL_PDF_PATH, EVAL_DB_DIR, EVAL_GOLDEN_SET_PATH
-- EVAL_LLM_PROVIDER, EVAL_MODEL_NAME, EVAL_OLLAMA_BASE_URL, EVAL_TOGETHER_API_KEY
-- MLFLOW_TRACKING_URI, MLFLOW_EXPERIMENT_NAME
+- `EVAL_PDF_PATH`, `EVAL_DB_DIR`, `EVAL_GOLDEN_SET_PATH`
+- `EVAL_NO_OF_QUESTIONS_TO_TEST` — limit how many questions from the golden set to evaluate; `0` runs the full dataset (useful to set a small number for quick local runs)
+- `EVAL_LLM_PROVIDER`, `EVAL_MODEL_NAME`, `EVAL_OLLAMA_BASE_URL`, `EVAL_TOGETHER_API_KEY`
+- `MLFLOW_TRACKING_URI`, `MLFLOW_EXPERIMENT_NAME`
 
 ##### MLflow UI Patch (Parent Compare)
 

@@ -3,6 +3,22 @@
 
 ---
 
+## 2026-04-09
+
+### LangChain 1.x migration — broken imports, pinned deps, and torch fix
+- **Problem**: `make up` failed at runtime with `ModuleNotFoundError` on `langchain.memory`, then `langchain.llms`, as the inference_service started
+- **Root cause**: Unpinned requirements — each fresh Docker build pulled the latest langchain, which in 1.x removed `langchain.memory`, `langchain.llms.base`, and moved chain/prompt classes out of the top-level `langchain` package
+- **Fix 1 — import migration** in `chain_manager.py`:
+  - `langchain.memory.ConversationBufferMemory` → `langchain_classic.memory`
+  - `langchain.llms.base.LLM` → `langchain_core.language_models.llms`
+  - `langchain.chains.*` → `langchain_classic.chains`
+  - `langchain.prompts.PromptTemplate` → `langchain_core.prompts`
+  - `langchain.chains.base.Chain` → `langchain_classic.chains.base`
+- **Fix 2 — CPU-only torch**: `inference_service` Dockerfile was pulling the full CUDA torch wheel (~530MB) via `sentence-transformers`. Added an explicit CPU-only torch pre-install step (same pattern as `ingestion_service`), reducing the download to ~200MB. Added `--timeout 300 --retries 5` to both Dockerfiles to handle flaky PyPI connections
+- **Fix 3 — pinned dependencies**: Captured `pip freeze` from all running containers and pinned direct deps in each service `requirements.txt`. Updated root `requirements.txt` to langchain 1.x and rebuilt local `.venv` to match, resolving conflicts with `instructor` (removed — unused), `openai` (1.x → 2.x), `aiohttp`, `urllib3`, and `langchain-docling` (`<2.0.0` → `==2.0.0`)
+
+---
+
 ## 2026-03-20
 
 ### Integration Test Data Seeding Pattern - Hybrid Approach

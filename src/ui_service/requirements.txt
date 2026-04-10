@@ -1,5 +1,5 @@
 # Streamlit UI
-streamlit
+streamlit==1.56.0
 
 # HTTP client
-requests
+requests==2.33.1

@@ -6,7 +6,7 @@ from src.ingestion_service.vector_store_builder import (
     LegacyVectorStoreBuilder,
     VectorStoreBuilder,
 )
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_community.vectorstores import Chroma
 
 TEST_PDF = "tests/data/pdf-test.pdf"

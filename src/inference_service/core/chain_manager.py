@@ -2,14 +2,14 @@
 
 import os
 from langchain_community.vectorstores import Chroma
-from langchain.memory import ConversationBufferMemory
+from langchain_classic.memory import ConversationBufferMemory
 from langchain_together import Together
 from langchain_community.llms import Ollama
-from langchain.llms.base import LLM
-from langchain.chains import RetrievalQA
-from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
-from langchain.prompts import PromptTemplate
-from langchain.chains.base import Chain
+from langchain_core.language_models.llms import LLM
+from langchain_classic.chains import RetrievalQA
+from langchain_classic.chains import ConversationalRetrievalChain
+from langchain_core.prompts import PromptTemplate
+from langchain_classic.chains.base import Chain
 from langchain_core.vectorstores import VectorStoreRetriever
 import re
 import logging
