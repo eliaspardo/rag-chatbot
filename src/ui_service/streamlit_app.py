@@ -6,7 +6,10 @@ from typing import List
 
 import streamlit as st
 
-from src.ui_service.inference_service_client import InferenceServiceClient
+from src.ui_service.inference_service_client import (
+    InferenceServiceClient,
+    NoDocumentsIngestedError,
+)
 
 INFERENCE_SERVICE_URL = os.getenv("INFERENCE_SERVICE_URL", "http://localhost:8000")
 
@@ -58,6 +61,9 @@ def _render_domain_expert() -> None:
     with st.spinner("Thinking..."):
         try:
             response = client.ask_question(prompt, st.session_state.domain_session_id)
+        except NoDocumentsIngestedError as exc:
+            st.warning(str(exc))
+            return
         except Exception as exc:
             st.error(f"Request failed: {exc}")
             return

@@ -41,7 +41,7 @@ def get_documents() -> List[DMSDocument]:
 def ensure_vector_store_ready():
     """Raise HTTP 503 if the vector store contains no documents."""
     if get_vectordb_collection_count() == 0:
-        raise HTTPException(503, "Vector store not ready")
+        raise HTTPException(503, "No documents have been ingested yet. Please ingest at least one document before chatting.")
 
 
 @app.get("/health")

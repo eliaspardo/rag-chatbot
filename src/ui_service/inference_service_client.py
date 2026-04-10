@@ -12,6 +12,10 @@ HEALTH_CHECK_TIMEOUT = 5
 CHAT_TIMEOUT = 30
 
 
+class NoDocumentsIngestedError(Exception):
+    """Raised when the inference service reports no documents have been ingested."""
+
+
 @dataclass
 class DocumentInfo:
     """Lightweight representation of a document entry returned by the health endpoint."""
@@ -87,6 +91,8 @@ class InferenceServiceClient:
             json={"question": question, "session_id": session_id},
             timeout=CHAT_TIMEOUT,
         )
+        if response.status_code == 503:
+            raise NoDocumentsIngestedError(response.json()["detail"])
         response.raise_for_status()
         data = response.json()
         return ChatResponse(
