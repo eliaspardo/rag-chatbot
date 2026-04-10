@@ -1,7 +1,7 @@
 import os
 import logging
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_together import ChatTogether
-from langchain_core.language_models.llms import LLM
 from langchain_community.llms import Ollama
 from src.shared.env_loader import load_environment
 
@@ -22,7 +22,7 @@ EVAL_TEMPERATURE = float(os.getenv("EVAL_TEMPERATURE", str(TEMPERATURE)))
 EVAL_MAX_TOKENS = int(os.getenv("EVAL_MAX_TOKENS", "512"))
 
 
-def build_provider_llm() -> LLM:
+def build_provider_llm() -> BaseChatModel:
     if not EVAL_LLM_PROVIDER or (
         EVAL_LLM_PROVIDER != "together" and EVAL_LLM_PROVIDER != "ollama"
     ):
