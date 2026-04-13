@@ -136,12 +136,8 @@ class TestIngestion:
             status=DocumentStatus.PENDING,
         ),
         f"DMS has no knowledge of document {sample_hash}": given_document_not_found,
-        # Old state names (for main branch pacts)
         "DMS has no documents registered": given_dms_has_no_documents,
         "DMS has documents registered": given_dms_has_two_documents,
-        # New state names (for current branch pacts)
-        "DMS has no documents": given_dms_has_no_documents,
-        "DMS has one document": given_dms_has_one_document,
         "DMS has multiple documents": given_dms_has_multiple_documents,
         f"Document {sample_hash} exists in the db with doc_name {sample_doc_name}": given_document_exists_with_name,
         f"Document {sample_hash} already exists in the db": given_document_exists,
