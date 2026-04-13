@@ -41,16 +41,6 @@ def given_dms_has_no_documents() -> None:
     return
 
 
-def given_dms_has_two_documents() -> None:
-    document_1 = DMSDocument(
-        doc_hash=sample_hash, doc_name=sample_doc_name, status=DocumentStatus.PENDING
-    )
-    document_2 = DMSDocument(
-        doc_hash="Doc Hash 2", doc_name="Doc Name 2", status=DocumentStatus.COMPLETED
-    )
-    mock_db_client.get_documents.return_value = [document_1, document_2]
-
-
 def given_dms_has_one_document() -> None:
     document = DMSDocument(
         doc_hash="Doc Hash 1", doc_name="Doc Name 1", status=DocumentStatus.PENDING
@@ -136,8 +126,8 @@ class TestIngestion:
             status=DocumentStatus.PENDING,
         ),
         f"DMS has no knowledge of document {sample_hash}": given_document_not_found,
-        "DMS has no documents registered": given_dms_has_no_documents,
-        "DMS has documents registered": given_dms_has_two_documents,
+        "DMS has no documents": given_dms_has_no_documents,
+        "DMS has one document": given_dms_has_one_document,
         "DMS has multiple documents": given_dms_has_multiple_documents,
         f"Document {sample_hash} exists in the db with doc_name {sample_doc_name}": given_document_exists_with_name,
         f"Document {sample_hash} already exists in the db": given_document_exists,
