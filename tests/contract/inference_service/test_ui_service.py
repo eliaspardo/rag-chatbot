@@ -44,8 +44,7 @@ def given_has_no_documents(parameters: dict[str, Any] | None = None) -> None:
 
 
 def given_no_documents_ingested(parameters: dict[str, Any] | None = None) -> None:
-    mock_vector_store_loader.get_collection_count.return_value = 0
-    mock_dms_client.get_documents.return_value = []
+    given_has_no_documents(parameters)
 
 
 @pytest.fixture(scope="session")

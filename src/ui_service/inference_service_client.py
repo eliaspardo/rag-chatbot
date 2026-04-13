@@ -92,7 +92,16 @@ class InferenceServiceClient:
             timeout=CHAT_TIMEOUT,
         )
         if response.status_code == 503:
-            raise NoDocumentsIngestedError(response.json()["detail"])
+            try:
+                detail = response.json().get("detail", "Service unavailable.")
+            except ValueError:
+                detail = "Service unavailable."
+            if (
+                "no documents" in detail.lower()
+                or "not been ingested" in detail.lower()
+            ):
+                raise NoDocumentsIngestedError(detail)
+            response.raise_for_status()
         response.raise_for_status()
         data = response.json()
         return ChatResponse(
