@@ -148,8 +148,8 @@ def test_update_document_status_mismatching_doc_name_returns_409(pact):
 def test_get_ingested_documents_returns_list(pact):
     response = [
         {
-            "doc_hash": sample_hash,
-            "doc_name": sample_doc_name,
+            "doc_hash": "Doc Hash 1",
+            "doc_name": "Doc Name 1",
             "status": DocumentStatus.PENDING,
         },
         {
@@ -157,12 +157,17 @@ def test_get_ingested_documents_returns_list(pact):
             "doc_name": "Doc Name 2",
             "status": DocumentStatus.COMPLETED,
         },
+        {
+            "doc_hash": "Doc Hash 3",
+            "doc_name": "Doc Name 3",
+            "status": DocumentStatus.ERROR,
+        },
     ]
     (
         pact.upon_receiving(
-            "Request to get processed documents and DMS has processed docs"
+            "Request to get processed documents and DMS has multiple documents"
         )
-        .given("DMS has documents registered")
+        .given("DMS has multiple documents")
         .with_request("GET", "/documents/")
         .will_respond_with(200)
         .with_body(response)
@@ -176,9 +181,9 @@ def test_get_ingested_documents_returns_list(pact):
 def test_get_ingested_documents_returns_empty(pact):
     (
         pact.upon_receiving(
-            "Request to get processed documents and DMS has no processed docs"
+            "Request to get processed documents and DMS has no documents"
         )
-        .given("DMS has no documents registered")
+        .given("DMS has no documents")
         .with_request("GET", "/documents/")
         .will_respond_with(204)
     )
