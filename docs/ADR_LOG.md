@@ -531,3 +531,13 @@
 **Tags**: [testing, e2e, test-strategy, playwright, fastapi, pragmatism]
 
 ---
+
+**ID**: ADR-053
+**Date**: 2026-04-10
+**Context**: The inference service returns HTTP 503 when no documents are in the vector store. The UI was swallowing this as a generic error, giving users no actionable feedback.
+**Decision**: Introduce `NoDocumentsIngestedError` as a named exception class in the UI client. The client checks for `status_code == 503` before `raise_for_status()`, extracts the detail from the response body, and raises the named exception. The Streamlit caller catches it separately and shows `st.warning`. All other errors remain on the existing `st.error` path.
+**Rationale**: Named exception keeps the error domain explicit and testable (Pact consumer test can assert on it). Pulling the message from `response.json()["detail"]` avoids hardcoding the string in the client — the single source of truth stays in the inference service. A warning (not error) is appropriate UX since it is an actionable state the user can resolve by ingesting a document.
+**Tradeoffs**: 503 is handled specially before `raise_for_status()`; any future non-ingestion 503s from the inference service would also raise `NoDocumentsIngestedError`. Accepted because the inference service currently has exactly one 503 path.
+**Tags**: [API, error-handling, UX, pact, contract-testing]
+
+---

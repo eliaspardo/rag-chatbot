@@ -82,7 +82,8 @@ class TestE2EFlow:
         inference_response_string = "Defect Prevention Costs"
         chat_input = page.get_by_role("textbox")
         chat_submit_button = page.get_by_test_id("stChatInputSubmitButton")
-        alert_container = page.get_by_test_id("stAlertContentError")
+        alert_container = page.get_by_test_id("stAlertContentWarning")
+        alert_text = "No documents have been ingested yet. Please ingest at least one document before chatting."
         system_status_sidebar_button = page.get_by_text("System Status")
         chat_sidebar_button = page.get_by_text("Chat")
         vector_store_doc_count = page.get_by_test_id("documents_in_vector_store_count")
@@ -96,10 +97,7 @@ class TestE2EFlow:
         chat_input.type(inference_string)
         chat_submit_button.click()
         # Assert - Verify error message is displayed
-        expect(alert_container).to_have_text(
-            ("Request failed: 503 Server Error: Service Unavailable for url: ")
-            + ("http://inference_service:8000/chat/domain-expert/")
-        )
+        expect(alert_container).to_have_text(alert_text)
         # Act - Navigate to system status sidebar
         system_status_sidebar_button.click()
         # Assert - Verify vector store document count is 0

@@ -43,6 +43,10 @@ def given_has_no_documents(parameters: dict[str, Any] | None = None) -> None:
     mock_dms_client.get_documents.return_value = []
 
 
+def given_no_documents_ingested(parameters: dict[str, Any] | None = None) -> None:
+    given_has_no_documents(parameters)
+
+
 @pytest.fixture(scope="session")
 def application():
     """Start up inference service for provider tests."""
@@ -77,6 +81,7 @@ class TestUiService:
     state_handlers = {
         "Inference service has documents loaded": given_has_documents_loaded,
         "Inference service has no documents": given_has_no_documents,
+        "no documents have been ingested": given_no_documents_ingested,
     }
 
     def test_provider_from_broker(self, application):

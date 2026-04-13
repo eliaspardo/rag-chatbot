@@ -2,7 +2,10 @@ from typing import Generator
 import pytest
 from pact import Pact
 
-from src.ui_service.inference_service_client import InferenceServiceClient
+from src.ui_service.inference_service_client import (
+    InferenceServiceClient,
+    NoDocumentsIngestedError,
+)
 
 
 @pytest.fixture
@@ -72,3 +75,27 @@ class TestInferenceHealth:
         assert result.is_healthy is True
         assert result.vector_store_count == 0
         assert result.documents == []
+
+
+class TestInferenceChatNoDocuments:
+    def test_chat_no_documents_ingested(self, pact):
+        response_body = {
+            "detail": "No documents have been ingested yet. Please ingest at least one document before chatting."
+        }
+        (
+            pact.upon_receiving("Post chat when no documents have been ingested")
+            .given("no documents have been ingested")
+            .with_request("POST", "/chat/domain-expert/")
+            .will_respond_with(503)
+            .with_body(response_body)
+        )
+
+        with pact.serve() as srv:
+            client = InferenceServiceClient(srv.url)
+            with pytest.raises(NoDocumentsIngestedError) as exc_info:
+                client.ask_question("What is RAG?")
+
+        assert str(exc_info.value) == (
+            "No documents have been ingested yet. "
+            "Please ingest at least one document before chatting."
+        )

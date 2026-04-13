@@ -3,6 +3,16 @@
 
 ---
 
+## 2026-04-10
+
+### Surfacing no-documents 503 error end-to-end (issue #74)
+- **Goal**: Make the empty-vector-store failure path informative for users instead of showing a generic error
+- **Solution**: Three-layer change — inference service error message made explicit and user-facing; UI client adds `NoDocumentsIngestedError` named exception that intercepts the 503 before `raise_for_status()`; Streamlit caller shows `st.warning` with the server-supplied message
+- **Pattern**: Detail string lives in exactly one place (inference service); client and UI derive from it at runtime so there's no string duplication
+- **Tests**: Pact consumer test added for the 503 interaction; Pact provider state handler added to verify the exact response body under the "no documents have been ingested" state
+
+---
+
 ## 2026-04-09
 
 ### LangChain 1.x migration — broken imports, pinned deps, and torch fix
