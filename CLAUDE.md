@@ -79,6 +79,16 @@ Trigger phrases:
 - "generate weekly summary" / "weekly summary" → weekly skill
 - "generate iteration summary" / "iteration report" → iteration skill
 
+## MLflow Evaluation Queries
+
+When asked about eval results or MLflow runs, run the `.claude/skills/mlflow-evals/SKILL.md` skill.
+
+Trigger phrases:
+- "show eval results" / "show evaluation results" → mlflow-evals skill
+- "mlflow results" / "query mlflow" → mlflow-evals skill
+- "compare eval runs" / "eval scores" → mlflow-evals skill
+- "show failed questions" / "which questions failed" → mlflow-evals skill
+
 Context to inject into both skills:
 - Current iteration: Iteration II (Weeks 8–13, 2026)
 - Project: RAG chatbot — 5 services (Ingestion, Document Management, Inference, Streamlit, ChromaDB)
