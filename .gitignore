@@ -235,7 +235,6 @@ test_together_api.py
 # MLFlow
 mlruns
 .mlruns
-mlflow_*
 patches/backup
 tools/mlflow_patches/backup
 
