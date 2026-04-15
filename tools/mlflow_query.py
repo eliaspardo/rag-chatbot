@@ -23,6 +23,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
+import textwrap
 
 
 def _find_project_root() -> Path:
@@ -100,6 +101,9 @@ def get_parent_runs(client: "MlflowClient", exp_id: str, max_results: int) -> Li
     )
 
 
+_VALID_STATUS_VALUES = {"passed", "failed"}
+
+
 def get_child_runs(
     client: "MlflowClient",
     exp_id: str,
@@ -107,6 +111,10 @@ def get_child_runs(
     status_filter: Optional[str] = None,
 ) -> List:
     """Return child runs for parent_run_id, optionally filtered by status tag."""
+    if status_filter is not None and status_filter not in _VALID_STATUS_VALUES:
+        raise ValueError(
+            f"Invalid status_filter {status_filter!r}. Must be one of: {sorted(_VALID_STATUS_VALUES)}"
+        )
     filter_parts = [f"tags.`mlflow.parentRunId` = '{parent_run_id}'"]
     if status_filter:
         filter_parts.append(f"tags.status = '{status_filter}'")
@@ -135,7 +143,7 @@ def find_parent_run(client: "MlflowClient", exp_id: str, name_or_id: str):
     try:
         return client.get_run(name_or_id)
     except Exception as e:
-        print(f"Exception getting parent run {e}")
+        print(f"Exception getting parent run {e}", file=sys.stderr)
         return None
 
 
@@ -185,14 +193,17 @@ def _fmt_row(row: List[str], col_widths: List[int]) -> str:
     )
 
 
-def format_parent_runs_table(runs) -> str:
-    """Markdown table: Run Name, Date, Status, Model, metric means, Failures."""
+def _build_parent_runs_table(runs, include_run_id: bool) -> str:
+    """Shared markdown table builder for parent runs."""
     if not runs:
         return "_No parent runs found._"
 
     metric_cols = _discover_parent_metric_cols(runs)
+    id_col = ["Run ID"] if include_run_id else []
     headers = (
-        ["Run Name", "Date", "Status", "Model"]
+        ["Run Name"]
+        + id_col
+        + ["Date", "Status", "Model"]
         + [f"{m}_mean" for m in metric_cols]
         + ["Failures"]
     )
@@ -218,7 +229,10 @@ def format_parent_runs_table(runs) -> str:
             f"{metrics[f'{m}_mean']:.3f}" if f"{m}_mean" in metrics else ""
             for m in metric_cols
         ]
-        rows.append([run_name, date, status, model] + metric_values + [failures])
+        id_val = [run.info.run_id] if include_run_id else []
+        rows.append(
+            [run_name] + id_val + [date, status, model] + metric_values + [failures]
+        )
 
     col_widths = [
         max(len(headers[i]), max(len(str(row[i])) for row in rows))
@@ -228,6 +242,11 @@ def format_parent_runs_table(runs) -> str:
     return "\n".join(
         [_fmt_row(headers, col_widths), sep] + [_fmt_row(r, col_widths) for r in rows]
     )
+
+
+def format_parent_runs_table(runs) -> str:
+    """Markdown table: Run Name, Date, Status, Model, metric means, Failures."""
+    return _build_parent_runs_table(runs, include_run_id=False)
 
 
 def format_child_runs_table(
@@ -272,7 +291,6 @@ def format_child_runs_table(
 
 def _wrap(text: str, width: int, indent: str) -> str:
     """Word-wrap text to width, indenting continuation lines."""
-    import textwrap
 
     lines = textwrap.wrap(text, width=width)
     if not lines:
@@ -363,50 +381,7 @@ def format_child_runs_agent(
 
 def format_parent_runs_agent(runs) -> str:
     """Agent-friendly parent runs table: same as human format but includes run_id column."""
-    if not runs:
-        return "_No parent runs found._"
-
-    metric_cols = _discover_parent_metric_cols(runs)
-    headers = (
-        ["Run Name", "Run ID", "Date", "Status", "Model"]
-        + [f"{m}_mean" for m in metric_cols]
-        + ["Failures"]
-    )
-
-    rows: List[List[str]] = []
-    for run in runs:
-        params = run.data.params
-        tags = run.data.tags
-        metrics = run.data.metrics
-
-        run_name = run.info.run_name or run.info.run_id
-        run_id = run.info.run_id
-        try:
-            date = datetime.fromtimestamp(
-                run.info.start_time / 1000, tz=timezone.utc
-            ).strftime("%Y-%m-%d %H:%M")
-        except Exception:
-            date = str(run.info.start_time or "")
-
-        status = tags.get("status", "")
-        model = params.get("app_model_name", "") or params.get("eval_model_name", "")
-        failures = params.get("failure_count", "0")
-        metric_values = [
-            f"{metrics[f'{m}_mean']:.3f}" if f"{m}_mean" in metrics else ""
-            for m in metric_cols
-        ]
-        rows.append(
-            [run_name, run_id, date, status, model] + metric_values + [failures]
-        )
-
-    col_widths = [
-        max(len(headers[i]), max(len(str(row[i])) for row in rows))
-        for i in range(len(headers))
-    ]
-    sep = "| " + " | ".join("-" * w for w in col_widths) + " |"
-    return "\n".join(
-        [_fmt_row(headers, col_widths), sep] + [_fmt_row(r, col_widths) for r in rows]
-    )
+    return _build_parent_runs_table(runs, include_run_id=True)
 
 
 def format_fields(runs, parent_name: str) -> str:

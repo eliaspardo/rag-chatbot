@@ -160,7 +160,7 @@ All metrics are on a 0–1 scale. Threshold for pass: **0.5**.
   --fields "actual output,expected output,failure,Grounding_GEval reason,Completeness_GEval reason,Reasoning_GEval reason"
 ```
 
-### 5. Compare two runs
+### 6. Compare two runs
 
 ```
 list --format agent -n 2          # get the two most recent run names
