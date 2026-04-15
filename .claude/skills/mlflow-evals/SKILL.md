@@ -24,6 +24,21 @@ Use **`--format agent`** when you need the Run ID from `list`, or prefer flat un
 
 ## Commands
 
+### Discover available fields for a run
+
+```bash
+.venv/bin/python tools/mlflow_query.py fields <RUN_NAME_OR_ID>
+```
+
+Returns all param and metric keys found across child runs, grouped as:
+- **Params (pass to --fields)** — values to use in `--fields "..."`
+- **Params (shown automatically)** — `question`, `question_id` — no need to request these
+- **Metrics (shown automatically)** — metric scores, always included in `show` output
+
+**Run this before `show` when unsure which `--fields` to request.**
+
+---
+
 ### List recent evaluation runs
 
 ```bash
@@ -90,7 +105,13 @@ All metrics are on a 0–1 scale. Threshold for pass: **0.5**.
 .venv/bin/python tools/mlflow_query.py list --format agent
 ```
 
-### 2. Drill into a specific run (all questions)
+### 2. Discover what fields are available
+
+```bash
+.venv/bin/python tools/mlflow_query.py fields deepeval-2026-04-08-11-56-56
+```
+
+### 3. Drill into a specific run (all questions)
 
 ```bash
 .venv/bin/python tools/mlflow_query.py show deepeval-2026-04-08-11-56-56 \

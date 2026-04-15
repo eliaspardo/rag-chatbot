@@ -409,6 +409,47 @@ def format_parent_runs_agent(runs) -> str:
     )
 
 
+def format_fields(runs, parent_name: str) -> str:
+    """List all param and metric keys available across child runs."""
+    if not runs:
+        return f"# Available fields for: {parent_name}\n\nNo child runs found."
+
+    all_params: set = set()
+    all_metrics: set = set()
+    for run in runs:
+        all_params.update(run.data.params.keys())
+        all_metrics.update(run.data.metrics.keys())
+
+    # These are shown automatically by show/show_wide — not needed in --fields
+    auto_params = {"question", "question_id"}
+    extra_params = sorted(all_params - auto_params)
+    auto_shown = sorted(all_params & auto_params)
+
+    lines = [f"# Available fields for: {parent_name}", ""]
+
+    lines.append("## Params (pass to --fields)")
+    for p in extra_params:
+        lines.append(f"- {p}")
+    if not extra_params:
+        lines.append("_none_")
+    lines.append("")
+
+    lines.append("## Params (shown automatically by `show`)")
+    for p in auto_shown:
+        lines.append(f"- {p}")
+    if not auto_shown:
+        lines.append("_none_")
+    lines.append("")
+
+    lines.append("## Metrics (shown automatically)")
+    for m in sorted(all_metrics):
+        lines.append(f"- {m}")
+    if not all_metrics:
+        lines.append("_none_")
+
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Sub-commands
 # ---------------------------------------------------------------------------
@@ -477,6 +518,29 @@ def cmd_show_wide(args) -> None:
         print(format_child_runs_table(children, parent_name, extra_fields))
 
 
+def cmd_fields(args) -> None:
+    uri, experiment = load_config(args.tracking_uri, args.experiment)
+    mlflow.set_tracking_uri(uri)
+    client = MlflowClient()
+
+    exp = client.get_experiment_by_name(experiment)
+    if exp is None:
+        print(f"ERROR: Experiment '{experiment}' not found at {uri}", file=sys.stderr)
+        sys.exit(1)
+
+    parent = find_parent_run(client, exp.experiment_id, args.run)
+    if parent is None:
+        print(
+            f"ERROR: Run '{args.run}' not found in experiment '{experiment}'",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    children = get_child_runs(client, exp.experiment_id, parent.info.run_id)
+    parent_name = parent.info.run_name or parent.info.run_id
+    print(format_fields(children, parent_name))
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -489,6 +553,7 @@ def main() -> None:
         epilog="""
 Examples:
   %(prog)s list -n 5
+  %(prog)s fields deepeval-2026-04-08-11-56-56
   %(prog)s show deepeval-2026-04-08-11-56-56
   %(prog)s show deepeval-2026-04-08-11-56-56 --status failed
   %(prog)s show deepeval-2026-04-08-11-56-56 --fields "actual output,expected output,failure"
@@ -551,13 +616,23 @@ Examples:
         )
     )
 
+    fields_p = subparsers.add_parser(
+        "fields",
+        help="List all available param and metric keys for a run (use to discover --fields values)",
+    )
+    fields_p.add_argument("run", metavar="RUN_NAME_OR_ID")
+    fields_p.add_argument("--tracking-uri", default=None, dest="tracking_uri")
+    fields_p.add_argument("--experiment", default=None)
+
     args = parser.parse_args()
     if args.command == "list":
         cmd_list(args)
     elif args.command == "show":
         cmd_show(args)
-    else:
+    elif args.command == "show_wide":
         cmd_show_wide(args)
+    else:
+        cmd_fields(args)
 
 
 if __name__ == "__main__":

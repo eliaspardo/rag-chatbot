@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 from tools.mlflow_query import (
     _truncate,
     format_child_runs_agent,
+    format_fields,
     format_parent_runs_agent,
     format_parent_runs_table,
     load_config,
@@ -360,3 +361,68 @@ class TestFormatParentRunsAgent:
         assert "Model" in result
         assert "Failures" in result
         assert "faithfulness_mean" in result
+
+
+# ---------------------------------------------------------------------------
+# format_fields
+# ---------------------------------------------------------------------------
+
+
+class TestFormatFields:
+    def test_empty_runs_returns_header_and_message(self):
+        result = format_fields([], "my-run")
+        assert "# Available fields for: my-run" in result
+        assert "No child runs found." in result
+
+    def test_header_contains_run_name(self):
+        run = _make_run(params={"actual output": "ans"}, metrics={"faithfulness": 0.9})
+        result = format_fields([run], "my-run")
+        assert "# Available fields for: my-run" in result
+
+    def test_extra_params_listed_under_fields_section(self):
+        run = _make_run(params={"actual output": "ans", "failure": "none"})
+        result = format_fields([run], "my-run")
+        assert "## Params (pass to --fields)" in result
+        assert "- actual output" in result
+        assert "- failure" in result
+
+    def test_auto_params_excluded_from_fields_section(self):
+        run = _make_run(params={"question": "Q?", "question_id": "1", "failure": "x"})
+        result = format_fields([run], "my-run")
+        lines = result.splitlines()
+        fields_start = next(i for i, l in enumerate(lines) if "pass to --fields" in l)
+        auto_start = next(
+            i for i, l in enumerate(lines) if "shown automatically by" in l
+        )
+        fields_section = "\n".join(lines[fields_start:auto_start])
+        assert "- question" not in fields_section
+        assert "- question_id" not in fields_section
+
+    def test_auto_params_appear_in_auto_section(self):
+        run = _make_run(params={"question": "Q?", "question_id": "1"})
+        result = format_fields([run], "my-run")
+        assert "## Params (shown automatically by `show`)" in result
+        assert "- question" in result
+        assert "- question_id" in result
+
+    def test_metrics_listed_under_metrics_section(self):
+        run = _make_run(metrics={"faithfulness": 0.9, "relevance": 0.8})
+        result = format_fields([run], "my-run")
+        assert "## Metrics (shown automatically)" in result
+        assert "- faithfulness" in result
+        assert "- relevance" in result
+
+    def test_params_unioned_across_runs(self):
+        run1 = _make_run(run_name="question-1", params={"actual output": "a"})
+        run2 = _make_run(run_name="question-2", params={"failure": "x"})
+        result = format_fields([run1, run2], "my-run")
+        assert "- actual output" in result
+        assert "- failure" in result
+
+    def test_params_sorted_alphabetically(self):
+        run = _make_run(params={"zebra": "z", "apple": "a", "mango": "m"})
+        result = format_fields([run], "my-run")
+        pos_apple = result.index("- apple")
+        pos_mango = result.index("- mango")
+        pos_zebra = result.index("- zebra")
+        assert pos_apple < pos_mango < pos_zebra
