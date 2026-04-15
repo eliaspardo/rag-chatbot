@@ -119,7 +119,7 @@ All metrics are on a 0–1 scale. Threshold for pass: **0.5**.
   --fields "actual output,expected output,failure"
 ```
 
-### 3. Investigate only failed questions
+### 4. Investigate only failed questions
 
 ```bash
 .venv/bin/python tools/mlflow_query.py show deepeval-2026-04-08-11-56-56 \
@@ -127,6 +127,12 @@ All metrics are on a 0–1 scale. Threshold for pass: **0.5**.
   --fields "actual output,expected output,failure,Grounding_GEval reason,Completeness_GEval reason,Reasoning_GEval reason"
 ```
 
-### 4. Compare two runs
+### 5. Compare two runs
 
-Run `list` to get run names, then `show` each with the same `--fields`, and compare the per-question scores.
+```
+list --format agent -n 2          # get the two most recent run names
+fields <run>                      # discover available fields (use the most recent run)
+show <run1> --format agent --fields "actual output,expected output,failure"
+show <run2> --format agent --fields "actual output,expected output,failure"
+# then compare per-question scores: regressions, improvements, new failures, recoveries
+```
