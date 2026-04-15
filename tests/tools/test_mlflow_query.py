@@ -11,6 +11,7 @@ from tools.mlflow_query import (
     format_fields,
     format_parent_runs_agent,
     format_parent_runs_table,
+    format_question,
     load_config,
     natural_sort_key,
     DEFAULT_EXPERIMENT_NAME,
@@ -426,3 +427,68 @@ class TestFormatFields:
         pos_mango = result.index("- mango")
         pos_zebra = result.index("- zebra")
         assert pos_apple < pos_mango < pos_zebra
+
+
+# ---------------------------------------------------------------------------
+# format_question
+# ---------------------------------------------------------------------------
+
+
+class TestFormatQuestion:
+    def test_header_contains_question_id_and_parent(self):
+        run = _make_run(params={"question_id": "11", "question": "What is X?"})
+        result = format_question(run, "my-run")
+        assert "# Q-11 | my-run" in result
+
+    def test_status_shown(self):
+        run = _make_run(
+            params={"question_id": "11", "question": "Q?"},
+            tags={"status": "failed"},
+        )
+        result = format_question(run, "my-run")
+        assert "failed" in result
+
+    def test_all_params_present(self):
+        run = _make_run(
+            params={
+                "question_id": "11",
+                "question": "Q?",
+                "actual output": "the answer",
+                "failure": "low score",
+            }
+        )
+        result = format_question(run, "my-run")
+        assert "- actual output: the answer" in result
+        assert "- failure: low score" in result
+        assert "- question: Q?" in result
+
+    def test_long_param_not_truncated(self):
+        long_value = "A" * 500
+        run = _make_run(params={"question_id": "1", "actual output": long_value})
+        result = format_question(run, "my-run")
+        assert long_value in result
+        assert "..." not in result
+
+    def test_all_metrics_present(self):
+        run = _make_run(
+            params={"question_id": "11"},
+            metrics={"faithfulness": 0.85, "relevance": 0.60},
+        )
+        result = format_question(run, "my-run")
+        assert "- faithfulness: 0.850" in result
+        assert "- relevance: 0.600" in result
+
+    def test_params_sorted_alphabetically(self):
+        run = _make_run(
+            params={"question_id": "1", "zebra": "z", "apple": "a", "mango": "m"}
+        )
+        result = format_question(run, "my-run")
+        pos_apple = result.index("- apple")
+        pos_mango = result.index("- mango")
+        pos_zebra = result.index("- zebra")
+        assert pos_apple < pos_mango < pos_zebra
+
+    def test_fallback_to_run_name_when_no_question_id(self):
+        run = _make_run(run_name="question-7", params={})
+        result = format_question(run, "my-run")
+        assert "# Q-question-7 | my-run" in result

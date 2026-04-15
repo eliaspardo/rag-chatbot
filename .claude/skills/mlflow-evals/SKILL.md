@@ -24,6 +24,33 @@ Use **`--format agent`** when you need the Run ID from `list`, or prefer flat un
 
 ## Commands
 
+### Dump all data for a single question
+
+```bash
+.venv/bin/python tools/mlflow_query.py question <RUN_NAME_OR_ID> <QUESTION_NUMBER>
+```
+
+Looks up the child run with `question_id == QUESTION_NUMBER` and dumps every param and metric — no `--fields` needed. Use this for targeted analysis of a specific question.
+
+```
+# Q-11 | deepeval-2026-04-15-...
+**status**: failed
+
+## Params
+- actual output: ...
+- expected output: ...
+- failure: ...
+- question: ...
+...
+
+## Metrics
+- Completeness_GEval: 0.000
+- Grounding_GEval: 1.000
+- Reasoning_GEval: 0.800
+```
+
+---
+
 ### Discover available fields for a run
 
 ```bash
@@ -119,7 +146,13 @@ All metrics are on a 0–1 scale. Threshold for pass: **0.5**.
   --fields "actual output,expected output,failure"
 ```
 
-### 4. Investigate only failed questions
+### 4. Analyze a specific question in depth
+
+```bash
+.venv/bin/python tools/mlflow_query.py question deepeval-2026-04-08-11-56-56 11
+```
+
+### 5. Investigate only failed questions
 
 ```bash
 .venv/bin/python tools/mlflow_query.py show deepeval-2026-04-08-11-56-56 \

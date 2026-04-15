@@ -450,6 +450,29 @@ def format_fields(runs, parent_name: str) -> str:
     return "\n".join(lines)
 
 
+def format_question(run, parent_name: str) -> str:
+    """Dump all params and metrics for a single child run."""
+    params = run.data.params
+    tags = run.data.tags
+    metrics = run.data.metrics
+
+    q_id = str(params.get("question_id", run.info.run_name or run.info.run_id))
+    status = tags.get("status", "")
+
+    lines = [f"# Q-{q_id} | {parent_name}", f"**status**: {status}", ""]
+
+    lines.append("## Params")
+    for key in sorted(params):
+        lines.append(f"- {key}: {params[key]}")
+    lines.append("")
+
+    lines.append("## Metrics")
+    for key in sorted(metrics):
+        lines.append(f"- {key}: {metrics[key]:.3f}")
+
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Sub-commands
 # ---------------------------------------------------------------------------
@@ -518,6 +541,41 @@ def cmd_show_wide(args) -> None:
         print(format_child_runs_table(children, parent_name, extra_fields))
 
 
+def cmd_question(args) -> None:
+    uri, experiment = load_config(args.tracking_uri, args.experiment)
+    mlflow.set_tracking_uri(uri)
+    client = MlflowClient()
+
+    exp = client.get_experiment_by_name(experiment)
+    if exp is None:
+        print(f"ERROR: Experiment '{experiment}' not found at {uri}", file=sys.stderr)
+        sys.exit(1)
+
+    parent = find_parent_run(client, exp.experiment_id, args.run)
+    if parent is None:
+        print(
+            f"ERROR: Run '{args.run}' not found in experiment '{experiment}'",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    children = get_child_runs(client, exp.experiment_id, parent.info.run_id)
+    parent_name = parent.info.run_name or parent.info.run_id
+    q_number = str(args.question_number)
+
+    match = next(
+        (r for r in children if r.data.params.get("question_id") == q_number), None
+    )
+    if match is None:
+        print(
+            f"ERROR: Question {q_number} not found in run '{parent_name}'",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    print(format_question(match, parent_name))
+
+
 def cmd_fields(args) -> None:
     uri, experiment = load_config(args.tracking_uri, args.experiment)
     mlflow.set_tracking_uri(uri)
@@ -554,6 +612,7 @@ def main() -> None:
 Examples:
   %(prog)s list -n 5
   %(prog)s fields deepeval-2026-04-08-11-56-56
+  %(prog)s question deepeval-2026-04-08-11-56-56 11
   %(prog)s show deepeval-2026-04-08-11-56-56
   %(prog)s show deepeval-2026-04-08-11-56-56 --status failed
   %(prog)s show deepeval-2026-04-08-11-56-56 --fields "actual output,expected output,failure"
@@ -624,6 +683,15 @@ Examples:
     fields_p.add_argument("--tracking-uri", default=None, dest="tracking_uri")
     fields_p.add_argument("--experiment", default=None)
 
+    question_p = subparsers.add_parser(
+        "question",
+        help="Dump all params and metrics for a single question (by question_id)",
+    )
+    question_p.add_argument("run", metavar="RUN_NAME_OR_ID")
+    question_p.add_argument("question_number", metavar="QUESTION_NUMBER", type=int)
+    question_p.add_argument("--tracking-uri", default=None, dest="tracking_uri")
+    question_p.add_argument("--experiment", default=None)
+
     args = parser.parse_args()
     if args.command == "list":
         cmd_list(args)
@@ -631,8 +699,10 @@ Examples:
         cmd_show(args)
     elif args.command == "show_wide":
         cmd_show_wide(args)
-    else:
+    elif args.command == "fields":
         cmd_fields(args)
+    else:
+        cmd_question(args)
 
 
 if __name__ == "__main__":
