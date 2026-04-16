@@ -219,3 +219,13 @@
 
 ---
 
+
+---
+
+## 2026-04-14
+
+### MLflow evaluation query tool (issue #78)
+- **Goal**: Replace manual MLflow UI browsing with a scriptable CLI for querying parent run summaries and drilling into per-question child run scores
+- **Solution**: `tools/mlflow_query.py` — standalone script using `MlflowClient`; `list` sub-command shows recent parent runs with metric means; `show` sub-command shows per-question child runs with optional status and field filters
+- **Key details**: SQLite URI resolution walks `__file__` upward to project root (handles any working directory); metric names discovered dynamically from `run.data.metrics`; child runs filtered with backtick-quoted `mlflow.parentRunId` tag; natural sort for `question-N` run names
+- **Companion skill**: `.claude/skills/mlflow-evals/SKILL.md` teaches Claude how to invoke and interpret the tool

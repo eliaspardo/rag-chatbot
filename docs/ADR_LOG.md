@@ -541,3 +541,12 @@
 **Tags**: [API, error-handling, UX, pact, contract-testing]
 
 ---
+**ID**: ADR-054
+**Date**: 2026-04-14
+**Context**: Manually browsing MLflow UI at `http://localhost:5000` to compare eval runs is slow and not scriptable. Needed a programmatic way to query parent run summaries and drill into per-question child run details for comparison across model configurations.
+**Decision**: Introduce `tools/mlflow_query.py` — a standalone CLI using `mlflow.tracking.MlflowClient`. Two sub-commands: `list` (recent parent runs with aggregated metrics) and `show` (child runs for a named parent). A companion Claude Code skill (`.claude/skills/mlflow-evals/SKILL.md`) teaches Claude how to invoke and interpret the output.
+**Rationale**: A standalone script with no dependency on `src.*` keeps it usable outside the service context. `MlflowClient` gives direct access to the SQLite tracking store without spinning up the UI server. Dynamic metric discovery (`run.data.metrics` keys) means the script works when new metrics are added.
+**Tradeoffs**: SQLite path must be resolved at import time against project root; relative URI in `config/params.env` (`sqlite:///./mlflow.db`) works only if the project root is the working directory or the resolution logic is correct — resolved by walking `__file__` upward.
+**Tags**: [tooling, mlflow, evals, observability]
+
+---

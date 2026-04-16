@@ -90,3 +90,15 @@ Context to inject into both skills:
 - Name plan files using format: `YYYY-MM-DD_<feature-slug>.md`
   Example: `2026-03-24_pact-contract-ingestion-service.md`
 - Never use auto-generated random names
+
+---
+
+## MLflow Evaluation Queries
+
+When asked about eval results or MLflow runs, run the `.claude/skills/mlflow-evals/SKILL.md` skill.
+
+Trigger phrases:
+- "show eval results" / "show evaluation results" → mlflow-evals skill
+- "mlflow results" / "query mlflow" → mlflow-evals skill
+- "compare eval runs" / "eval scores" → mlflow-evals skill
+- "show failed questions" / "which questions failed" → mlflow-evals skill
