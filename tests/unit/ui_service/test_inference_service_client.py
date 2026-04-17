@@ -10,7 +10,7 @@ from src.ui_service.inference_service_client import (
     InferenceServiceClient,
 )
 
-CHAT_TIMEOUT = int(os.getenv("CHAT_TIMEOUT_SECONDS", "120"))
+CHAT_TIMEOUT = int(os.getenv("CHAT_TIMEOUT", "120"))
 
 
 @pytest.fixture
