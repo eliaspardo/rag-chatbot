@@ -1,3 +1,4 @@
+import os
 from unittest.mock import Mock, patch
 
 import pytest
@@ -8,6 +9,8 @@ from src.ui_service.inference_service_client import (
     DocumentInfo,
     InferenceServiceClient,
 )
+
+CHAT_TIMEOUT = int(os.getenv("CHAT_TIMEOUT_SECONDS", "120"))
 
 
 @pytest.fixture
@@ -110,7 +113,7 @@ class TestAskQuestion:
         mock_post.assert_called_once_with(
             "http://localhost:8000/chat/domain-expert/",
             json={"question": "What is the capital of France?", "session_id": None},
-            timeout=30,
+            timeout=CHAT_TIMEOUT,
         )
 
     def test_ask_question_with_session_id(self, client):
@@ -130,7 +133,7 @@ class TestAskQuestion:
         mock_post.assert_called_once_with(
             "http://localhost:8000/chat/domain-expert/",
             json={"question": "What is the capital?", "session_id": "session-123"},
-            timeout=30,
+            timeout=CHAT_TIMEOUT,
         )
 
     def test_ask_question_error(self, client):

@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 async def lifespan(app):
     """Initialize and tear down inference service resources on application startup/shutdown."""
     # Startup
-    print("Setting up MLflow autologging...")
+    logger.info("Setting up MLflow autologging...")
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
     mlflow.set_experiment("inference-service")
     mlflow.langchain.autolog(log_traces=True)
-    print("Loading vector store...")
+    logger.info("Loading vector store...")
     app.state.vector_store_loader = get_vector_store_loader()
     load_environment()
     DMS_URL = os.getenv("DMS_URL")
@@ -52,7 +52,7 @@ async def lifespan(app):
     except Exception:
         logger.error(Error.EXCEPTION)
         raise ServerSetupException()
-    print("Vector store loaded")
+    logger.info("Vector store loaded")
 
     try:
         app.state.session_manager: SessionManager = SessionManager(vectordb)
@@ -62,4 +62,5 @@ async def lifespan(app):
     yield
 
     # Shutdown
-    print("Cleaning up...")
+    logger.info("Cleaning up...")
+    mlflow.end_run()

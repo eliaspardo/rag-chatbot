@@ -2,6 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
+import os
 from typing import List, Optional
 
 import requests
@@ -9,7 +10,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 HEALTH_CHECK_TIMEOUT = 5
-CHAT_TIMEOUT = 120
+CHAT_TIMEOUT = int(os.getenv("CHAT_TIMEOUT_SECONDS", "120"))
 
 
 class NoDocumentsIngestedError(Exception):
