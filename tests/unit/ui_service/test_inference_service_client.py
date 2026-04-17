@@ -1,5 +1,5 @@
-import os
 from unittest.mock import Mock, patch
+from src.ui_service.inference_service_client import CHAT_TIMEOUT
 
 import pytest
 import requests
@@ -9,8 +9,6 @@ from src.ui_service.inference_service_client import (
     DocumentInfo,
     InferenceServiceClient,
 )
-
-CHAT_TIMEOUT = int(os.getenv("CHAT_TIMEOUT", "120"))
 
 
 @pytest.fixture
