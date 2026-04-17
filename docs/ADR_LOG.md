@@ -550,3 +550,43 @@
 **Tags**: [tooling, mlflow, evals, observability]
 
 ---
+
+**ID**: ADR-055
+**Date**: 2026-04-17
+**Context**: Needed to instrument the inference service's LangChain RAG pipeline to capture per-request traces (retriever latency, LLM token counts, prompt/completion content). Two options evaluated: OpenLLMetry (OTel-native, LLM-aware instrumentors) and MLflow's native `mlflow.langchain.autolog()`. MLflow is already in the stack for eval runs.
+**Decision**: Use `mlflow.langchain.autolog(log_traces=True)` wired in `lifespan.py` at startup. One call instruments the full `ConversationalRetrievalChain` (retriever span, LLM span, token counts, latency) with zero changes to chain code or route handlers.
+**Rationale**: MLflow is not an OTLP-compatible backend — it doesn't expose a standard OTLP endpoint. Routing OpenLLMetry → OTel Collector → MLflow REST API would add infrastructure with no benefit. `mlflow.langchain.autolog()` is the direct, zero-overhead path. For the app layer (HTTP tracing), OpenTelemetry with `opentelemetry-instrumentation-fastapi` is the correct tool — keeping AI observability (MLflow) and app observability (OTel) separate avoids conflating two concerns.
+**Tradeoffs**: No OTLP-compatible output — cannot route traces to Jaeger or Grafana Tempo from MLflow. Acceptable because AI-layer tracing (token counts, retrieved chunks, LLM prompts) has different analytical needs from HTTP-layer tracing. Future OTel instrumentation for app-layer spans is deferred and orthogonal.
+**Tags**: [observability, mlflow, langchain, instrumentation, inference]
+
+---
+
+**ID**: ADR-056
+**Date**: 2026-04-17
+**Context**: Multiple services exist (Ingestion, Document Management, Inference, Streamlit). Question arose whether MLflow tracing should be added to all services for uniform observability coverage.
+**Decision**: MLflow tracing is scoped to the inference service only. Other services (Ingestion, DMS, Streamlit) are not instrumented with MLflow.
+**Rationale**: Only the inference service makes LLM calls — the analytical value of MLflow traces (token counts, retrieved chunks, LLM prompts, generation latency) exists only where AI workloads run. Adding MLflow to Ingestion, DMS, or Streamlit would produce traces with no LLM-specific data, adding noise with no analytical value. App-layer observability (HTTP latency, error rates) for non-AI services is a future concern handled by standard OTel, not MLflow.
+**Tradeoffs**: Observability coverage is uneven across services by design. Acceptable because the analytical questions MLflow answers ("what context did the LLM see?", "how many tokens?") are inference-specific.
+**Tags**: [observability, mlflow, inference, architecture, scope]
+
+---
+
+**ID**: ADR-057
+**Date**: 2026-04-17
+**Context**: The inference service now depends on an MLflow tracking server to persist traces. If MLflow is down or unreachable, a hard dependency would cause inference requests to fail — breaking the core product for an observability concern.
+**Decision**: MLflow instrumentation is fail-open. Two enforcement points: (1) no `depends_on` between `inference_service` and `mlflow` in `docker-compose.yaml` — services start independently; (2) `mlflow.langchain.autolog()` drops traces silently if the tracking server is unreachable — inference continues normally. No `depends_on` in either direction; MLflow is a passive store with no knowledge of its writers.
+**Rationale**: Observability must never gate correctness. A user asking a question must get an answer regardless of whether the trace was recorded. Fail-open is the only acceptable design for non-functional instrumentation.
+**Tradeoffs**: Traces may be silently lost if MLflow is down — with no error surfaced to the caller. Operators must monitor MLflow availability separately if trace completeness is required. Acceptable for current dev/lab context.
+**Tags**: [observability, mlflow, resilience, inference, fail-open]
+
+---
+
+**ID**: ADR-058
+**Date**: 2026-04-17
+**Context**: MLflow was defined in `docker-compose.override.yml`, meaning it only started in development environments and was absent from the production compose stack. With MLflow now receiving live inference traces (not just offline eval runs), it must be part of the always-on stack.
+**Decision**: Move MLflow service definition from `docker-compose.override.yml` to `docker-compose.yaml`. Add `MLFLOW_TRACKING_URI=http://mlflow:5000` to the inference service environment in `docker-compose.yaml`.
+**Rationale**: Inference traces are written at request time — if MLflow is not running, traces are silently dropped (ADR-057). In production, the MLflow container must be up for observability to work. Keeping it in override would mean it's absent from any `docker compose up` without the override file, breaking the intended tracing behavior. MLflow is now infrastructure, not a dev tool.
+**Tradeoffs**: All environments (CI, staging, prod) now start the MLflow container. Adds one container to the base stack. Pact Broker and Ollama remain in `override.yml` as they are still dev/test-only concerns.
+**Tags**: [infrastructure, mlflow, docker-compose, observability, inference]
+
+---
