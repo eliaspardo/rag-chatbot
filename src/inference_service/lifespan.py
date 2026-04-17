@@ -16,6 +16,8 @@ from src.shared.exceptions import (
 )
 from src.shared.constants import Error
 import logging
+import mlflow
+import mlflow.langchain
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app):
     """Initialize and tear down inference service resources on application startup/shutdown."""
     # Startup
+    print("Setting up MLflow autologging...")
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
+    mlflow.set_experiment("inference-service")
+    mlflow.langchain.autolog(log_traces=True)
     print("Loading vector store...")
     app.state.vector_store_loader = get_vector_store_loader()
     load_environment()

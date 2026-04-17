@@ -33,15 +33,6 @@ services:
   document_management_service:                                                                                                                                                         
     volumes:                                                                                                                                                                           
       - ./src:/app/src     
-  mlflow:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.mlflow
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./mlflow.db:/mlflow/mlflow.db
-    command: mlflow ui --backend-store-uri sqlite:////mlflow/mlflow.db --host 0.0.0.0
   pact-broker:
     image: pactfoundation/pact-broker:latest
     ports:
