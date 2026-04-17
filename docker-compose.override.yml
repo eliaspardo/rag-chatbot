@@ -13,14 +13,17 @@ services:
     volumes:                                                                                                                                                                         
       - ./src:/app/src                                                                                                                                         
   inference_service:
-    env_file:                                                                                                                                                                          
-      - .env                                                                                                                                                                           
+    env_file:
+      - .env
       - config/params.env
-    volumes:                                                                                                                                                                        
+    volumes:
       - ./data:/app/data
       - ./src:/app/src
     environment:
       - DMS_URL=http://document_management_service:8000
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
   ingestion_service:
     volumes:                                                                                                                                                                        
       - ./data:/app/data

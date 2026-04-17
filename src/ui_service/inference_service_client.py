@@ -9,7 +9,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 HEALTH_CHECK_TIMEOUT = 5
-CHAT_TIMEOUT = 30
+CHAT_TIMEOUT = 120
 
 
 class NoDocumentsIngestedError(Exception):
