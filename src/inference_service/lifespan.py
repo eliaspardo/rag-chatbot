@@ -63,4 +63,3 @@ async def lifespan(app):
 
     # Shutdown
     logger.info("Cleaning up...")
-    mlflow.end_run()
