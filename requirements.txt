@@ -124,7 +124,7 @@ websockets==15.0.1
 xxhash==3.5.0
 yarl==1.20.1
 zstandard==0.24.0
-langchain-docling==1.1.0
+langchain-docling==2.0.0
 docling==2.70.0
 docling-core==2.61.0
 docling-ibm-models==3.11.0
