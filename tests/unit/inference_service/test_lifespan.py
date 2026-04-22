@@ -23,6 +23,11 @@ def run_lifespan(app):
 
 
 class TestLifespan:
+    @pytest.fixture(autouse=True)
+    def mock_mlflow_set_experiment(self):
+        with patch("src.inference_service.lifespan.mlflow.set_experiment"):
+            yield
+
     @patch("src.inference_service.lifespan.SessionManager")
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
@@ -85,6 +90,7 @@ class TestLifespan:
     )
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
+    @patch.dict("os.environ", {"DMS_URL": "http://dms:8001"})
     def test_lifespan_prepare_vector_store_errors(
         self,
         mock_get_vector_store_loader,
@@ -116,6 +122,7 @@ class TestLifespan:
     @patch("src.inference_service.lifespan.SessionManager")
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
+    @patch.dict("os.environ", {"DMS_URL": "http://dms:8001"})
     def test_lifespan_session_manager_error(
         self,
         mock_get_vector_store_loader,
