@@ -2,6 +2,7 @@ import asyncio
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from mlflow import MlflowException
 import pytest
 
 from src.inference_service.lifespan import lifespan
@@ -34,6 +35,32 @@ class TestLifespan:
         app = SimpleNamespace(state=SimpleNamespace())
         vectordb = Mock()
         mock_prepare_vector_store.return_value = vectordb
+
+        run_lifespan(app)
+
+        mock_prepare_vector_store.assert_called_once_with(
+            vector_store_loader=mock_get_vector_store_loader.return_value,
+            progress_callback=print,
+        )
+        mock_session_manager.assert_called_once_with(vectordb)
+
+    @patch("src.inference_service.lifespan.SessionManager")
+    @patch("src.inference_service.lifespan.prepare_vector_store")
+    @patch("src.inference_service.lifespan.get_vector_store_loader")
+    @patch("src.inference_service.lifespan.mlflow.set_experiment")
+    def test_lifespan_success_mlflow_exception(
+        self,
+        mock_set_experiment,
+        mock_get_vector_store_loader,
+        mock_prepare_vector_store,
+        mock_session_manager,
+    ):
+        app = SimpleNamespace(state=SimpleNamespace())
+        vectordb = Mock()
+        mock_prepare_vector_store.return_value = vectordb
+        mock_set_experiment.side_effect = MlflowException(
+            "Failed to reach mlflow server"
+        )
 
         run_lifespan(app)
 
