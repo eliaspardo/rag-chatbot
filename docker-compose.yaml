@@ -28,6 +28,17 @@ services:
       - INFERENCE_SERVICE_URL=http://inference_service:8000
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlflow.db:/mlflow/mlflow.db
+    command: mlflow ui --backend-store-uri sqlite:////mlflow/mlflow.db --host 0.0.0.0
+    environment:
+      - MLFLOW_SERVER_ALLOWED_HOSTS=*
   inference_service:
     build:
       context: .
@@ -41,6 +52,7 @@ services:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
       - PYTHONUNBUFFERED=1
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s

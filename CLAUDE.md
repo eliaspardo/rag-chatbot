@@ -16,6 +16,10 @@ FastAPI, SQLAlchemy ORM, Pydantic, pact-python (v2+, Rust FFI), pytest, Docker C
 - SQLite in-memory for unit tests, Postgres for production
 - Correctness over performance
 
+## Intentional exceptions to common conventions
+
+- `mlflow.db` is **intentionally committed** to version control. It contains accumulated MLflow experiment runs used for offline analysis. Do not flag it as a binary file that should be gitignored.
+
 ## Working agreements
 
 - Always run `pytest` after modifying Python files using the project's virtual environment at `.venv/bin/pytest` (or `.venv/Scripts/pytest` on Windows).

@@ -263,6 +263,7 @@ rag-chatbot/
 | `RAG_PREPROCESSOR`| `legacy`                                        | PDF preprocessor: `legacy` or `docling` |
 | `DOCLING_EXPORT_TYPE` | `doc_chunks`                                 | Docling export: `markdown` or `doc_chunks` |
 | `DMS_URL` | `http://localhost:8004` | Document Management Service URL |
+| `CHAT_TIMEOUT` | `120` | Seconds to wait for a chat response before timing out (frontend) |
 
 ## Dependencies
 

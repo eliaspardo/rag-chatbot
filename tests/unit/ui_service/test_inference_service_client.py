@@ -1,4 +1,5 @@
 from unittest.mock import Mock, patch
+from src.ui_service.inference_service_client import CHAT_TIMEOUT
 
 import pytest
 import requests
@@ -110,7 +111,7 @@ class TestAskQuestion:
         mock_post.assert_called_once_with(
             "http://localhost:8000/chat/domain-expert/",
             json={"question": "What is the capital of France?", "session_id": None},
-            timeout=30,
+            timeout=CHAT_TIMEOUT,
         )
 
     def test_ask_question_with_session_id(self, client):
@@ -130,7 +131,7 @@ class TestAskQuestion:
         mock_post.assert_called_once_with(
             "http://localhost:8000/chat/domain-expert/",
             json={"question": "What is the capital?", "session_id": "session-123"},
-            timeout=30,
+            timeout=CHAT_TIMEOUT,
         )
 
     def test_ask_question_error(self, client):
