@@ -17,6 +17,9 @@ htmlcov/
 .vscode/
 .idea/
 
+# Ignore Claude Code config
+.claude/
+
 # Ignore docs
 docs/
 *.md
