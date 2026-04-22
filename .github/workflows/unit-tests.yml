@@ -2,6 +2,9 @@ name: Unit Tests
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 24-run-unit-tests-on-mr
 
 jobs:
   unit-tests:
