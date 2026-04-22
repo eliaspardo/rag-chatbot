@@ -114,6 +114,7 @@ class TestVectorStoreBuilder:
 
     @patch("src.ingestion_service.vector_store_builder.HuggingFaceEmbeddings")
     @patch("src.ingestion_service.vector_store_builder.Chroma")
+    @patch.dict("os.environ", {"EMBEDDING_MODEL": EMBEDDING_MODEL})
     def test_add_documents_to_vector_store_success(
         self,
         mock_chroma,

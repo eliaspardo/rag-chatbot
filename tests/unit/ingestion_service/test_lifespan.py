@@ -18,8 +18,10 @@ def run_lifespan(app):
 
 class TestLifespan:
     @patch("src.ingestion_service.lifespan.get_vector_store_builder")
+    @patch("src.ingestion_service.lifespan.FileLoader")
     def test_lifespan_success(
         self,
+        mock_file_loader,
         mock_get_vector_store_builder,
     ):
         app = SimpleNamespace(state=SimpleNamespace())
