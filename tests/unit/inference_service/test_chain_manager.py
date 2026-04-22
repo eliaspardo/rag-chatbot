@@ -23,6 +23,8 @@ class TestChainManager:
         """Create a ChainManager instance with mocked dependencies."""
         return ChainManager(mock_vectordb)
 
+    @patch("src.inference_service.core.chain_manager.LLM_PROVIDER", "together")
+    @patch("src.inference_service.core.chain_manager.TOGETHER_API_KEY", "test-api-key")
     def test_init_together_with_valid_inputs(self, mock_vectordb):
         chain_manager = ChainManager(
             mock_vectordb, temperature=0.7, max_tokens=256, retrieval_k=1
