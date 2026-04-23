@@ -22,7 +22,10 @@ test:
 	pytest -s
 
 test-unit:
-	pytest -s --cov-fail-under=70 tests/unit
+	pytest -s tests/unit
+
+test-unit-workflow:
+	pytest --cov-fail-under=70 -n auto tests/unit
 
 test-contract:
 	@echo "Ensuring Pact Broker is running for contract tests..."
