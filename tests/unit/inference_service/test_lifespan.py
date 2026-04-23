@@ -23,9 +23,15 @@ def run_lifespan(app):
 
 
 class TestLifespan:
+    @pytest.fixture(autouse=True)
+    def mock_mlflow_set_experiment(self):
+        with patch("src.inference_service.lifespan.mlflow.set_experiment") as mock:
+            yield mock
+
     @patch("src.inference_service.lifespan.SessionManager")
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
+    @patch.dict("os.environ", {"DMS_URL": "http://dms:8001"})
     def test_lifespan_success(
         self,
         mock_get_vector_store_loader,
@@ -47,18 +53,18 @@ class TestLifespan:
     @patch("src.inference_service.lifespan.SessionManager")
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
-    @patch("src.inference_service.lifespan.mlflow.set_experiment")
+    @patch.dict("os.environ", {"DMS_URL": "http://dms:8001"})
     def test_lifespan_success_mlflow_exception(
         self,
-        mock_set_experiment,
         mock_get_vector_store_loader,
         mock_prepare_vector_store,
         mock_session_manager,
+        mock_mlflow_set_experiment,
     ):
         app = SimpleNamespace(state=SimpleNamespace())
         vectordb = Mock()
         mock_prepare_vector_store.return_value = vectordb
-        mock_set_experiment.side_effect = MlflowException(
+        mock_mlflow_set_experiment.side_effect = MlflowException(
             "Failed to reach mlflow server"
         )
 
@@ -81,6 +87,7 @@ class TestLifespan:
     )
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
+    @patch.dict("os.environ", {"DMS_URL": "http://dms:8001"})
     def test_lifespan_prepare_vector_store_errors(
         self,
         mock_get_vector_store_loader,
@@ -112,6 +119,7 @@ class TestLifespan:
     @patch("src.inference_service.lifespan.SessionManager")
     @patch("src.inference_service.lifespan.prepare_vector_store")
     @patch("src.inference_service.lifespan.get_vector_store_loader")
+    @patch.dict("os.environ", {"DMS_URL": "http://dms:8001"})
     def test_lifespan_session_manager_error(
         self,
         mock_get_vector_store_loader,

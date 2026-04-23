@@ -18,11 +18,11 @@ up-debug:
 down:
 	docker compose down
 
-test: 
-	pytest -s
+test:
+	pytest -s -n auto --cov-fail-under=80
 
 test-unit:
-	pytest -s tests/unit
+	pytest -s -p no:xdist --cov-fail-under=70 tests/unit
 
 test-contract:
 	@echo "Ensuring Pact Broker is running for contract tests..."

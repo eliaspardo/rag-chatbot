@@ -129,9 +129,11 @@ class TestVectorStoreBuilder:
         documents = [Document(page_content=PAGE_CONTENT)]
 
         # Act
-        vectordb = vector_store_builder.add_documents_to_vector_store(docs=documents)
+        vectordb = vector_store_builder.add_documents_to_vector_store(
+            docs=documents, model_name=EMBEDDING_MODEL
+        )
 
-        # Assert
+        # Assert - make sure the correct embedding model was used
         mock_huggingFaceEmbeddings.assert_called_once_with(model_name=EMBEDDING_MODEL)
         mock_chroma.from_documents.assert_called_once_with(
             documents,

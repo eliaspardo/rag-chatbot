@@ -126,7 +126,7 @@ def integration_env(chroma_container, tmp_path_factory, localstack_container):
         "DMS_URL": "http://localhost:8004",  # Will be mocked
         "AWS_TEMP_FOLDER": str(temp_dir),
         "PDF_PATH": "",  # Empty for happy path
-        "EMBEDDING_MODEL": "sentence-transformers/all-MiniLM-L6-v2",
+        "EMBEDDING_MODEL": "sentence-transformers/paraphrase-MiniLM-L3-v2",
         "RAG_PREPROCESSOR": "legacy",
         "CHUNK_SIZE": "1500",
         "CHUNK_OVERLAP": "150",

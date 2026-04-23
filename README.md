@@ -1,5 +1,7 @@
 # RAG Chatbot for Self-Study
 
+[![Unit Tests](https://github.com/eliaspardo/rag-chatbot/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/eliaspardo/rag-chatbot/actions/workflows/unit-tests.yml)
+
 A self-study AI-powered chatbot that uses Retrieval-Augmented Generation (RAG) and adapts to any domain or subject matter.
 
 ## Features
