@@ -3,6 +3,20 @@
 
 ---
 
+## 2026-04-22
+
+### CI unit tests: docling dependency pinning to unblock import errors
+- **Problem**: CI failed with `ImportError: cannot import 'ModelHelper' from 'transformers'` on first run after adding the unit test workflow.
+- **Root cause**: `requirements.txt` had unpinned docling packages. pip pulled the latest versions, which require `transformers>=4.56` — incompatible with the pinned transformers version in the project.
+- **Fix**: Pinned docling and its related packages to exact versions matching the local environment in `requirements.txt`.
+- **Result**: CI import errors resolved; unit tests reach collection phase.
+
+### CI unit tests: MLflow mocking strategy for inference service lifespan tests
+- **Problem**: `test_lifespan.py` for the inference service failed in CI because `mlflow.set_experiment()` fires during lifespan startup and attempts to contact the MLflow tracking server, which doesn't exist in CI.
+- **Root cause**: ADR-057 made MLflow fail-open at runtime, but unit tests need explicit mock isolation — they don't inherit the runtime fail-open behaviour automatically.
+- **Fix**: Added an `autouse=True` class-level fixture on `TestLifespan` that patches `src.inference_service.lifespan.mlflow.set_experiment`. A dedicated test (`test_lifespan_success_mlflow_exception`) then injects an `MlflowException` through this fixture to verify the fail-open behaviour is actually exercised.
+- **Pattern**: Mock at the lifespan module import path, not at the `mlflow` package level. Tests that don't care about MLflow get isolation for free via `autouse`; the one test that verifies fail-open receives the mock as a parameter and configures its side-effect.
+
 ## 2026-04-10
 
 ### Surfacing no-documents 503 error end-to-end (issue #74)

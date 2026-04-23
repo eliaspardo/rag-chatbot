@@ -590,3 +590,59 @@
 **Tags**: [infrastructure, mlflow, docker-compose, observability, inference]
 
 ---
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WEEK 8 — CI Unit Test Pipeline (branch: 24-run-unit-tests-on-mr)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+---
+
+**ID**: ADR-059
+**Date**: 2026-04-22
+**Context**: Unit tests only ran locally. No automated enforcement meant failing tests could be merged undetected. The multi-service project needed CI validation on every PR to catch regressions before they reached main.
+**Decision**: Add `.github/workflows/unit-tests.yml` triggered on `pull_request: [opened, synchronize]` and `workflow_dispatch`. Workflow runs `make test-unit` with `PYTHONPATH` set to the workspace root.
+**Rationale**: PR-triggered CI is the standard enforcement gate. `workflow_dispatch` allows manual runs for debugging CI issues without creating a PR. `make test-unit` reuses the existing Makefile target so CI and local runs are identical.
+**Tradeoffs**: GitHub Actions minutes usage increases. Torch installation is the slowest step (~2-3 min on cache miss) but mitigated by pip caching (ADR-062).
+**Tags**: [CI/CD, testing, github-actions, automation]
+
+---
+
+**ID**: ADR-060
+**Date**: 2026-04-22
+**Context**: Root `tests/conftest.py` held eval fixtures importing heavy ML dependencies (`chromadb`, `langchain_huggingface`, `deepeval`). pytest loads all parent-directory `conftest.py` files for every session — even `make test-unit` — triggering these heavy imports regardless of test scope. This slowed unit test startup and could cause import errors when eval infrastructure wasn't available.
+**Decision**: Move all eval fixtures from `tests/conftest.py` to `tests/evals/conftest.py`. pytest scopes `conftest.py` loading to the requested test path; `tests/evals/conftest.py` is only loaded when `tests/evals` is in scope.
+**Rationale**: Scoping fixtures to the directory where they are used is the pytest-idiomatic approach. Eliminates the dependency on heavy ML imports for unit test runs.
+**Tradeoffs**: Future heavy fixtures mistakenly added to root `conftest.py` will silently re-introduce the problem. Requires discipline when adding eval infrastructure.
+**Tags**: [testing, pytest, unit-tests, performance, fixture-isolation]
+
+---
+
+**ID**: ADR-061
+**Date**: 2026-04-22
+**Context**: A single 80% coverage threshold applied to all test targets. `make test-unit` consistently failed it — unit tests legitimately don't cover integration paths (HTTP calls, database access, external services). Enforcing 80% at the unit layer would force integration-style tests into the unit suite, violating the two-layer TDD approach defined in CLAUDE.md.
+**Decision**: `make test-unit` uses `--cov-fail-under=70`; `make test` (full suite) retains 80%. Thresholds live in Makefile targets, not in `pytest.ini`, to allow per-target control without global config.
+**Rationale**: Different test layers have different coverage expectations by design. 70% for the unit suite acknowledges that integration paths belong in other layers; 80% for the full suite enforces overall coverage discipline.
+**Tradeoffs**: Two thresholds to maintain. 70% may become permissive if unit test coverage degrades over time — worth revisiting as the suite grows.
+**Tags**: [testing, coverage, CI/CD, unit-tests, testing-strategy]
+
+---
+
+**ID**: ADR-062
+**Date**: 2026-04-22
+**Context**: torch is the largest dependency. Without explicit CPU wheel selection, pip can resolve torch from PyPI's default index and download CUDA-enabled wheels (~800MB+) that are irrelevant for CI runners. Installing via `requirements.txt` alone doesn't guarantee CPU-only resolution.
+**Decision**: Explicitly pre-install `torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu` before `pip install -r requirements-dev.txt`. Include the torch version in the pip cache key (`pip-torch2.8.0cpu-${{ hashFiles(...) }}`).
+**Rationale**: Forces CPU-only wheel download (~200MB), reducing install time significantly. Including the torch version in the cache key ensures cache invalidation when torch is upgraded, preventing stale wheel mixing.
+**Tradeoffs**: torch version must be manually kept in sync between `requirements.txt` and the cache key string. Upgrading torch requires updating both locations.
+**Tags**: [CI/CD, github-actions, dependencies, torch, performance]
+
+---
+
+**ID**: ADR-063
+**Date**: 2026-04-23
+**Context**: pytest-xdist was added for parallel unit test execution (`-n auto`). After initial CI runs, parallel execution was reverted. Unit tests use `unittest.mock.patch` and `patch.dict` for environment variable isolation; parallel xdist workers share the same process environment and can race on `os.environ` state, causing non-deterministic failures.
+**Decision**: Use `-p no:xdist` in `make test-unit` to explicitly disable parallel execution. The full suite `make test` retains `-n auto`.
+**Rationale**: Unit tests run fast enough serially. The risk of test interference through shared env/mock state outweighs the parallelism benefit. Explicit `-p no:xdist` prevents accidental re-enablement via `addopts` in `pytest.ini`.
+**Tradeoffs**: Serial execution is slower as the unit test suite grows. Revisit if unit test runtime exceeds ~30 seconds.
+**Tags**: [testing, CI/CD, unit-tests, pytest, parallelism]
+
+---
