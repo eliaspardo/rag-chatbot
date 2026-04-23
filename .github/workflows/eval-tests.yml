@@ -1,0 +1,114 @@
+name: Automated Eval Run
+
+on:
+  push:
+    branches:
+      - claude/issue-82-20260423-1124
+  workflow_dispatch:
+    inputs:
+      run_name:
+        description: 'MLflow run name (leave empty for auto-generated timestamp)'
+        required: false
+        default: ''
+
+jobs:
+  eval-and-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-torch2.8.0cpu-${{ hashFiles('requirements*.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-dev.txt
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run evals and log to MLflow
+        env:
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          MLFLOW_TRACKING_URI: sqlite:///./mlflow.db
+          MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME || 'rag-evals' }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'together' }}
+          MODEL_NAME: ${{ vars.MODEL_NAME }}
+          EVAL_LLM_PROVIDER: ${{ vars.EVAL_LLM_PROVIDER || 'together' }}
+          EVAL_MODEL_NAME: ${{ vars.EVAL_MODEL_NAME || vars.MODEL_NAME }}
+          EVAL_TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          EVAL_PDF_PATH: ${{ vars.EVAL_PDF_PATH }}
+          EVAL_DB_DIR: ${{ vars.EVAL_DB_DIR || 'tests/data/chroma_db' }}
+          EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL || 'sentence-transformers/paraphrase-MiniLM-L3-v2' }}
+          EVAL_NO_OF_QUESTIONS_TO_TEST: ${{ vars.EVAL_NO_OF_QUESTIONS_TO_TEST || '0' }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          RUN_NAME="${{ github.event.inputs.run_name }}"
+          if [ -z "$RUN_NAME" ]; then
+            RUN_NAME="ci-eval-$(date -u +%Y-%m-%d-%H-%M-%S)"
+          fi
+          python scripts/run_evals.py --run-name "$RUN_NAME"
+
+      - name: Fetch run comparison data
+        env:
+          MLFLOW_TRACKING_URI: sqlite:///./mlflow.db
+          MLFLOW_EXPERIMENT_NAME: ${{ vars.MLFLOW_EXPERIMENT_NAME || 'rag-evals' }}
+          PYTHONPATH: ${{ github.workspace }}
+        run: python scripts/fetch_previous_run.py > run_comparison.json
+
+      - name: Commit updated mlflow.db
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add mlflow.db
+          git diff --staged --quiet || git commit -m "chore: update mlflow.db with eval run [skip ci]"
+          git push
+
+      - name: Generate comparison summary with Claude Code
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          COMPARISON=$(cat run_comparison.json)
+          SUMMARY=$(claude -p "You are analyzing RAG chatbot evaluation results stored in MLflow. \
+          Compare the current and previous eval runs below and produce a concise markdown summary. \
+          Include: a metrics comparison table (metric | previous | current | delta) \
+          and a brief 2-3 sentence interpretation of what changed and why it matters. \
+          If there is no previous run, just summarize the current run metrics.
+
+          Data:
+          ${COMPARISON}")
+          {
+            echo 'EVAL_SUMMARY<<EOF'
+            echo "$SUMMARY"
+            echo 'EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Post summary as commit comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summary = process.env.EVAL_SUMMARY;
+            const sha = context.sha;
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: sha,
+              body: `## Eval Run Results\n\n${summary}\n\n---\n*Generated automatically by the eval pipeline using Claude Code*`
+            });
