@@ -34,6 +34,6 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run unit tests
-        run: make test-unit-workflow
+        run: make test-unit
         env:
           PYTHONPATH: ${{ github.workspace }}
