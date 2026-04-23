@@ -590,3 +590,13 @@
 **Tags**: [infrastructure, mlflow, docker-compose, observability, inference]
 
 ---
+
+**ID**: ADR-059
+**Date**: 2026-04-23
+**Context**: Issue #82 requested a CI pipeline to automate eval runs, persist results, and generate AI-authored comparison summaries — all triggered on demand via workflow_dispatch.
+**Decision**: Implement the pipeline as a GitHub Actions `workflow_dispatch` workflow (`eval-run.yml`) using two thin helper scripts: `scripts/run_evals.py` (pytest wrapper) and `scripts/fetch_previous_run.py` (MLflow query). Claude Code CLI (`claude -p`) generates the markdown comparison; the summary is posted as a commit comment via `actions/github-script`.
+**Rationale**: Keeps eval orchestration scriptable and auditable without adding a new framework. The two scripts are reusable locally and in CI. Using `claude -p` for the summary keeps the comparison logic in a prompt (easy to iterate) rather than hardcoded code. Committing mlflow.db with `[skip ci]` follows the existing convention (ADR for mlflow.db intentional commit) while avoiding CI loops.
+**Tradeoffs**: Eval PDF and golden set are not committed — the workflow depends on repository variables (EVAL_PDF_PATH etc.) and will skip those tests if unset. GitHub App tokens lack `workflows` scope, so the workflow file itself must be added manually by a maintainer.
+**Tags**: [ci, mlflow, evals, automation, claude-code]
+
+---

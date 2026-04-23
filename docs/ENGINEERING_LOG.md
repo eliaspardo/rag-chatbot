@@ -229,3 +229,14 @@
 - **Solution**: `tools/mlflow_query.py` — standalone script using `MlflowClient`; `list` sub-command shows recent parent runs with metric means; `show` sub-command shows per-question child runs with optional status and field filters
 - **Key details**: SQLite URI resolution walks `__file__` upward to project root (handles any working directory); metric names discovered dynamically from `run.data.metrics`; child runs filtered with backtick-quoted `mlflow.parentRunId` tag; natural sort for `question-N` run names
 - **Companion skill**: `.claude/skills/mlflow-evals/SKILL.md` teaches Claude how to invoke and interpret the tool
+
+## 2026-04-23
+
+### Automated eval CI pipeline (issue #82)
+- **Goal**: GitHub Actions workflow that runs evals, commits mlflow.db, and posts a Claude-generated comparison summary as a commit comment
+- **Solution**: Two scripts (`scripts/run_evals.py`, `scripts/fetch_previous_run.py`) + workflow YAML (`eval-run.yml`)
+  - `run_evals.py`: thin subprocess wrapper around `pytest -m deepeval --run-name <name>`
+  - `fetch_previous_run.py`: queries MLflow for the two most recent parent runs (tagged `run_type=parent`) and emits JSON with `current` and `previous` keys
+  - Workflow: install deps → run evals → fetch comparison → commit mlflow.db `[skip ci]` → `claude -p` → post as commit comment via `github-script`
+- **Constraint hit**: GitHub App token lacks `workflows` scope — the workflow file must be manually added by a maintainer; scripts were pushed on the feature branch
+- **Config note**: Eval-specific vars (EVAL_PDF_PATH, MODEL_NAME, EMBEDDING_MODEL, etc.) are passed as GitHub Actions repository variables; only TOGETHER_API_KEY and ANTHROPIC_API_KEY are secrets
