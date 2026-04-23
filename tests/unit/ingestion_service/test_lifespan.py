@@ -19,6 +19,7 @@ def run_lifespan(app):
 class TestLifespan:
     @patch("src.ingestion_service.lifespan.get_vector_store_builder")
     @patch("src.ingestion_service.lifespan.FileLoader")
+    @patch.dict("os.environ", {"DMS_URL": "http://dms:8001"})
     def test_lifespan_success(
         self,
         mock_file_loader,

@@ -12,7 +12,7 @@ def seed_chromadb_documents(
     collection_name: str,
     texts: list[str],
     metadatas: list[dict] | None = None,
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
+    embedding_model: str = "sentence-transformers/paraphrase-MiniLM-L3-v2",
 ) -> None:
     """
     Directly seed ChromaDB with test documents.
