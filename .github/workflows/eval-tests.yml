@@ -62,7 +62,7 @@ jobs:
           AWS_ENDPOINT_URL: ${{ vars.AWS_ENDPOINT_URL || ''}}
           AWS_TEMP_FOLDER: ${{ vars.AWS_TEMP_FOLDER || 'tmp/eval-pdfs' }}
           EVAL_DB_DIR: ${{ vars.EVAL_DB_DIR || 'tests/data/chroma_db' }}
-          EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL || 'sentence-transformers/paraphrase-MiniLM-L3-v2' }}
+          EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL || 'sentence-transformers/all-MiniLM-L6-v2' }}
           EVAL_NO_OF_QUESTIONS_TO_TEST: ${{ vars.EVAL_NO_OF_QUESTIONS_TO_TEST || '1' }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
