@@ -26,6 +26,7 @@ FastAPI, SQLAlchemy ORM, Pydantic, pact-python (v2+, Rust FFI), pytest, Docker C
 - If tests fail, do not proceed with further changes until the failure is resolved or explicitly acknowledged by the user.
 - When creating GitHub issues/tickets, follow the branch naming convention: `<issue-number>-<title-slug>`
   Example: for issue #34 titled "DevEx items", use branch name `34-devex-items`
+- When running eval tests, always set the number of questions to 1.
 
 
 ## Architectural Decision Logging

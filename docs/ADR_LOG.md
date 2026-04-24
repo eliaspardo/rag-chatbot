@@ -620,3 +620,13 @@
 **Tags**: [evals, ci, s3, file-loader, data, testing]
 
 ---
+
+**ID**: ADR-062
+**Date**: 2026-04-24
+**Context**: The eval CI workflow (ADR-059) failed with a `PermissionError` on `/home/eliaspardo` because `mlflow.db` stores experiment `artifact_location` as an absolute path set at experiment-creation time on the developer's machine. In CI, MLflow tried to write artifacts to that path, which doesn't exist on the runner. Additionally, `mlflow.log_dict` and `mlflow.log_text` calls in the eval test were the only source of this failure — all other MLflow data (metrics, params, tags) is stored directly in `mlflow.db` and travels safely with the committed file.
+**Decision**: (1) Remove all `mlflow.log_dict` and `mlflow.log_text` calls from the eval test. Promote the two unique values that were only in the dict (`threshold`, `success` per metric) to `mlflow.log_param` calls. (2) Update the existing experiment rows in `mlflow.db` to use relative artifact paths (`mlruns/<id>`) instead of absolute ones. (3) Set `MLFLOW_DEFAULT_ARTIFACT_ROOT=mlruns` in the project env config so new experiments are created with relative paths from the start. Remove the CI patch step that was added as a workaround.
+**Rationale**: The metric definitions logged via `log_dict` are already version-controlled in the repo and referenced by `metrics_file_*` params — logging them as artifacts adds no analytical value. `log_text` for actual/expected outputs was fully redundant with existing `log_param` calls. Eliminating artifact writes entirely removes the machine-specific path problem at the source rather than patching around it in CI. Relative artifact paths in `mlflow.db` work correctly on any machine as long as the working directory is the repo root (which pytest enforces).
+**Tradeoffs**: Historical run artifact links in the MLflow UI will show as broken for runs created before this change (artifact files were never committed anyway, so there is no actual data loss). Per-metric `success` and `threshold` are now params rather than a structured JSON file — slightly less convenient to inspect as a unit, but fully queryable.
+**Tags**: [mlflow, evals, ci, infra]
+
+---

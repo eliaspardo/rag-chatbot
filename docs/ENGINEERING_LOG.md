@@ -240,3 +240,16 @@
   - Workflow: install deps → run evals → fetch comparison → commit mlflow.db `[skip ci]` → `claude -p` → post as commit comment via `github-script`
 - **Constraint hit**: GitHub App token lacks `workflows` scope — the workflow file must be manually added by a maintainer; scripts were pushed on the feature branch
 - **Config note**: Eval-specific vars (EVAL_PDF_PATH, MODEL_NAME, EMBEDDING_MODEL, etc.) are passed as GitHub Actions repository variables; only TOGETHER_API_KEY and ANTHROPIC_API_KEY are secrets
+
+## 2026-04-24
+
+### Fixing CI eval failures: sentence-transformers import + MLflow artifact path (issue #82)
+
+**Problem 1 — `sentence_transformers` ImportError in CI**
+- Root cause: workflow installed `torch==2.8.0` from the pytorch CPU index (`--index-url`), then installed `requirements-dev.txt` against PyPI only. When pip resolved `sentence-transformers`' torch dependency, it couldn't find the CPU variant from PyPI, leaving the package in a broken state.
+- Fix: added `--extra-index-url https://download.pytorch.org/whl/cpu` to the `pip install -r requirements-dev.txt` step so pip can resolve torch from the pytorch index during dependency resolution.
+
+**Problem 2 — `PermissionError: /home/eliaspardo` when MLflow logs artifacts**
+- Root cause: `mlflow.db` (committed to the repo) stores experiment `artifact_location` as an absolute path set at experiment-creation time on the dev machine. The CI runner has no `/home/eliaspardo`, so `os.makedirs` fails immediately.
+- The trigger was `mlflow.log_dict` and `mlflow.log_text` calls — the only MLflow operations that write to the artifact store. All other calls (log_param, log_metric, set_tag) write only to the SQLite file.
+- Fix: removed all `log_dict` and `log_text` calls from the eval test (all content was either redundant with existing params or already in the repo). Promoted `threshold` and `success` per metric to `log_param`. Updated `mlflow.db` directly to replace absolute artifact paths with relative `mlruns/<id>` paths. Added `MLFLOW_DEFAULT_ARTIFACT_ROOT=mlruns` to env config to prevent regression on future experiment creation.

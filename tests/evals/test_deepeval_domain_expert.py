@@ -50,17 +50,14 @@ CORRECTNESS_VERSION = "v3"
 
 _grounding_module = import_module(f"tests.evals.metrics.grounding.{GROUNDING_VERSION}")
 GROUNDING_EVALUATION_STEPS = _grounding_module.EVALUATION_STEPS
-GROUNDING_METADATA = _grounding_module.METADATA
 
 _completeness_module = import_module(
     f"tests.evals.metrics.completeness.{COMPLETENESS_VERSION}"
 )
 COMPLETENESS_EVALUATION_STEPS = _completeness_module.EVALUATION_STEPS
-COMPLETENESS_METADATA = _completeness_module.METADATA
 
 _reasoning_module = import_module(f"tests.evals.metrics.reasoning.{REASONING_VERSION}")
 REASONING_EVALUATION_STEPS = _reasoning_module.EVALUATION_STEPS
-REASONING_METADATA = _reasoning_module.METADATA
 EVAL_NO_OF_QUESTIONS_TO_TEST = int(os.getenv("EVAL_NO_OF_QUESTIONS_TO_TEST", "0"))
 
 
@@ -142,34 +139,6 @@ def mlflow_parent_run(run_name):
         mlflow.log_param(
             "metrics_file_reasoning",
             f"tests/evals/metrics/reasoning/{REASONING_VERSION}.py",
-        )
-        mlflow.log_dict(
-            GROUNDING_EVALUATION_STEPS,
-            f"tests/evals/metrics/evaluation_steps/grounding/{GROUNDING_VERSION}.py",
-        )
-        mlflow.log_dict(
-            GROUNDING_METADATA,
-            f"tests/evals/metrics/metadata/grounding/{GROUNDING_VERSION}.py",
-        )
-        mlflow.log_dict(
-            COMPLETENESS_EVALUATION_STEPS,
-            f"tests/evals/metrics/evaluation_steps/completeness/{COMPLETENESS_VERSION}.py",
-        )
-        mlflow.log_dict(
-            COMPLETENESS_METADATA,
-            f"tests/evals/metrics/metadata/completeness/{COMPLETENESS_VERSION}.py",
-        )
-        mlflow.log_dict(
-            REASONING_EVALUATION_STEPS,
-            f"tests/evals/metrics/evaluation_steps/reasoning/{REASONING_VERSION}.py",
-        )
-        mlflow.log_dict(
-            REASONING_METADATA,
-            f"tests/evals/metrics/metadata/reasoning/{REASONING_VERSION}.py",
-        )
-        mlflow.log_dict(
-            {"template": domain_expert_prompt.template},
-            "src/core/prompts/domain_expert_prompt.json",
         )
         mlflow.set_tag("run_type", "parent")
 
@@ -311,25 +280,12 @@ def test_deepeval_domain_expert(
                     mlflow.log_param(
                         f"{sanitized_metric_name} reason", metric_data.reason
                     )
-                mlflow.log_dict(
-                    {
-                        "metric_name": metric_data.name,
-                        "score": score,
-                        "reason": metric_data.reason,
-                        "success": metric_data.success,
-                        "threshold": metric_data.threshold,
-                    },
-                    f"metrics/{sanitized_metric_name}_result.json",
+                mlflow.log_param(
+                    f"{sanitized_metric_name} threshold", metric_data.threshold
                 )
-
-            mlflow.log_text(
-                test_result.actual_output or "",
-                "outputs/actual_output.txt",
-            )
-            mlflow.log_text(
-                test_result.expected_output or "",
-                "outputs/expected_output.txt",
-            )
+                mlflow.log_param(
+                    f"{sanitized_metric_name} success", metric_data.success
+                )
 
             if not test_result.success:
                 eval_results.failures.append(test_result.name)

@@ -44,6 +44,20 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Patch MLflow artifact paths for CI
+        run: |
+          python3 - <<'PYEOF'
+          import sqlite3
+          conn = sqlite3.connect('./mlflow.db')
+          for (exp_id,) in conn.execute('SELECT experiment_id FROM experiments').fetchall():
+              conn.execute(
+                  'UPDATE experiments SET artifact_location = ? WHERE experiment_id = ?',
+                  (f'mlruns/{exp_id}', exp_id)
+              )
+          conn.commit()
+          conn.close()
+          PYEOF
+
       - name: Run evals and log to MLflow
         env:
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
