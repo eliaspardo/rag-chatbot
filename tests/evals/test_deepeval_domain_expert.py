@@ -280,12 +280,12 @@ def test_deepeval_domain_expert(
                     mlflow.log_param(
                         f"{sanitized_metric_name} reason", metric_data.reason
                     )
-                mlflow.log_param(
-                    f"{sanitized_metric_name} threshold", metric_data.threshold
-                )
-                mlflow.log_param(
-                    f"{sanitized_metric_name} success", metric_data.success
-                )
+                    mlflow.log_param(
+                        f"{sanitized_metric_name} threshold", metric_data.threshold
+                    )
+                    mlflow.log_param(
+                        f"{sanitized_metric_name} success", metric_data.success
+                    )
 
             if not test_result.success:
                 eval_results.failures.append(test_result.name)
