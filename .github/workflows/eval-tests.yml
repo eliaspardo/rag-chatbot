@@ -103,7 +103,7 @@ jobs:
 
       - name: Generate comparison summary with Claude Code
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           COMPARISON=$(cat run_comparison.json)
           SUMMARY=$(claude -p "You are analyzing RAG chatbot evaluation results stored in MLflow. \
