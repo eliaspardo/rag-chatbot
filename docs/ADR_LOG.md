@@ -600,3 +600,13 @@
 **Tags**: [ci, mlflow, evals, automation, claude-code]
 
 ---
+
+**ID**: ADR-060
+**Date**: 2026-04-24
+**Context**: The golden set used by eval tests may contain copyrighted material and cannot be committed to the repo. The eval CI workflow (ADR-059) needs a way to supply it at runtime. Two approaches were evaluated: mirror the existing `FileLoader` S3 pattern for the golden set, or inline the JSON into a GitHub encrypted secret.
+**Decision**: Supply the golden set via a GitHub encrypted secret `EVAL_GOLDEN_SET_JSON` containing the inline JSON. Refactor `tests/utils/eval_dataset_loader.py` to resolve the dataset lazily at call time from four sources in order of preference: (1) explicit `path` argument, (2) `EVAL_GOLDEN_SET_JSON` env var (parsed via `json.loads`), (3) `EVAL_GOLDEN_SET_PATH` env var, (4) default `tests/data/golden_set.json`. Gitignore the default file and commit a `golden_set.example.json` with dummy rows.
+**Rationale**: The dataset is small (well under GitHub's ~48KB secret size limit), so inlining it as a secret avoids a new boto client, AWS credentials in CI, and a runtime S3 dependency for a single JSON blob. Lazy resolution inside the function also fixes an existing `TypeError` at import time when `EVAL_GOLDEN_SET_PATH` is unset. The env-driven path keeps the door open to swap in S3 later without changing callers.
+**Tradeoffs**: Dataset size is capped by the secret size limit — larger golden sets in the future would force a migration to S3 or an encrypted-in-repo approach (git-crypt/SOPS). Secret contents are opaque in CI logs but still need to be treated as sensitive when debugging. Local contributors see only the example dataset by default and must obtain the real one out of band.
+**Tags**: [evals, ci, secrets, data, testing]
+
+---

@@ -54,10 +54,11 @@ jobs:
           EVAL_LLM_PROVIDER: ${{ vars.EVAL_LLM_PROVIDER || 'together' }}
           EVAL_MODEL_NAME: ${{ vars.EVAL_MODEL_NAME || vars.MODEL_NAME }}
           EVAL_TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          EVAL_GOLDEN_SET_JSON: ${{ secrets.EVAL_GOLDEN_SET_JSON }}
           EVAL_PDF_PATH: ${{ vars.EVAL_PDF_PATH }}
           EVAL_DB_DIR: ${{ vars.EVAL_DB_DIR || 'tests/data/chroma_db' }}
           EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL || 'sentence-transformers/paraphrase-MiniLM-L3-v2' }}
-          EVAL_NO_OF_QUESTIONS_TO_TEST: ${{ vars.EVAL_NO_OF_QUESTIONS_TO_TEST || '0' }}
+          EVAL_NO_OF_QUESTIONS_TO_TEST: ${{ vars.EVAL_NO_OF_QUESTIONS_TO_TEST || '1' }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
           RUN_NAME="${{ github.event.inputs.run_name }}"

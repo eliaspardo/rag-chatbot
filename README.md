@@ -355,6 +355,14 @@ Prereq: install dev deps to run evals: `pip install -r requirements-dev.txt`
 
 Dataset schema: JSON array of objects with `question` and `ground_truth` strings (see `tests/data/golden_set.json.example`).
 
+The loader (`tests/utils/eval_dataset_loader.py`) resolves the dataset in this order:
+1. Explicit `path` argument passed to `load_golden_set_dataset()`.
+2. `EVAL_GOLDEN_SET_JSON` env var — inline JSON string, used by CI.
+3. `EVAL_GOLDEN_SET_PATH` env var — path override.
+4. `tests/data/golden_set.json` (default, gitignored).
+
+**Keeping CI in sync:** the eval CI workflow reads the golden set from the `EVAL_GOLDEN_SET_JSON` GitHub repository secret. Whenever the local golden set changes, re-upload the JSON to that secret (Settings → Secrets and variables → Actions → `EVAL_GOLDEN_SET_JSON`) — there is no automation keeping them aligned.
+
 #### DeepEval
 
 DeepEval tests log results to MLflow.
