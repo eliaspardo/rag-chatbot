@@ -361,7 +361,11 @@ The loader (`tests/utils/eval_dataset_loader.py`) resolves the dataset in this o
 3. `EVAL_GOLDEN_SET_PATH` env var — path override.
 4. `tests/data/golden_set.json` (default, gitignored).
 
-**Keeping CI in sync:** the eval CI workflow reads the golden set from the `EVAL_GOLDEN_SET_JSON` GitHub repository secret. Whenever the local golden set changes, re-upload the JSON to that secret (Settings → Secrets and variables → Actions → `EVAL_GOLDEN_SET_JSON`) — there is no automation keeping them aligned.
+`EVAL_PDF_PATH` accepts either a local file path or an `s3://bucket/key.pdf` URI — the eval conftest routes it through the same `FileLoader` used by the ingestion service, so S3-backed PDFs are downloaded transparently.
+
+**Keeping CI in sync:** copyrighted eval data is not committed to the repo. The eval CI workflow pulls it from two places:
+- **Golden set** — `EVAL_GOLDEN_SET_JSON` GitHub repository secret (inline JSON). Re-upload it at Settings → Secrets and variables → Actions whenever the local golden set changes; no automation keeps them aligned.
+- **Eval PDF** — hosted in S3, referenced by `EVAL_PDF_PATH` (repo variable) as an `s3://...` URI. Requires `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` secrets plus `AWS_REGION` and `AWS_TEMP_FOLDER` repo variables. Use a least-privilege IAM user scoped to `s3:GetObject` on just that one object.
 
 #### DeepEval
 

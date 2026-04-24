@@ -26,12 +26,10 @@ class FileLoader:
     """Loads PDF files from local paths or downloads them from S3."""
 
     def __init__(self):
-        if not AWS_TEMP_FOLDER:
-            raise ConfigurationException(
-                "AWS_TEMP_FOLDER is not set but S3 PDF paths are configured."
-            )
-        # Ensure a clean temporary directory for S3 downloads
-        if os.path.exists(AWS_TEMP_FOLDER):
+        # Ensure a clean temporary directory for S3 downloads if one is configured.
+        # AWS_TEMP_FOLDER is only required when a remote URI is actually loaded;
+        # callers that only pass local paths don't need it set.
+        if AWS_TEMP_FOLDER and os.path.exists(AWS_TEMP_FOLDER):
             shutil.rmtree(AWS_TEMP_FOLDER)
 
     def load_pdf_file(self, file_path: str) -> str:
@@ -56,6 +54,10 @@ class FileLoader:
 
     def _download_file_from_s3(self, file_path: str) -> str:
         """Download a file from S3 to a local temp directory and return its path."""
+        if not AWS_TEMP_FOLDER:
+            raise ConfigurationException(
+                "AWS_TEMP_FOLDER is not set but an S3 URI was supplied."
+            )
         try:
             s3_client = boto3.client(
                 "s3",

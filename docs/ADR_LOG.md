@@ -610,3 +610,13 @@
 **Tags**: [evals, ci, secrets, data, testing]
 
 ---
+
+**ID**: ADR-061
+**Date**: 2026-04-24
+**Context**: The eval PDF (~600KB ISTQB syllabus) cannot be committed for copyright reasons and is too large for a GitHub encrypted secret. The repo is public, so private release assets are not viable. The PDF is already hosted in an S3 bucket, and the ingestion service already has a `FileLoader` (`src/ingestion_service/file_loader.py`) that handles `s3://`, `https://`, and local paths uniformly. The eval path in `tests/evals/conftest.py` was calling `vector_store_builder.load_pdf_text(EVAL_PDF_PATH)` directly, bypassing `FileLoader`.
+**Decision**: Route the eval PDF through the existing `FileLoader` by instantiating it in `tests/evals/conftest.py` and piping `EVAL_PDF_PATH` through `FileLoader.load_pdf_file()` before passing the resolved local path to `vector_store_builder.load_pdf_text()`. Refactor `FileLoader.__init__` to make the `AWS_TEMP_FOLDER` requirement lazy — only validated inside `_download_file_from_s3` — so local-path usage works without any AWS configuration. Add `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, and `AWS_TEMP_FOLDER` to the eval workflow env.
+**Rationale**: Reusing `FileLoader` unifies prod ingestion, local dev, and CI eval data flows through a single code path, eliminating the parallel "PDF path resolution" logic that would otherwise be needed in the eval conftest. The lazy `AWS_TEMP_FOLDER` check removes friction for contributors who only run evals against local files — they no longer need AWS config set. S3 adds one network dependency to CI, but CI already depends on Together AI, so the reliability surface is unchanged in practice.
+**Tradeoffs**: AWS credentials must now be present as GitHub secrets for the eval workflow. Every CI eval run pulls ~600KB from S3 (trivial cost but measurable latency). The `shutil.rmtree(AWS_TEMP_FOLDER)` still runs in `__init__` when the folder exists — not a problem with a single eval-session loader, but noted as a sharp edge if multiple `FileLoader` instances ever coexist.
+**Tags**: [evals, ci, s3, file-loader, data, testing]
+
+---

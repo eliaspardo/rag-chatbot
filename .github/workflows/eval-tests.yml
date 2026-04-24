@@ -56,6 +56,10 @@ jobs:
           EVAL_TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           EVAL_GOLDEN_SET_JSON: ${{ secrets.EVAL_GOLDEN_SET_JSON }}
           EVAL_PDF_PATH: ${{ vars.EVAL_PDF_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_TEMP_FOLDER: ${{ vars.AWS_TEMP_FOLDER || 'tmp/eval-pdfs' }}
           EVAL_DB_DIR: ${{ vars.EVAL_DB_DIR || 'tests/data/chroma_db' }}
           EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL || 'sentence-transformers/paraphrase-MiniLM-L3-v2' }}
           EVAL_NO_OF_QUESTIONS_TO_TEST: ${{ vars.EVAL_NO_OF_QUESTIONS_TO_TEST || '1' }}

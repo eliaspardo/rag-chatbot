@@ -5,6 +5,7 @@ import pytest
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
+from src.ingestion_service.file_loader import FileLoader
 from src.ingestion_service.vector_store_builder import get_vector_store_builder
 from src.shared.env_loader import load_environment
 
@@ -27,7 +28,8 @@ def eval_test_vectordb():
     chroma_client = chromadb.EphemeralClient()
 
     vector_store_builder = get_vector_store_builder(chroma_client)
-    texts = vector_store_builder.load_pdf_text(str(EVAL_PDF_PATH))
+    local_pdf_path = FileLoader().load_pdf_file(str(EVAL_PDF_PATH))
+    texts = vector_store_builder.load_pdf_text(local_pdf_path)
     docs = vector_store_builder.split_text_to_docs(texts)
 
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)

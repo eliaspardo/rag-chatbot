@@ -7,12 +7,17 @@ from src.ingestion_service.file_loader import FileLoader
 
 
 class TestFileLoader:
-    def test_init_raises_when_s3_and_temp_folder_missing(self, monkeypatch):
-        monkeypatch.setattr(file_loader_module, "PDF_PATH", "s3://bucket/a.pdf")
+    def test_init_does_not_raise_when_temp_folder_missing(self, monkeypatch):
         monkeypatch.setattr(file_loader_module, "AWS_TEMP_FOLDER", "")
 
+        FileLoader()
+
+    def test_load_pdf_file_raises_for_s3_when_temp_folder_missing(self, monkeypatch):
+        monkeypatch.setattr(file_loader_module, "AWS_TEMP_FOLDER", "")
+        loader = FileLoader()
+
         with pytest.raises(ConfigurationException, match="AWS_TEMP_FOLDER"):
-            FileLoader()
+            loader.load_pdf_file("s3://bucket/a.pdf")
 
     @patch("src.ingestion_service.file_loader.shutil.rmtree")
     @patch("src.ingestion_service.file_loader.os.path.exists", return_value=True)
